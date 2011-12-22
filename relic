@@ -126,27 +126,13 @@ class RelicError(Exception):
 
 #---- setup logging
 
-try:
-    # This package will be std in Python 2.3, but many Python 2.2
-    # installation will not have it.
-    import logging
-    logging.basicConfig()
-except ImportError:
-    # Local fallback logging module.
-    try:
-        import _logging as logging
-    except ImportError:
-        sys.stderr.write("Your Python installation does not have the logging "
-                         "package, nor could the fallback _logging module be "
-                         "found. One of the two is required to run this "
-                         "script.\n\n")
-        raise
-
+import logging
+logging.basicConfig()
 log = logging.getLogger("relic")
 
 #---- globals
 
-_version_ = (0, 7, 2)
+_version_ = (2, 0, 0)
 
 # When processing files, 'relic' skips files and directories according
 # to these settings. Note: files identified in .cvsignore files are also
@@ -155,6 +141,8 @@ _g_skip_exts = [".mdp", ".order", ".dsp", ".dsw", ".uf"]
 _g_skip_file_basenames = [
     # Used by CVS (and this script)
     ".cvsignore",
+    
+    ".hgignore",
     
     # GPL with autoconf exception
     "config.guess",
@@ -175,10 +163,6 @@ _g_skip_files = [
     "tools/wizards/templates/licenses/MPL/lic.mak",
     "tools/wizards/templates/licenses/MPL/lic.pl",
 
-###########################################################################
-# Everything in _g_skip_files below this line needs no further work.
-###########################################################################
-    
     # Files containing copies of licence text which confuses the script
     "LICENSE",
     "js2/COPYING",
@@ -251,10 +235,12 @@ _g_skip_files = [
 ]
 _g_skip_dir_basenames = [
     "CVS",
+    ".hg",
 ]
 
 _g_skip_dir_basenames_cvs_only = [
     "CVS",
+    ".hg",
 ]
 
 # Complete path from mozilla dir to a dir to skip.
@@ -340,6 +326,7 @@ _g_basename_to_comment_info = {
     "WIN32": (["#"], ),
     "WIN16": (["#"], ),
     "Makefile.linux": (["#"], ),
+    "ignored": (["#"], ),
 
     "README": ([""], ["#"]),
     "copyright": ([""], ),
@@ -422,6 +409,11 @@ _g_ext_to_comment_info = {
     ".htp":    (["/*", "*", "*/"], ),
     ".xs":     (["/*", "*", "*/"], ),
     ".as":     (["/*", "*", "*/"], ),
+    ".jsm":    (["/*", "*", "*/"], ),
+    ".dep":    (["/*", "*", "*/"], ),
+    ".sjs":    (["/*", "*", "*/"], ),
+    ".ipdl":   (["/*", "*", "*/"], ),
+    ".d":      (["/*", "*", "*/"], ),
     ".api":    (["/*", "*", "*/"], ['#']),
     ".applescript": (["(*", "*", "*)"], ["--"], ["#"]),
 
@@ -498,6 +490,10 @@ _g_ext_to_comment_info = {
     ".ldkd":       (["#"], ),
     ".ldku":       (["#"], ),
     ".arm":        (["#"], ),
+    ".qsconf":     (["#"], ),
+    ".list":       (["#"], ),
+    ".aff":        (["#"], ),
+    ".common":     (["#"], ),
 
     ".tdf":  ([";"], ),
     ".def":  ([";+#"], [";"]),
@@ -641,6 +637,10 @@ the provisions above, a recipient may use your version of this file under
 the terms of any one of the NPL, the GPL or the LGPL.
 
 ***** END LICENSE BLOCK *****""",
+    "mpl2": """\
+This Source Code Form is subject to the terms of the Mozilla Public
+License, v. 2.0. If a copy of the MPL was not distributed with this
+file, You can obtain one at http://mozilla.org/MPL/2.0/."""
 }
 
 _g_dry_run = 0 # iff true, don't modify any files
@@ -800,6 +800,7 @@ def _get_license_info(filename, show_initial=0, quick=0):
         (?P<block_begin>\*\*\*\*\*\ BEGIN\ LICENSE\ BLOCK\ \*\*\*\*\*)
         | (?P<mpl>The\ contents\ of\ this\ file\ are\ subject\ to\ the\ Mozilla)
         | (?P<npl>The\ contents\ of\ this\ file\ are\ subject\ to\ the\ Netscape)
+        | (?P<mpl2>This\ Source\ Code\ Form\ is\ subject\ to\ the\ terms\ of)
         | (?P<gpl>GNU\ (General\ )?Public\ License)
         | (?P<lgpl>(Library|Lesser)\ General\ Public\ License)
         | (?P<block_end>\*\*\*\*\*\ END\ LICENSE\ BLOCK\ \*\*\*\*\*)
@@ -855,7 +856,7 @@ def _get_license_info(filename, show_initial=0, quick=0):
     # license block with tri-license version headers   
     elif (lic_info["parts"] == ["block_begin", "mpl", "gpl", "lgpl", "block_end"] or
           lic_info["parts"] == ["block_begin", "npl", "gpl", "lgpl", "block_end"]):
-        log.info("license looks good, no changes necessary")
+        log.info("tri-license found")
     if quick:
         return lic_info
 
