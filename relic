@@ -78,8 +78,9 @@ _g_skip_add_exts = [".txt", ".TXT", ".inc", ".s"]
 _g_skip_file_basenames = [
     # Used by CVS (and this script)
     ".cvsignore",
-    
+    ".gitignore",
     ".hgignore",
+    ".hgtags",
     
     # GPL with autoconf exception
     "config.guess",
@@ -93,6 +94,7 @@ _g_skip_file_basenames = [
     "readme",
     "copyright",
     "LICENSE-MPL",
+    "LEGAL",
     "MPL-1.1.txt",
 ]
 _g_skip_files = [
@@ -143,17 +145,81 @@ _g_skip_dir_basenames_cvs_only = [
 _g_skip_dirs = [
     # BSD-licensed
     "dbm",
-    "media/libjpeg",
     
-    # The following are not supposed to be relicensed, but they do have a
-    # few files in we care about (like makefiles)
-    "media/libpng",
-    "modules/zlib",
     "other-licenses",
     
     # Other directories we want to exclude
     "embedding/tests",     # Agreed as BSD
-    "gfx/cairo/cairo/src", # LGPL/MPL
+    "gfx/cairo",           # LGPL/MPL XXX Update to MPL 2?
+    "gfx/graphite2",       # LGPL leading, with MPL and GPL alternatives
+    "gfx/angle",           # BSD
+    "gfx/harfbuzz",        # Permissive, BSD-like
+    "gfx/ots",             # BSD
+    "gfx/qcms",            # MIT
+    "gfx/skia",            # BSD
+    "gfx/ycbcr",           # BSD
+
+    # mkdepend
+    "config/mkdepend", # BSD
+    "js/src/config/mkdepend", # BSD
+    "security/coreconf/mkdepend", # BSD
+    
+    "browser/app/profile/extensions/testpilot@labs.mozilla.com/content/flot", # Copy of jquery
+    "build/pgo/js-input", # SunSpider - Apple BSD
+    "content/canvas/test/webgl", # WebGL test suite - BSD
+    "db/sqlite3", # Public Domain
+    
+    "dom/plugins/test/testplugin", # BSD
+    "dom/tests/mochitest/ajax", # Various Ajax libraries, all MIT
+    "dom/tests/mochitest/dom-level1-core", # W3C
+    "dom/tests/mochitest/dom-level2-core", # W3C
+    "dom/tests/mochitest/dom-level2-html", # W3C
+
+    "editor/libeditor/html/tests/browserscope/lib/richtext2", # Apache
+
+    "ipc/chromium/base",   # BSD
+    "ipc/chromium/src",    # BSD
+
+    "js/src/assembler/assembler",    # BSD
+    "js/src/assembler/jit",          # BSD
+    "js/src/assembler/wtf",          # BSD
+    "js/src/ctypes/libffi",          # MIT
+    "js/src/jit-test/tests/sunspider", # BSD
+    "js/src/metrics/jint/sunspider",   # BSD
+    "js/src/jit-test/tests/v8-v5",   # BSD
+    "js/src/metrics/jint/v8",        # BSD
+    "js/src/v8",                     # BSD
+    "js/src/v8-dtoa",                # BSD
+    "js/src/yarr",                   # BSD
+
+    "media/libjpeg",
+    "media/libpng",
+    "media/libnestegg", # BSD/ISC
+    "media/libogg",     # BSD
+    "media/libtheora",  # BSD
+    "media/libtremor",  # BSD    
+    "media/libvorbis",  # BSD
+    "media/libvpx",     # BSD
+
+    "memory/jemalloc",  # BSD
+
+    "mobile/android/base/apache/commons/codec", # Apache
+    "mobile/android/base/httpclientandroidlib", # Apache
+
+    "modules/freetype2",  # FreeType License
+    "modules/libbz2/src", # BSD
+    "modules/zlib",
+    "security/nss/lib/zlib",
+
+    "parser/expat", # MIT
+    "parser/html",  # MIT
+    
+    "testing/mochitest/MochiKit", # MIT
+    "testing/mochitest/tests/MochiKit-1.4.2/MochiKit", # MIT
+    "testing/mochitest/pywebsocket", # BSD
+    
+    "toolkit/components/alerts/mac/growl", # BSD
+    "toolkit/crashreporter/google-breakpad", # BSD
 ]
 
 _g_basename_to_comment_info = {
@@ -223,6 +289,8 @@ _g_basename_to_comment_info = {
 
     "abcFormat470.txt": (["//"], ),
     "opcodes.tbl": (["//"], ),
+
+    "package-manifest":  ([";"], ),
 }
 
 _g_ext_to_comment_info = {
@@ -301,6 +369,9 @@ _g_ext_to_comment_info = {
     ".bl":   (["<!--", "-", "-->"], ),
     ".xif":  (["<!--", "-", "-->"], ),
     ".xhtml":(["<!--", "-", "-->"], ["#"]),
+    ".plist":(["<!--", "-", "-->"], ),
+    ".svg":  (["<!--", "-", "-->"], ),
+    ".ttx":  (["<!--", "-", "-->"], ),
 
     ".inc":  (["<!--", "-", "-->"], 
               ["#"],
@@ -365,6 +436,8 @@ _g_ext_to_comment_info = {
     ".list":       (["#"], ),
     ".aff":        (["#"], ),
     ".common":     (["#"], ),
+    ".manifest":   (["#"], ),
+    ".excl":       (["#"], ),
 
     ".tdf":  ([";"], ),
     ".def":  ([";+#"], [";"]),
@@ -1332,6 +1405,7 @@ def _add_license_to_file(original_path,
 
     if not lines:
         print "... empty, skipping this file"
+        results["empty"] += 1
         return
         
     # If this is an XML file, advance past the magic number tag.
@@ -1579,6 +1653,7 @@ def relicense(paths,
     results = {
         "relicensed": 0,
         "no license": 0,
+        "empty": 0,
         "good": 0,
         "binary": 0,
     }
@@ -1591,6 +1666,7 @@ def relicense(paths,
     print "Files skipped b/c they are binary:", results["binary"]
     print "Files skipped b/c they already had proper license:", results["good"]
     print "Files skipped b/c they had no license:", results["no license"]
+    print "Files skipped b/c they are empty:", results["empty"]
     if _g_dry_run:
         print "Files re-licensed: %d (dry-run)" % results["relicensed"]
     else:
@@ -1619,6 +1695,7 @@ def addlicense(paths,
     results = {
         "added": 0,
         "license": 0,
+        "empty": 0,
         "binary": 0,
     }
     _traverse(paths, _add_license_to_file,
@@ -1629,6 +1706,7 @@ def addlicense(paths,
     print "--------------------- Summary of Results ------------------------"
     print "Files skipped b/c they are binary:", results["binary"]
     print "Files skipped b/c they already had a license:", results["license"]
+    print "Files skipped b/c they were empty:", results["empty"]
     if _g_dry_run:
         print "Files to which a license was added: %d (dry-run)" % results["added"]
     else:
