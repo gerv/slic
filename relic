@@ -71,6 +71,10 @@ _version_ = (2, 0, 0)
 # skipped.
 _g_skip_exts = [".mdp", ".order", ".dsp", ".dsw", ".uf"]
 
+# Files not to add a license to when they don't have one (due to
+# inappropriateness or comment character confusion)
+_g_skip_add_exts = [".txt", ".TXT", ".inc", ".s"]
+
 _g_skip_file_basenames = [
     # Used by CVS (and this script)
     ".cvsignore",
@@ -1287,6 +1291,11 @@ def _add_license_to_file(original_path,
             "error determining if file is binary: %s" % ex,
             original_path, _errors)
 
+    ext = os.path.splitext(original_path)[1]
+    if ext in _g_skip_add_exts:
+        print "... not adding license to %s files" % ext
+        return
+
     try:
         lic_info = _get_license_info(original_path, 0)
     except RelicError, ex:
@@ -1320,6 +1329,11 @@ def _add_license_to_file(original_path,
         lines = fin.readlines()
     finally:
         fin.close()
+
+    if not lines:
+        print "... empty, skipping this file"
+        return
+        
     # If this is an XML file, advance past the magic number tag.
     if lines and lines[0].find("<?xml") != -1:
         line = lines[0]
@@ -1329,8 +1343,8 @@ def _add_license_to_file(original_path,
             # Note: this is hardly robust Unicode XML handling :)
             line = line[3:]
         if line.startswith("<?xml"):
-            end_index = lines[startline].find("?>")
             while startline < len(lines):
+                end_index = lines[startline].find("?>")
                 startline += 1
                 if end_index != -1: # found end of tag
                     break
@@ -1346,6 +1360,13 @@ def _add_license_to_file(original_path,
                 startline += 1
     # Advance past an Emacs local variable line.
     comment_delims = None
+
+    # Deal with the possibility that startline might be off the end of the file
+    if startline == len(lines):
+        print "... single line file or other weirdness"
+        # XXX e.g. ./layout/reftests/bugs/403505-1-ref.xul
+        return
+    
     if lines[startline].find("-*-") != -1:
         for comment_delims in comment_delim_sets:
             if lines[startline].find(comment_delims[0]) != -1:
@@ -1390,8 +1411,6 @@ def _add_license_to_file(original_path,
                 if not in_comment:
                     break
     
-    # Put the license block together.
-    # - build up the license block from the appropriate parts
     newlicense = _g_newlicense
     
     # - add the comment delimiters
@@ -1427,11 +1446,17 @@ def _add_license_to_file(original_path,
             t_lines[0] = comment_delims[0] + ' ' + t_lines[0]
         else: # don't add trailing whitespace
             t_lines[0] = comment_delims[0]
+
+        # Generate padding spaces equivalent to length of opening delim, -1
+        spaces = comment_delims[0]
+        spaces = re.sub(".", " ", spaces)
+        spaces = spaces[:-1]
+        
         for i in range(1, len(t_lines)):
             if t_lines[i]:
-                t_lines[i] = comment_delims[1] + ' ' + t_lines[i]
+                t_lines[i] = spaces + comment_delims[1] + ' ' + t_lines[i]
             else: # don't add trailing whitespace
-                t_lines[i] = comment_delims[1]
+                t_lines[i] = spaces + comment_delims[1]
         t_lines[-1] += ' ' + comment_delims[-1]
     for i in range(len(t_lines)): t_lines[i] += '\n'
     t_lines[-1] += '\n' # add a blank line at end of lic block
