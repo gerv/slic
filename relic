@@ -1274,7 +1274,10 @@ def _relicense_file(original_path,
             if lic_info["subsequent_prefix"]:
                 prefix = lic_info["subsequent_prefix"]
             else:
-                prefix = fallback_prefix[0][1]
+                if len(fallback_prefix[0]) > 0:
+                    prefix = fallback_prefix[0][1]
+                else:
+                    prefix = ""
         if lines[i]:
             if len(lic_info["comment_delims"]) == 0:
                 lines[i] = prefix + lines[i]
