@@ -69,7 +69,7 @@ _version_ = (2, 0, 0)
 # When processing files, 'relic' skips files and directories according
 # to these settings. Note: files identified in .cvsignore files are also
 # skipped.
-_g_skip_exts = [".mdp", ".order", ".dsp", ".dsw", ".uf"]
+_g_skip_exts = [".mdp", ".order", ".dsp", ".dsw", ".uf", ".json", ".png"]
 
 # Files not to add a license to when they don't have one (due to
 # inappropriateness or comment character confusion)
@@ -96,6 +96,9 @@ _g_skip_file_basenames = [
     "LICENSE-MPL",
     "LEGAL",
     "MPL-1.1.txt",
+    "README.txt",
+
+    ".mozconfig",
 ]
 _g_skip_files = [
     # Files containing copies of licence text which confuses the script
@@ -143,6 +146,12 @@ _g_skip_dir_basenames_cvs_only = [
 
 # Complete path from mozilla dir to a dir to skip.
 _g_skip_dirs = [
+    # Skip for mozilla-central and comm-central, but don't skip for NSS and
+    # NSPR (obviously)
+    "security/nss",
+    "security/coreconf",
+    "nsprpub",
+        
     # BSD-licensed
     "dbm",
     
@@ -372,6 +381,7 @@ _g_ext_to_comment_info = {
     ".plist":(["<!--", "-", "-->"], ),
     ".svg":  (["<!--", "-", "-->"], ),
     ".ttx":  (["<!--", "-", "-->"], ),
+    ".atom": (["<!--", "-", "-->"], ),
 
     ".inc":  (["<!--", "-", "-->"], 
               ["#"],
@@ -1793,30 +1803,6 @@ def statistics(paths, extended=0, quick=0, _errors=None):
     print "----------------------------"
     print "%7d files processed" % len(results)
 
-    # Print some other interesting statistics.
-    no_original_code_is = []
-    no_initial_developer = []
-    unindented_contributor_lines = []
-    for file, info in results.items():
-        if "original_code_is" in info and info["original_code_is"] is None:
-            no_original_code_is.append(file)
-        if "initial_developer" in info and info["initial_developer"] is None:
-            no_initial_developer.append(file)
-        if info.get("unindented_contributor_lines"):
-            unindented_contributor_lines.append(file)
-    print
-    print "Licensed files with no 'Initial Developer...' info: %d" % len(no_initial_developer)
-    if extended:
-        for f in no_initial_developer:
-            print "    %s" % f
-    print "Licensed files with no 'Original Code is...' info: %d" % len(no_original_code_is)
-    if extended:
-        for f in no_original_code_is:
-            print "    %s" % f
-    print "Licensed files with improperly indented 'Contributor(s):' line(s): %d" % len(unindented_contributor_lines)
-    if extended:
-        for f in unindented_contributor_lines:
-            print "    %s" % f
     if extended:
         for hits, name, files in statslist:
             print "Files in license category '%s'" % name
