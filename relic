@@ -4,6 +4,9 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+# Note that this code has a long history of maintainers and being hacked on,
+# including by people who don't know much Python. Please excuse the mess.
+
 """
     relic - Show the licenses of, or relicense, a given file, set of files,
             or directory of files
@@ -54,6 +57,7 @@ import re
 import getopt
 import pprint
 import shutil
+import subprocess
 
 class RelicError(Exception):
     pass
@@ -69,7 +73,11 @@ _version_ = (2, 0, 0)
 # When processing files, 'relic' skips files and directories according
 # to these settings. Note: files identified in .cvsignore files are also
 # skipped.
-_g_skip_exts = [".mdp", ".order", ".dsp", ".dsw", ".uf", ".json", ".png"]
+
+# List includes binary extensions in case binary checking is turned off
+_g_skip_exts = [".mdp", ".order", ".dsp", ".dsw", ".uf", ".json",
+                ".png", ".jpg", ".jpeg", ".gif", ".tiff", ".rtf",
+                ".pbxproj", ".pch", ".pem", ".icns", ]
 
 # Files not to add a license to when they don't have one (due to
 # inappropriateness or comment character confusion)
@@ -79,8 +87,10 @@ _g_skip_file_basenames = [
     # Used by CVS (and this script)
     ".cvsignore",
     ".gitignore",
+    ".gitattributes",
     ".hgignore",
     ".hgtags",
+    ".bzrignore",
     
     # GPL with autoconf exception
     "config.guess",
@@ -90,19 +100,25 @@ _g_skip_file_basenames = [
     "configure",
 
     # license and readme files
+    "LICENSE",
     "license",
-    "readme",
-    "copyright",
     "LICENSE-MPL",
     "LEGAL",
     "MPL-1.1.txt",
+    "copyright",
+    "README",
+    "readme",
     "README.txt",
+    "AUTHORS",
+    "NEWS",
+    "TODO",
+    "ChangeLog",
 
     ".mozconfig",
+    "ignore-me",
 ]
 _g_skip_files = [
     # Files containing copies of licence text which confuses the script
-    "LICENSE",
     "gfx/cairo/cairo/COPYING-LGPL-2.1",
     "gfx/cairo/cairo/COPYING-MPL-1.1",
     
@@ -114,6 +130,7 @@ _g_skip_files = [
     "intl/uconv/tools/gen-big5hkscs-2001-mozilla.pl",
     
     # Files which the script doesn't handle well. Need to relicense manually.
+    # XXX
     "security/nss/lib/freebl/ecl/README.FP",
     "nsprpub/pkg/linux/sun-nspr.spec",
     "security/nss/pkg/linux/sun-nss.spec",
@@ -126,22 +143,52 @@ _g_skip_files = [
     
     # GPL with autoconf exception (same license as files distributed with)
     "build/autoconf/codeset.m4",
+    "security/svrcore/depcomp",
+    "security/svrcore/compile",
+    "security/svrcore/missing",
+    "security/svrcore/ltmain.sh",
     
     # Public domain or equivalent
     "nsprpub/config/nspr.m4",
+    "security/svrcore/aclocal.m4",
     "security/nss/lib/freebl/mpi/mp_comba_amd64_sun.s",
     
     # GSSAPI has BSD-like licence requiring some attribution
     "extensions/auth/gssapi.h",
+
+    # Addon SDK
+    "doc/static-files/js/jquery.js", # MIT/GPL
+    "examples/annotator/data/jquery-1.4.2.min.js", # MIT/GPL
+    "examples/reddit-panel/data/jquery-1.4.4.min.js", # MIT/GPL
+
+    # Camino
+    "src/extensions/ImageAndTextCell.m", # Apple BSD-like
+    "src/extensions/ImageAndTextCell.h", # Apple BSD-like
+    "src/extensions/MAAttachedWindow.m", # Matt Gemmill's copy of the above lic
+    "src/extensions/MAAttachedWindow.h", # Matt Gemmill's copy of the above lic
+
+    # BrowserID
+    "resources/static/test/qunit.css", # MIT
 ]
+
 _g_skip_dir_basenames = [
     "CVS",
     ".hg",
+    ".git",
+    ".bzr",
+]
+
+_g_skip_add_dir_basenames = [
+    "mochitest",
+    "reftest",
+    "crashtest",
 ]
 
 _g_skip_dir_basenames_cvs_only = [
     "CVS",
     ".hg",
+    ".git",
+    ".bzr",
 ]
 
 # Complete path from mozilla dir to a dir to skip.
@@ -159,7 +206,7 @@ _g_skip_dirs = [
     
     # Other directories we want to exclude
     "embedding/tests",     # Agreed as BSD
-    "gfx/cairo",           # LGPL/MPL XXX Update to MPL 2?
+    "gfx/cairo",           # LGPL/MPL
     "gfx/graphite2",       # LGPL leading, with MPL and GPL alternatives
     "gfx/angle",           # BSD
     "gfx/harfbuzz",        # Permissive, BSD-like
@@ -168,10 +215,14 @@ _g_skip_dirs = [
     "gfx/skia",            # BSD
     "gfx/ycbcr",           # BSD
 
-    # mkdepend
-    "config/mkdepend", # BSD
-    "js/src/config/mkdepend", # BSD
-    "security/coreconf/mkdepend", # BSD
+    "extensions/spellcheck/hunspell", # MPL/LGPL/GPL, but not ours
+
+    "calendar/libical", # MPL/LGPL
+        
+    # mkdepend - BSD
+    "config/mkdepend",
+    "js/src/config/mkdepend",
+    "security/coreconf/mkdepend",
     
     "browser/app/profile/extensions/testpilot@labs.mozilla.com/content/flot", # Copy of jquery
     "build/pgo/js-input", # SunSpider - Apple BSD
@@ -229,6 +280,28 @@ _g_skip_dirs = [
     
     "toolkit/components/alerts/mac/growl", # BSD
     "toolkit/crashreporter/google-breakpad", # BSD
+
+    # Camino
+    "sparkle", # MIT
+    "google-breakpad", # BSD
+    "growl", # BSD
+    "striptease", # APSL build tool
+
+    # Addon SDK
+    "python-lib/markdown", # BSD
+    "python-lib/simplejson", # MIT
+    "doc/static-files/syntaxhighlighter", # MIT/GPL dual
+
+    "intl/hyphenation", # tri-licensed but prob. not us; Bug 716482
+
+    # Bugzilla
+    "lib",
+    "data",
+    "js/yui",
+    "js/history.js", # Yes, this is a directory
+
+    # BrowserID
+    "resources/static/lib" # Need to check manually
 ]
 
 _g_basename_to_comment_info = {
@@ -362,8 +435,12 @@ _g_ext_to_comment_info = {
     ".sjs":    (["/*", "*", "*/"], ),
     ".ipdl":   (["/*", "*", "*/"], ),
     ".d":      (["/*", "*", "*/"], ),
+    ".strings": (["/*", "*", "*/"], ),
+    
     ".api":    (["/*", "*", "*/"], ['#']),
     ".applescript": (["(*", "*", "*)"], ["--"], ["#"]),
+
+    ".xcconfig": (["//"], ),
 
     ".html": (["<!--", "-", "-->"], ["#"]),
     ".xml":  (["<!--", "-", "-->"], ["#"]),
@@ -382,6 +459,11 @@ _g_ext_to_comment_info = {
     ".svg":  (["<!--", "-", "-->"], ),
     ".ttx":  (["<!--", "-", "-->"], ),
     ".atom": (["<!--", "-", "-->"], ),
+    ".sdef": (["<!--", "-", "-->"], ),
+    ".nib":  (["<!--", "-", "-->"], ),
+    ".md":   (["<!--", "-", "-->"], ),
+    ".table":(["<!--", "-", "-->"], ),
+    ".ejs":  (["<!--", "-", "-->"], ),
 
     ".inc":  (["<!--", "-", "-->"], 
               ["#"],
@@ -432,7 +514,7 @@ _g_ext_to_comment_info = {
     ".targ":       (["#"], ),
     ".gnuplot":    (["#"], ),
     ".bash":       (["#"], ),
-    ".tmpl":       (["#"], ),
+#    ".tmpl":       (["#"], ),
     ".com":        (["#"], ),
     ".dat":        (["#"], ),
     ".rpm":        (["#"], ),
@@ -475,6 +557,11 @@ _g_ext_to_comment_info = {
 	    
     # What a mess...
     ".s": (["#"], ["//"], ["/*", "*", "*/"], ["!"], [";"], ["/"]),
+
+    # Bugzilla
+    ".tmpl":       (["[%#", "#", "#%]"], ),
+    ".t":          (["#"], ),
+    ".conf":       (["#"], ),
 }
 _g_shebang_pattern_to_comment_info = [
     (re.compile(ur'\A#!.*/bin/(ba)?sh.*$', re.IGNORECASE), (["#"], )),
@@ -485,6 +572,7 @@ _g_shebang_pattern_to_comment_info = [
     (re.compile(ur'\A#!.*tclsh.*$', re.IGNORECASE), (["#"], )),
     (re.compile(ur'\A#!.*wish.*$', re.IGNORECASE), (["#"], )),
     (re.compile(ur'\A#!.*expect.*$', re.IGNORECASE), (["#"], )),
+    (re.compile(ur'\A#!.*env node.*$', re.IGNORECASE), (["/*", "*", "*/"], )),
 ]
 
 
@@ -493,11 +581,21 @@ This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
 file, You can obtain one at http://mozilla.org/MPL/2.0/."""
 
-_g_dry_run = 0 # iff true, don't modify any files
-_g_force = 0
+_g_incompatible = """
+
+This Source Code Form is "Incompatible With Secondary Licenses", as
+defined by the Mozilla Public License, v. 2.0."""
+
+_g_dry_run = 0 # if true, don't modify any files
+_g_force = 0 # if true, continue after errors
 _g_check_all = 0
+_g_fast_binary = 1 # if true, do a simple check on files to see if binary
+                   # if false, do a slow check using the 'file' command
+_g_mode = "report"
+_g_add_incompatible = 0
 
 #---- internal support routines
+
 
 def _is_binary(filename):
     """Return true iff the given filename is binary.
@@ -505,6 +603,13 @@ def _is_binary(filename):
     Raises an EnvironmentError if the file does not exist or cannot be
     accessed.
     """
+    if not _g_fast_binary:
+        # http://stackoverflow.com/questions/898669/how-can-i-detect-if-a-file-is-binary-non-text-in-python
+        return (re.search(r':.* text',
+                          subprocess.Popen(["file", '-L', filename], 
+                                           stdout=subprocess.PIPE).stdout.read())
+                is None)
+    
     fin = open(filename, 'rb')
     try:
         CHUNKSIZE = 1024
@@ -579,6 +684,9 @@ def _should_skip_dir(path):
     if os.path.basename(path) in _g_skip_dir_basenames:
         log.info("Skipping '%s' (according to _g_skip_dir_basenames).", path)
         return 1
+    if _g_mode == "add" and os.path.basename(path) in _g_skip_add_dir_basenames:
+        log.info("Skipping '%s' (according to _g_skip_add_dir_basenames).", path)
+        return 1        
     xpath = '/'.join(path.split(os.sep)) # use same sep as in _g_skip_dirs
     # These could do with being a proper path canonicalisation function...
     if xpath[-1] == '/': xpath = xpath[:-1]  # treat "calendar/" the same as "calendar"
@@ -676,7 +784,7 @@ def _get_license_info(filename, quick=0):
     if not parts:
         # - if not, check to see if License or Copyright shows up in the
         #   file; if so, then error out; if not, skip out
-        any_lic_pattern = re.compile("(Copyright|Licen[sc]e)", re.IGNORECASE)
+        any_lic_pattern = re.compile("(Copyright|Licen[sc]e|Public\s*Domain)", re.IGNORECASE)
         match = any_lic_pattern.search(content)
         if match:
             lic_info["parts"].append("unknown")
@@ -1250,7 +1358,8 @@ def _relicense_file(original_path,
                   % "/".join(parts)
             return        
     elif not (parts == ["block_begin", "mpl", "gpl", "lgpl", "block_end"] or
-              parts == ["block_begin", "npl", "gpl", "lgpl", "block_end"]):
+              parts == ["block_begin", "npl", "gpl", "lgpl", "block_end"] or
+              parts == ["mpl"]):
         # Not sure what this is - return
         print "... %s found (not tri-license, so doing nothing)"\
               % "/".join(parts)
@@ -1261,6 +1370,9 @@ def _relicense_file(original_path,
 
     # Put the license block together.
     newlicense = _g_newlicense
+
+    if parts == ["mpl"]:
+        newlicense = newlicense + _g_incompatible
 
     # get fallback comment subsequent prefix
     fallback_prefix = _get_comment_delim_sets(original_path)
@@ -1273,6 +1385,9 @@ def _relicense_file(original_path,
         else:
             if lic_info["subsequent_prefix"]:
                 prefix = lic_info["subsequent_prefix"]
+                # Fix broken block indentations for Bugzilla
+                if prefix == "  *":
+                    prefix = " *"
             else:
                 if len(fallback_prefix[0]) > 0:
                     prefix = fallback_prefix[0][1]
@@ -1286,15 +1401,17 @@ def _relicense_file(original_path,
         else: # don't add trailing whitespace
             lines[i] = prefix
 
+    
     if lic_info["last_suffix"]: # don't add that ' ' if there is no suffix
-        lines[-1] += ' ' + lic_info["last_suffix"]
-            
-    for i in range(len(lines)): lines[i] += '\n'
-    newlicense_lines = lines
+        # Ick.
+        if lic_info["last_suffix"] == "#%]":
+            lines[-1] += '\n  ' + lic_info["last_suffix"]
+#        elif lic_info["last_suffix"] == "*/":
+#            lines[-1] += '\n ' + lic_info["last_suffix"]
+        else:
+            lines[-1] += ' ' + lic_info["last_suffix"]
 
-    ##### uncomment to debug license block
-    # pprint.pprint(lines)
-    # return
+    newlicense_lines = lines
 
     # Skip out now if doing a dry-run.
     if _g_dry_run:
@@ -1317,6 +1434,17 @@ def _relicense_file(original_path,
             lines = fin.readlines()
         finally:
             fin.close()
+
+        # Add EOL character
+        eol = "\n"
+        if re.search("\r\n", lines[0]):
+            eol = "\r\n"
+        
+        for i in range(len(newlicense_lines)): newlicense_lines[i] += eol
+
+        ##### uncomment to debug license block
+        # pprint.pprint(lines)
+        # return
 
         lines[lic_info["begin_line"]:lic_info["end_line"]+1] = newlicense_lines
 
@@ -1405,6 +1533,7 @@ def _add_license_to_file(original_path,
     #   trend, so might as well honour it.
     # - XML magic "number":  <?xml version="2.0" ... ?>
     #   where "..." might include newlines
+    # - @echo off lines
     startline = 0
     try:
         comment_delim_sets = _get_comment_delim_sets(original_path)
@@ -1445,6 +1574,10 @@ def _add_license_to_file(original_path,
             if (len(comment_delims) == 1 and comment_delims[0] == "#"
                 and lines[0].startswith("#!")):
                 startline += 1
+        # And advance past an @echo off line
+        if lines and lines[0].startswith("@echo off"):
+            startline += 1
+
     # Advance past an Emacs local variable line.
     comment_delims = None
 
@@ -1499,6 +1632,9 @@ def _add_license_to_file(original_path,
                     break
     
     newlicense = _g_newlicense
+
+    if _g_add_incompatible:
+        newlicense = newlicense + _g_incompatible
     
     # - add the comment delimiters
     if comment_delims is None:
@@ -1544,9 +1680,21 @@ def _add_license_to_file(original_path,
                 t_lines[i] = spaces + comment_delims[1] + ' ' + t_lines[i]
             else: # don't add trailing whitespace
                 t_lines[i] = spaces + comment_delims[1]
-        t_lines[-1] += ' ' + comment_delims[-1]
-    for i in range(len(t_lines)): t_lines[i] += '\n'
-    t_lines[-1] += '\n' # add a blank line at end of lic block
+                
+        # Ick.
+        if comment_delims[-1] == "#%]":
+#           or comment_delims[-1] == "*/":
+            t_lines[-1] += '\n' + spaces + comment_delims[-1]
+        else:
+            t_lines[-1] += ' ' + comment_delims[-1]
+
+    # Add EOL character
+    eol = "\n"
+#    if re.search("\r\n", lines[0]):
+#        eol = "\r\nYY"
+        
+    for i in range(len(t_lines)): t_lines[i] += eol
+    t_lines[-1] += eol # add a blank line at end of lic block
     newlicense_lines = t_lines
     #pprint.pprint(t_lines)
 
@@ -1783,9 +1931,9 @@ def statistics(paths, extended=0, quick=0, _errors=None):
         # begin and end tokens) and incomplete mpl/gpl/lgpl. Likewise
         # NPL.
         elif (info["parts"] == ["block_begin", "mpl", "gpl", "lgpl", "block_end"]):
-            name = "mpl/gpl/lgpl (complete)"
+            name = "mpl/gpl/lgpl (standard block)"
         elif (info["parts"] == ["block_begin", "npl", "gpl", "lgpl", "block_end"]):
-            name = "npl/gpl/lgpl (complete)"
+            name = "npl/gpl/lgpl (standard block)"
         else:
             name = "/".join(lic_types)
         if name not in stats: stats[name] = [0, []]
@@ -1825,7 +1973,7 @@ def main(argv):
             ["version", "verbose", "all", "help", "debug",
              "dry-run", "force", "license=",
              "statistics", "relicense", "backup", "add",
-             "quick"])
+             "quick", "slow-binary", "incompatible"])
     except getopt.GetoptError, ex:
         log.error(str(ex))
         log.error("Try `%s --help'.", argv[0])
@@ -1870,6 +2018,12 @@ def main(argv):
             backup = 1
         elif opt in ("-q", "--quick"):
             quick = 1
+        elif opt in ("--slow-binary"):
+            global _g_fast_binary
+            _g_fast_binary = 0
+        elif opt in ("--incompatible"):
+            global _g_add_incompatible
+            _g_add_incompatible = 1
 
     try:
         # Prepare the input.
@@ -1878,6 +2032,9 @@ def main(argv):
             paths = sys.stdin
         else:
             paths = args
+
+        global _g_mode
+        _g_mode = mode
 
         # Invoke the requested action.
         _errors = {}
