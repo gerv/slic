@@ -182,6 +182,8 @@ _g_skip_add_dir_basenames = [
     "mochitest",
     "reftest",
     "crashtest",
+    "test",
+    "tests"
 ]
 
 _g_skip_dir_basenames_cvs_only = [
@@ -435,7 +437,7 @@ _g_ext_to_comment_info = {
     ".sjs":    (["/*", "*", "*/"], ),
     ".ipdl":   (["/*", "*", "*/"], ),
     ".d":      (["/*", "*", "*/"], ),
-    ".strings": (["/*", "*", "*/"], ),
+    ".strings":\(["/*", "*", "*/"], ),
     
     ".api":    (["/*", "*", "*/"], ['#']),
     ".applescript": (["(*", "*", "*)"], ["--"], ["#"]),
