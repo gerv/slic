@@ -75,7 +75,7 @@ _version_ = (2, 0, 0)
 # skipped.
 
 # List includes binary extensions in case binary checking is turned off
-_g_skip_exts = [".mdp", ".order", ".dsp", ".dsw", ".uf", ".json",
+_g_skip_exts = [".mdp", ".order", ".dsp", ".dsw", ".json",
                 ".png", ".jpg", ".jpeg", ".gif", ".tiff", ".rtf",
                 ".pbxproj", ".pch", ".pem", ".icns", ]
 
@@ -288,6 +288,7 @@ _g_skip_dirs = [
     "google-breakpad", # BSD
     "growl", # BSD
     "striptease", # APSL build tool
+    "flashblock", # Upstream tri-licence
 
     # Addon SDK
     "python-lib/markdown", # BSD
@@ -437,7 +438,8 @@ _g_ext_to_comment_info = {
     ".sjs":    (["/*", "*", "*/"], ),
     ".ipdl":   (["/*", "*", "*/"], ),
     ".d":      (["/*", "*", "*/"], ),
-    ".strings":\(["/*", "*", "*/"], ),
+    ".strings":(["/*", "*", "*/"], ),
+    ".uf":     (["/*", "*", "*/"], ),
     
     ".api":    (["/*", "*", "*/"], ['#']),
     ".applescript": (["(*", "*", "*)"], ["--"], ["#"]),
@@ -503,7 +505,6 @@ _g_ext_to_comment_info = {
     ".py":         (["#"], ),
     ".adb":        (["#"], ),
     ".dtksh":      (["#"], ),
-    ".pkg":        (["#"], ),
     ".et":         (["#"], ),
     ".stub":       (["#"], ),
     ".nss":        (["#"], ),
@@ -1257,7 +1258,7 @@ def _relicensing_error(err, path, cache=None, quiet=1):
 
 def _get_comment_delim_sets(filename):
     comment_delims = None
-    if os.path.splitext(filename)[1] == ".in":
+    if os.path.splitext(filename)[1] in [".in"]:
         # "<foo>.in" is generally a precursor for a filetype
         # identifiable without the ".in". Drop it.
         xfilename = os.path.splitext(filename)[0]
@@ -1361,6 +1362,7 @@ def _relicense_file(original_path,
             return        
     elif not (parts == ["block_begin", "mpl", "gpl", "lgpl", "block_end"] or
               parts == ["block_begin", "npl", "gpl", "lgpl", "block_end"] or
+              parts == ["npl"] or # There are a few NPLed files; fix them too
               parts == ["mpl"]):
         # Not sure what this is - return
         print "... %s found (not tri-license, so doing nothing)"\
@@ -1378,7 +1380,7 @@ def _relicense_file(original_path,
 
     # get fallback comment subsequent prefix
     fallback_prefix = _get_comment_delim_sets(original_path)
-    
+
     # - add the comment delimiters
     lines = newlicense.splitlines()
     for i in range(len(lines)):
@@ -1392,7 +1394,18 @@ def _relicense_file(original_path,
                     prefix = " *"
             else:
                 if len(fallback_prefix[0]) > 0:
-                    prefix = fallback_prefix[0][1]
+                    spaces = ""
+                    if len(fallback_prefix[0]) > 1:
+                        # Block comments; need to indent. Generate padding
+                        # spaces equivalent to length of opening delim, -1
+                        spaces = fallback_prefix[0][0]
+                        spaces = re.sub(".", " ", spaces)
+                        spaces = spaces[:-1]
+        
+                        prefix = spaces + fallback_prefix[0][1]
+                    else:
+                        # Line comments
+                        prefix = fallback_prefix[0]
                 else:
                     prefix = ""
         if lines[i]:
