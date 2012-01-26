@@ -116,6 +116,9 @@ _g_skip_file_basenames = [
 
     ".mozconfig",
     "ignore-me",
+
+    # The parser for this file seems not to understand well-formed XML
+    "AndroidManifest.xml",
 ]
 _g_skip_files = [
     # Files containing copies of licence text which confuses the script
@@ -181,9 +184,12 @@ _g_skip_dir_basenames = [
 _g_skip_add_dir_basenames = [
     "mochitest",
     "reftest",
+    "reftests",
     "crashtest",
+    "crashtests",
     "test",
-    "tests"
+    "tests",
+    "jsreftest",
 ]
 
 _g_skip_dir_basenames_cvs_only = [
@@ -304,7 +310,10 @@ _g_skip_dirs = [
     "js/history.js", # Yes, this is a directory
 
     # BrowserID
-    "resources/static/lib" # Need to check manually
+    "resources/static/lib", # Need to check manually
+
+    # comm-central
+    "mozilla",
 ]
 
 _g_basename_to_comment_info = {
@@ -459,12 +468,9 @@ _g_ext_to_comment_info = {
     ".bl":   (["<!--", "-", "-->"], ),
     ".xif":  (["<!--", "-", "-->"], ),
     ".xhtml":(["<!--", "-", "-->"], ["#"]),
-    ".plist":(["<!--", "-", "-->"], ),
     ".svg":  (["<!--", "-", "-->"], ),
     ".ttx":  (["<!--", "-", "-->"], ),
     ".atom": (["<!--", "-", "-->"], ),
-    ".sdef": (["<!--", "-", "-->"], ),
-    ".nib":  (["<!--", "-", "-->"], ),
     ".md":   (["<!--", "-", "-->"], ),
     ".table":(["<!--", "-", "-->"], ),
     ".ejs":  (["<!--", "-", "-->"], ),
@@ -533,6 +539,7 @@ _g_ext_to_comment_info = {
     ".common":     (["#"], ),
     ".manifest":   (["#"], ),
     ".excl":       (["#"], ),
+    ".yaml":       (["#"], ),
 
     ".tdf":  ([";"], ),
     ".def":  ([";+#"], [";"]),
@@ -1497,11 +1504,11 @@ def _add_license_to_file(original_path,
             See relicense() for schema.
         "_errors" is a dictionary on which errors are reported
             (keyed by file path) when the force option is in effect.
-
-    The function does not return anything.
     """
     log.debug("_add_license_to_file(original_path='%s')", original_path)
     print original_path
+
+    results["total"] += 1
 
     # Ensure can access file.
     if not os.access(original_path, os.R_OK|os.W_OK):
@@ -1523,6 +1530,7 @@ def _add_license_to_file(original_path,
     ext = os.path.splitext(original_path)[1]
     if ext in _g_skip_add_exts:
         print "... not adding license to %s files" % ext
+        results["badext"] += 1
         return
 
     try:
@@ -1533,8 +1541,8 @@ def _add_license_to_file(original_path,
     # Return/abort if cannot or do not need to re-license.
     parts = lic_info["parts"]
     if lic_info["parts"]: # has a license
-        results["license"] += 1
         print "... license found, skipping this file"
+        results["license"] += 1
         return
     #... else we need to add a license to this file.
     print "... no license found, need to add one"
@@ -1599,6 +1607,7 @@ def _add_license_to_file(original_path,
     # Deal with the possibility that startline might be off the end of the file
     if startline == len(lines):
         print "... single line file or other weirdness"
+        results["weird"] += 1
         # XXX e.g. ./layout/reftests/bugs/403505-1-ref.xul
         return
     
@@ -1873,6 +1882,9 @@ def addlicense(paths,
         "license": 0,
         "empty": 0,
         "binary": 0,
+        "badext": 0,
+        "weird": 0,
+        "total": 0
     }
     _traverse(paths, _add_license_to_file,
               (backup,
@@ -1882,7 +1894,10 @@ def addlicense(paths,
     print "--------------------- Summary of Results ------------------------"
     print "Files skipped b/c they are binary:", results["binary"]
     print "Files skipped b/c they already had a license:", results["license"]
+    print "Files skipped b/c they had an extension we aren't relicensing:", results["badext"]
     print "Files skipped b/c they were empty:", results["empty"]
+    print "Files skipped b/c of other weirdness:", results["weird"]
+    print "Total files analysed:", results["total"]
     if _g_dry_run:
         print "Files to which a license was added: %d (dry-run)" % results["added"]
     else:
