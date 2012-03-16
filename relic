@@ -117,8 +117,7 @@ _g_skip_file_basenames = [
     ".mozconfig",
     "ignore-me",
 
-    # The parser for this file seems not to understand well-formed XML
-    "AndroidManifest.xml",
+    "AndroidManifest.xml.in",
 ]
 _g_skip_files = [
     # Files containing copies of licence text which confuses the script
@@ -449,11 +448,16 @@ _g_ext_to_comment_info = {
     ".d":      (["/*", "*", "*/"], ),
     ".strings":(["/*", "*", "*/"], ),
     ".uf":     (["/*", "*", "*/"], ),
+    ".dox":    (["/*", "*", "*/"], ),
+    ".abs":    (["/*", "*", "*/"], ),
+    ".es":     (["/*", "*", "*/"], ),
+    ".hh":     (["/*", "*", "*/"], ),
     
     ".api":    (["/*", "*", "*/"], ['#']),
     ".applescript": (["(*", "*", "*)"], ["--"], ["#"]),
 
     ".xcconfig": (["//"], ),
+    ".st":       (["//"], ),
 
     ".html": (["<!--", "-", "-->"], ["#"]),
     ".xml":  (["<!--", "-", "-->"], ["#"]),
@@ -540,6 +544,7 @@ _g_ext_to_comment_info = {
     ".manifest":   (["#"], ),
     ".excl":       (["#"], ),
     ".yaml":       (["#"], ),
+    ".tac":        (["#"], ),
 
     ".tdf":  ([";"], ),
     ".def":  ([";+#"], [";"]),
