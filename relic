@@ -81,7 +81,7 @@ _g_skip_exts = [".mdp", ".order", ".dsp", ".dsw", ".json",
 
 # Files not to add a license to when they don't have one (due to
 # inappropriateness or comment character confusion)
-_g_skip_add_exts = [".txt", ".TXT", ".inc", ".s"]
+_g_skip_add_exts = [".txt", ".TXT", ".inc", ".s", ".manifest"]
 
 _g_skip_file_basenames = [
     # Used by CVS (and this script)
@@ -118,6 +118,9 @@ _g_skip_file_basenames = [
     "ignore-me",
 
     "AndroidManifest.xml.in",
+    
+    # Catted into makefiles; can't have a header
+    "android-resources.mn",
 ]
 _g_skip_files = [
     # Files containing copies of licence text which confuses the script
@@ -168,9 +171,25 @@ _g_skip_files = [
     "src/extensions/ImageAndTextCell.h", # Apple BSD-like
     "src/extensions/MAAttachedWindow.m", # Matt Gemmill's copy of the above lic
     "src/extensions/MAAttachedWindow.h", # Matt Gemmill's copy of the above lic
+    "IBPalette/resources/palette.table",
+    "src/spotlight-importer/Importer-main.c",
 
     # BrowserID
     "resources/static/test/qunit.css", # MIT
+    
+    # Catted into makefiles; can't have a header
+	"mobile/android/sync/android-drawable-resources.mn",
+	"mobile/android/sync/android-drawable-ldpi-resources.mn",
+	"mobile/android/sync/preprocess-sources.mn",
+	"mobile/android/sync/java-third-party-sources.mn",
+	"mobile/android/sync/android-values-resources.mn",
+	"mobile/android/sync/android-drawable-hdpi-resources.mn",
+	"mobile/android/sync/java-sources.mn",
+	"mobile/android/sync/android-layout-resources.mn",
+	"mobile/android/sync/android-drawable-mdpi-resources.mn",
+	
+	# Relic gets this one wrong - excluding for now
+	"browser/base/content/highlighter.css",
 ]
 
 _g_skip_dir_basenames = [
@@ -205,6 +224,9 @@ _g_skip_dirs = [
     "security/nss",
     "security/coreconf",
     "nsprpub",
+
+    # No longer the master copy in CVS
+    "security/manager",
         
     # BSD-licensed
     "dbm",
@@ -289,30 +311,37 @@ _g_skip_dirs = [
     "toolkit/crashreporter/google-breakpad", # BSD
 
     # Camino
-    "sparkle", # MIT
-    "google-breakpad", # BSD
-    "growl", # BSD
-    "striptease", # APSL build tool
-    "flashblock", # Upstream tri-licence
+    #"sparkle", # MIT
+    #"google-breakpad", # BSD
+    #"growl", # BSD
+    #"striptease", # APSL build tool
+    #"flashblock", # Upstream tri-licence
 
     # Addon SDK
-    "python-lib/markdown", # BSD
-    "python-lib/simplejson", # MIT
-    "doc/static-files/syntaxhighlighter", # MIT/GPL dual
+    #"python-lib/markdown", # BSD
+    #"python-lib/simplejson", # MIT
+    #"doc/static-files/syntaxhighlighter", # MIT/GPL dual
 
     "intl/hyphenation", # tri-licensed but prob. not us; Bug 716482
 
     # Bugzilla
-    "lib",
-    "data",
-    "js/yui",
-    "js/history.js", # Yes, this is a directory
+    # "lib",
+    # "data",
+    # "js/yui",
+    # "js/history.js", # Yes, this is a directory
 
     # BrowserID
-    "resources/static/lib", # Need to check manually
+    # "resources/static/lib", # Need to check manually
 
     # comm-central
     "mozilla",
+
+    # elmo
+    #"static/simile",
+    #"static/js/jquery.ui",
+    #"static/css/jquery.ui",
+    #"static/js/libs",
+    #"vendor-local",
 ]
 
 _g_basename_to_comment_info = {
@@ -541,7 +570,7 @@ _g_ext_to_comment_info = {
     ".list":       (["#"], ),
     ".aff":        (["#"], ),
     ".common":     (["#"], ),
-    ".manifest":   (["#"], ),
+    ".manifest":   (["#"], ["<!--", "-", "-->"], ),
     ".excl":       (["#"], ),
     ".yaml":       (["#"], ),
     ".tac":        (["#"], ),
@@ -553,8 +582,8 @@ _g_ext_to_comment_info = {
     ".it":   ([";"], ),
     ".lisp": ([";;;"], ),
 
-    ".cmd": (["rem"], ["REM"]),
-    ".bat": (["rem"], ["REM"]),
+    ".cmd": (["REM"], ["rem"]),
+    ".bat": (["REM"], ["rem"]),
 
     ".tex":  (["%"], ),
     ".texi": (["%"], ),
@@ -1668,6 +1697,9 @@ def _add_license_to_file(original_path,
     # - add the comment delimiters
     if comment_delims is None:
         for comment_delims in comment_delim_sets:
+			# This has a bug for CSS files - the preprocessor uses #
+			# but some CSS rules being with #. Difficult to fix, so
+			# dealing with manually for now.
             if lines[startline].find(comment_delims[0]) != -1:
                 break
             elif len(comment_delims) == 3 and lines[startline].find(comment_delims[1]) != -1:
