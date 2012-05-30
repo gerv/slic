@@ -82,7 +82,8 @@ _g_skip_exts = [".mdp", ".order", ".dsp", ".dsw", ".json",
 
 # Files not to add a license to when they don't have one (due to
 # inappropriateness or comment character confusion)
-_g_skip_add_exts = [".txt", ".TXT", ".inc", ".s", ".manifest", ".map"]
+_g_skip_add_exts = [".txt", ".TXT", ".inc", ".s", ".manifest", ".map",
+                    ".dat"]
 
 # Extensions to remove to reveal the "real" extension
 _g_strip_exts = [".in", ".dist"]
@@ -131,7 +132,28 @@ _g_skip_file_basenames = [
     # Don't know comment char; always short
     "module.ver",
 ]
-_g_skip_files_mozilla_central = [
+
+_g_skip_dir_basenames = [
+    "CVS",
+    ".hg",
+    ".git",
+    ".bzr",
+]
+
+_g_skip_add_dir_basenames = [
+    "mochitest",
+    "reftest",
+    "reftests",
+    "crashtest",
+    "crashtests",
+    "test",
+    "tests",
+    "jsreftest",
+    "imptests",
+]
+
+_g_skip_files = {
+  'mozilla-central': [
     # Files containing copies of licence text which confuses the script
     "gfx/cairo/cairo/COPYING-LGPL-2.1",
     "gfx/cairo/cairo/COPYING-MPL-1.1",
@@ -204,17 +226,19 @@ _g_skip_files_mozilla_central = [
     
     "intl/lwbrk/src/rulebrk.h", # liberal, MIT-like
     "intl/lwbrk/src/th_char.h", 
-    
-]
+  ],
 
-_g_skip_files_addon_sdk = [
+  'comm_central': [
+  ],
+
+  'addon_sdk': [
     # Addon SDK
     "doc/static-files/js/jquery.js", # MIT/GPL
     "examples/annotator/data/jquery-1.4.2.min.js", # MIT/GPL
     "examples/reddit-panel/data/jquery-1.4.4.min.js", # MIT/GPL
-]
+  ],
 
-_g_skip_files_camino = [
+  'camino': [
     # Camino
     "src/extensions/ImageAndTextCell.m", # Apple BSD-like
     "src/extensions/ImageAndTextCell.h", # Apple BSD-like
@@ -222,41 +246,21 @@ _g_skip_files_camino = [
     "src/extensions/MAAttachedWindow.h", # Matt Gemmill's copy of the above lic
     "IBPalette/resources/palette.table",
     "src/spotlight-importer/Importer-main.c",
-]
+  ],
 
-_g_skip_files_browser_id = [
+  'browserid': [
     # BrowserID
     "resources/static/test/qunit.css", # MIT
-]
-
-_g_skip_dir_basenames = [
-    "CVS",
-    ".hg",
-    ".git",
-    ".bzr",
-]
-
-_g_skip_add_dir_basenames = [
-    "mochitest",
-    "reftest",
-    "reftests",
-    "crashtest",
-    "crashtests",
-    "test",
-    "tests",
-    "jsreftest",
-    "imptests",
-]
+  ]
+}
 
 # Complete path from mozilla dir to a dir to skip.
-_g_skip_dirs_mozilla_central = [
+_g_skip_dirs = {
+  'mozilla_central': [
     "security/nss",
     "security/coreconf",
     "nsprpub",
 
-    # No longer the master copy in CVS
-    "security/manager",
-        
     # BSD-licensed
     "dbm",
     
@@ -352,48 +356,47 @@ _g_skip_dirs_mozilla_central = [
     "toolkit/crashreporter/google-breakpad", # BSD
     
     "tools/profiler/libunwind", # MIT
-    
-]
+  ],
 
-_g_skip_dirs_camino = [
+  'camino': [
     # Camino
     "sparkle", # MIT
     "google-breakpad", # BSD
     "growl", # BSD
     "striptease", # APSL build tool
     "flashblock", # Upstream tri-licence
-]
+  ],
 
-_g_skip_dirs_addon_sdk = [
+  'addon_sdk': [
     # Addon SDK
     "python-lib/markdown", # BSD
     "python-lib/simplejson", # MIT
     "doc/static-files/syntaxhighlighter", # MIT/GPL dual
-]
+  ],
 
-_g_skip_dirs_bugzilla = [
+  'bugzilla': [
     # Bugzilla
-    # "lib",
-    # "data",
-    # "js/yui",
-    # "js/history.js", # Yes, this is a directory
-]
+    "lib",
+    "data",
+    "js/yui",
+    "js/history.js", # Yes, this is a directory
+  ],
 
-_g_skip_dirs_browser_id = [
+  'browserid': [
     # BrowserID
     "resources/static/lib", # Need to check manually
-]
+  ],
 
-_g_skip_dirs_elmo = [
+  'elmo': [
     # elmo
     "static/simile",
     "static/js/jquery.ui",
     "static/css/jquery.ui",
     "static/js/libs",
     "vendor-local",
-]
+  ],
 
-_g_skip_dirs_socorro = [
+  'socorro': [
     # Socorro
     "puppet",
     "docs",
@@ -408,19 +411,38 @@ _g_skip_dirs_socorro = [
     "webapp-php/system/views",
     "webapp-php/system/helpers",
     "webapp-php/system/libraries",
-]
+  ],
 
-_g_skip_dirs_comm_central = [
+  'comm-central': [
     # comm-central
     "other-licenses",
     "calendar/libical", # MPL/LGPL
     "mozilla",
-    "build/pypng",    
-]
+    "build/pypng",  
+    
+    "mail/test/resources/virtualenv",
+    "mail/test/resources/simplejson-2.1.6",  
+  ],
+  
+  'rhino': [
+    "testsrc/benchmarks/sunspider-0.9.1",
+    "testsrc/benchmarks/v8-benchmarks-v5",
+    "testsrc/benchmarks/v8-benchmarks-v6",
+    "src/org/mozilla/javascript/v8dtoa",
+    "toolsrc/org/mozilla/javascript/tools/debugger/treetable",
+    "testsrc/org/mozilla/javascript/tests/commonjs",
+  ],
+  
+  'instantbird': [
+    "purple",
+    "other-licenses",
+  ],
+}
 
 # Configure 
-_g_skip_dirs = _g_skip_dirs_mozilla_central
-_g_skip_files = _g_skip_files_mozilla_central
+tree = os.path.basename(os.getcwd()) 
+_g_skip_dirs = _g_skip_dirs.get(tree, [])
+_g_skip_files = _g_skip_files.get(tree, [])
 
 _g_basename_to_comment_info = {
     "configure": (["dnl"], ),
@@ -567,6 +589,8 @@ _g_ext_to_comment_info = {
 
     ".xcconfig": (["//"], ),
     ".st":       (["//"], ),
+    ".doctest":  (["//"], ),
+    ".jstest":   (["//"], ),
 
     ".html": (["<!--", "-", "-->"], ["#"]),
     ".xml":  (["<!--", "-", "-->"], ["#"]),
@@ -636,7 +660,6 @@ _g_ext_to_comment_info = {
     ".targ":       (["#"], ),
     ".gnuplot":    (["#"], ),
     ".bash":       (["#"], ),
-#    ".tmpl":       (["#"], ),
     ".com":        (["#"], ),
     ".dat":        (["#"], ),
     ".rpm":        (["#"], ),
@@ -686,7 +709,7 @@ _g_ext_to_comment_info = {
     ".s": (["#"], ["//"], ["/*", "*", "*/"], ["!"], [";"], ["/"]),
 
     # Bugzilla
-    ".tmpl":       (["[%#", "#", "#%]"], ),
+    ".tmpl":       (["[%#", "#", "#%]"], ["#"], ),
     ".t":          (["#"], ),
     ".conf":       (["#"], ),
 }
@@ -899,7 +922,7 @@ def _get_license_info(filename, quick=0):
             # Skip this block, if the last license block is more than 1024 chars
             # away (file is probably used for autogeneration of files and has
             # multiple license blocks).
-            if start > 0 and not parts["block_begin"]:
+            if start > 0 and lic_info["parts"][0] != "block_begin":
                 log.info("Found multiple matches but not tri-license; exit")
                 break
             else:
@@ -965,6 +988,10 @@ def _get_license_info(filename, quick=0):
             
     elif (lic_info["parts"] == ["hpnd"]):
         log.info("HPND found")
+        return lic_info
+            
+    elif (lic_info["parts"] == ["ofl"]):
+        log.info("OFL found")
         return lic_info
             
     elif (lic_info["parts"] == ["bsdevil"]):
@@ -1524,6 +1551,7 @@ def _relicense_file(original_path,
             return        
     elif not (parts == ["block_begin", "mpl", "gpl", "lgpl", "block_end"] or
               parts == ["block_begin", "npl", "gpl", "lgpl", "block_end"] or
+              parts == ["block_begin", "mpl", "gpl", "block_end"] or # Rhino
               parts == ["npl"] or # There are a few NPLed files; fix them too
               parts == ["mpl"]):
         # Not sure what this is - return
