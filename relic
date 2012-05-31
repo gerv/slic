@@ -11,6 +11,9 @@
     relic - Show the licenses of, or relicense, a given file, set of files,
             or directory of files
 
+Note that you may need to configure it by editing the configuration 
+variables inside the script.
+
     Usage:
         relic [options...] [files...]
         relic [options...] < files...
@@ -70,9 +73,23 @@ log = logging.getLogger("relic")
 #---- globals
 _version_ = (2, 0, 0)
 
+#######################################################################
+# Config
+#######################################################################
+
 # When processing files, 'relic' skips files and directories according
 # to these settings. Note: files identified in .cvsignore files are also
 # skipped.
+#
+# Each of the first few config structures is a dictionary of lists.
+# The config consists of two lists - the one with the key "_common",
+# and the one with the key of the directory you are in when running
+# the script (which should be the top-level directory of your tree).
+#
+# If using this script, you will probably need to add an entry for
+# your tree to at least the dicts _g_skip_files_config and 
+# _g_skip_dirs_config, to make sure you don't relicense files or 
+# directories which you shouldn't.
 
 treename = os.path.basename(os.getcwd()) 
 
@@ -81,6 +98,14 @@ def get_config(struct, treename):
     config.extend(struct.get(treename, []))
     return config
 
+# Extensions to strip off to reveal the "real" extension
+_g_strip_exts_config = {
+  '_common': [".in", ".dist"],
+}
+
+_g_strip_exts = get_config(_g_strip_exts_config, treename)
+
+# Extensions to skip
 # List includes binary extensions in case binary checking is turned off
 _g_skip_exts_config = {
   '_common' :
@@ -92,7 +117,7 @@ _g_skip_exts_config = {
 
 _g_skip_exts = get_config(_g_skip_exts_config, treename)
 
-# Files not to add a license to when they don't have one (due to
+# Extensions not to add a license to when they don't have one (due to
 # inappropriateness or comment character confusion)
 _g_skip_add_exts_config = {
   '_common': 
@@ -101,13 +126,7 @@ _g_skip_add_exts_config = {
 
 _g_skip_add_exts = get_config(_g_skip_add_exts_config, treename)
 
-# Extensions to remove to reveal the "real" extension
-_g_strip_exts_config = {
-  '_common': [".in", ".dist"],
-}
-
-_g_strip_exts = get_config(_g_strip_exts_config, treename)
-
+# Filenames to always skip, wherever they are found
 _g_skip_file_basenames_config = {
   '_common': [
     # Used by CVS (and this script)
@@ -144,7 +163,9 @@ _g_skip_file_basenames_config = {
 
     ".mozconfig",
     "ignore-me",
-
+   ],
+   
+   'mozilla-central': [
     "AndroidManifest.xml.in",
     
     # Catted into makefiles; can't have a header
@@ -153,10 +174,16 @@ _g_skip_file_basenames_config = {
     # Don't know comment char; always short
     "module.ver",
   ],
+  
+  'comm-central': [
+    # Don't know comment char; always short
+    "module.ver",  
+  ],
 }
 
 _g_skip_file_basenames = get_config(_g_skip_file_basenames_config, treename)
 
+# Directories to always skip, wherever they are found
 _g_skip_dir_basenames_config = {
   '_common': [
     "CVS",
@@ -168,8 +195,13 @@ _g_skip_dir_basenames_config = {
 
 _g_skip_dir_basenames = get_config(_g_skip_dir_basenames_config, treename)
 
+# Directories to always skip when adding, wherever they are found
 _g_skip_add_dir_basenames_config = {
   '_common': [
+  ],
+  
+  'mozilla-central': [
+    # Not relicensing m-c tests, as things break too often
     "mochitest",
     "reftest",
     "reftests",
@@ -184,6 +216,7 @@ _g_skip_add_dir_basenames_config = {
 
 _g_skip_add_dir_basenames = get_config(_g_skip_add_dir_basenames_config, treename)
 
+# Individual files to skip
 _g_skip_files_config = {
   '_common': [
   ],
@@ -300,7 +333,7 @@ _g_skip_files_config = {
 
 _g_skip_files = get_config(_g_skip_files_config, treename)
 
-# Complete path from mozilla dir to a dir to skip.
+# Individual directories to skip
 _g_skip_dirs_config = {
   '_common': [
   ],
@@ -483,6 +516,7 @@ _g_skip_dirs_config = {
   ],
   
   'instantbird': [
+    # libpurple is LGPL or GPL
     "purple/config",
     "purple/icons",
     "purple/libpurple",
@@ -494,6 +528,7 @@ _g_skip_dirs_config = {
 
 _g_skip_dirs = get_config(_g_skip_dirs_config, treename)
 
+# Comment character to use for specific filenames
 _g_basename_to_comment_info = {
     "configure": (["dnl"], ),
 
@@ -565,6 +600,8 @@ _g_basename_to_comment_info = {
     "package-manifest":  ([";"], ),
 }
 
+# Comment character to use (or a set of them) for each extension
+# When adding new licence blocks, the first will be used
 _g_ext_to_comment_info = {
     ".txt":   (["##", "#", ], ["#"]),
     ".TXT":   (["##", "#", ]),
@@ -763,6 +800,7 @@ _g_ext_to_comment_info = {
     ".t":          (["#"], ),
     ".conf":       (["#"], ),
 }
+
 _g_shebang_pattern_to_comment_info = [
     (re.compile(ur'\A#!.*/bin/(ba)?sh.*$', re.IGNORECASE), (["#"], )),
     (re.compile(ur'\A#!.*perl.*$', re.IGNORECASE), (["#"], )),
@@ -774,7 +812,6 @@ _g_shebang_pattern_to_comment_info = [
     (re.compile(ur'\A#!.*expect.*$', re.IGNORECASE), (["#"], )),
     (re.compile(ur'\A#!.*env node.*$', re.IGNORECASE), (["/*", "*", "*/"], )),
 ]
-
 
 _g_newlicense = """\
 This Source Code Form is subject to the terms of the Mozilla Public
@@ -794,9 +831,9 @@ _g_fast_binary = 1 # if true, do a simple check on files to see if binary
 _g_mode = "report"
 _g_add_incompatible = 0
 
-#---- internal support routines
-
-
+#######################################################################
+# Internal support routines
+#######################################################################
 def _is_binary(filename):
     """Return true iff the given filename is binary.
 
