@@ -74,21 +74,42 @@ _version_ = (2, 0, 0)
 # to these settings. Note: files identified in .cvsignore files are also
 # skipped.
 
+treename = os.path.basename(os.getcwd()) 
+
+def get_config(struct, treename):
+    config = struct.get('_common')
+    config.extend(struct.get(treename, []))
+    return config
+
 # List includes binary extensions in case binary checking is turned off
-_g_skip_exts = [".mdp", ".order", ".dsp", ".dsw", ".json",
-                ".png", ".jpg", ".jpeg", ".gif", ".tiff", ".rtf",
-                ".pbxproj", ".pch", ".pem", ".icns", ".patch", ".diff",
-                ".dic_delta", ".dic"]
+_g_skip_exts_config = {
+  '_common' :
+      [".mdp", ".order", ".dsp", ".dsw", ".json",
+       ".png", ".jpg", ".jpeg", ".gif", ".tiff", ".rtf",
+       ".pbxproj", ".pch", ".pem", ".icns", ".patch", ".diff",
+       ".dic_delta", ".dic"],
+}
+
+_g_skip_exts = get_config(_g_skip_exts_config, treename)
 
 # Files not to add a license to when they don't have one (due to
 # inappropriateness or comment character confusion)
-_g_skip_add_exts = [".txt", ".TXT", ".inc", ".s", ".manifest", ".map",
-                    ".dat"]
+_g_skip_add_exts_config = {
+  '_common': 
+    [".txt", ".TXT", ".inc", ".s", ".manifest", ".map", ".dat"],
+}
+
+_g_skip_add_exts = get_config(_g_skip_add_exts_config, treename)
 
 # Extensions to remove to reveal the "real" extension
-_g_strip_exts = [".in", ".dist"]
+_g_strip_exts_config = {
+  '_common': [".in", ".dist"],
+}
 
-_g_skip_file_basenames = [
+_g_strip_exts = get_config(_g_strip_exts_config, treename)
+
+_g_skip_file_basenames_config = {
+  '_common': [
     # Used by CVS (and this script)
     ".cvsignore",
     ".gitignore",
@@ -131,16 +152,24 @@ _g_skip_file_basenames = [
     
     # Don't know comment char; always short
     "module.ver",
-]
+  ],
+}
 
-_g_skip_dir_basenames = [
+_g_skip_file_basenames = get_config(_g_skip_file_basenames_config, treename)
+
+_g_skip_dir_basenames_config = {
+  '_common': [
     "CVS",
     ".hg",
     ".git",
     ".bzr",
-]
+  ],
+}
 
-_g_skip_add_dir_basenames = [
+_g_skip_dir_basenames = get_config(_g_skip_dir_basenames_config, treename)
+
+_g_skip_add_dir_basenames_config = {
+  '_common': [
     "mochitest",
     "reftest",
     "reftests",
@@ -150,9 +179,15 @@ _g_skip_add_dir_basenames = [
     "tests",
     "jsreftest",
     "imptests",
-]
+  ],
+}
 
-_g_skip_files = {
+_g_skip_add_dir_basenames = get_config(_g_skip_add_dir_basenames_config, treename)
+
+_g_skip_files_config = {
+  '_common': [
+  ],
+  
   'mozilla-central': [
     # Files containing copies of licence text which confuses the script
     "gfx/cairo/cairo/COPYING-LGPL-2.1",
@@ -251,11 +286,25 @@ _g_skip_files = {
   'browserid': [
     # BrowserID
     "resources/static/test/qunit.css", # MIT
-  ]
+  ],
+  
+  'instantbird': [
+    # Must start with a newline; are appended to other files
+    "instantbird/installer/windows/nsis/updater_append.ini",
+    "instantbird/locales/updater_append.ini",
+    
+    # JSON data with wrong extension
+    "instantbird/themes/smileys/theme.js",
+  ],
 }
 
+_g_skip_files = get_config(_g_skip_files_config, treename)
+
 # Complete path from mozilla dir to a dir to skip.
-_g_skip_dirs = {
+_g_skip_dirs_config = {
+  '_common': [
+  ],
+  
   'mozilla_central': [
     "security/nss",
     "security/coreconf",
@@ -434,15 +483,16 @@ _g_skip_dirs = {
   ],
   
   'instantbird': [
-    "purple",
+    "purple/config",
+    "purple/icons",
+    "purple/libpurple",
+    "purple/libraries",
+    "purple/locales",
     "other-licenses",
   ],
 }
 
-# Configure 
-tree = os.path.basename(os.getcwd()) 
-_g_skip_dirs = _g_skip_dirs.get(tree, [])
-_g_skip_files = _g_skip_files.get(tree, [])
+_g_skip_dirs = get_config(_g_skip_dirs_config, treename)
 
 _g_basename_to_comment_info = {
     "configure": (["dnl"], ),
