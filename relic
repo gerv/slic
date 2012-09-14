@@ -26,6 +26,7 @@ variables inside the script.
         -r, --relicense     Modify the given files to use the MPL2.
         -A, --add           Add a license to files that do not appear to
                             have one.
+        -c, --contributors  List contributors
 
     General Options:
         -h, --help          dump this help and exit
@@ -101,6 +102,7 @@ def get_config(struct, treename):
 # Extensions to strip off to reveal the "real" extension
 _g_strip_exts_config = {
   '_common': [".in", ".dist"],
+  'mozja': [".tpl"],
 }
 
 _g_strip_exts = get_config(_g_strip_exts_config, treename)
@@ -329,6 +331,14 @@ _g_skip_files_config = {
     # JSON data with wrong extension
     "instantbird/themes/smileys/theme.js",
   ],
+  
+  'bedrock': [
+    "templates/includes/webtrends.html", # Copyright WebTrends
+    "media/js/firefox/technology/dsp.js", # MIT
+    "media/js/less-1.2.1.min.js", # Apache
+    "media/css/sandstone/mixins.less", # CC-BY
+    "media/js/firefox/technology/beatdetektor.js", # LGPL 3.0
+  ],
 }
 
 _g_skip_files = get_config(_g_skip_files_config, treename)
@@ -336,6 +346,12 @@ _g_skip_files = get_config(_g_skip_files_config, treename)
 # Individual directories to skip
 _g_skip_dirs_config = {
   '_common': [
+  ],
+  
+  'bedrock': [
+    "vendor-local",
+    "media/js/libs",
+    "media/fonts", # OpenSans is Apache-licensed, but FontSquirrel puts in bogus stuff
   ],
   
   'mozilla_central': [
@@ -522,11 +538,30 @@ _g_skip_dirs_config = {
     "purple/libpurple",
     "purple/libraries",
     "purple/locales",
+    
     "other-licenses",
-  ],
+   ],
+
+   'testpilot': [
+     "python-modules",
+     "extension/content/flot",
+   ],
 }
 
 _g_skip_dirs = get_config(_g_skip_dirs_config, treename)
+
+_g_skip_add_dirs_config = {
+  '_common': [
+  ],
+  
+  'instantbird': [
+    # Lots of small constantly-concatenated files; no header
+    "tools/messagestyles/teststyles",
+    "instantbird/themes/messages",
+  ],
+}
+
+_g_skip_add_dirs = get_config(_g_skip_add_dirs_config, treename)
 
 # Comment character to use for specific filenames
 _g_basename_to_comment_info = {
@@ -598,6 +633,15 @@ _g_basename_to_comment_info = {
     "opcodes.tbl": (["//"], ),
 
     "package-manifest":  ([";"], ),
+    
+    # Instantbird/Chat
+    "accounts-aero.css": (["%"], ),
+    "blist-aero.css": (["%"], ),
+    "conversation-aero.css": (["%"], ),
+    "instantbird-aero.css": (["%"], ),
+    "tabbrowser-aero.css": (["%"], ),
+
+    "mozconfig-release": (["#"], ),
 }
 
 # Comment character to use (or a set of them) for each extension
@@ -678,8 +722,9 @@ _g_ext_to_comment_info = {
     ".st":       (["//"], ),
     ".doctest":  (["//"], ),
     ".jstest":   (["//"], ),
+    ".less":     (["//"], ),
 
-    ".html": (["<!--", "-", "-->"], ["#"]),
+    ".html": (["{#", "#", "#}"], ["#"]),
     ".xml":  (["<!--", "-", "-->"], ["#"]),
     ".xbl":  (["<!--", "-", "-->"], ["#"]),
     ".xsl":  (["<!--", "-", "-->"], ),
@@ -914,32 +959,40 @@ def _should_skip_file(path):
 
 def _should_skip_dir(path):
     log.debug("_should_skip_dir(path='%s')", path)
-    if os.path.basename(path) in _g_skip_dir_basenames:
+    basename = os.path.basename(path)
+    if basename in _g_skip_dir_basenames:
         log.info("Skipping '%s' (according to _g_skip_dir_basenames).", path)
         return 1
     
     if _g_check_all:
         return 0
     
-    if _g_mode == "add" and os.path.basename(path) in _g_skip_add_dir_basenames:
+    if _g_mode == "add" and basename in _g_skip_add_dir_basenames:
         log.info("Skipping '%s' (according to _g_skip_add_dir_basenames).", path)
         return 1        
+
     xpath = '/'.join(path.split(os.sep)) # use same sep as in _g_skip_dirs
     # These could do with being a proper path canonicalisation function...
     if xpath[-1] == '/': xpath = xpath[:-1]  # treat "calendar/" the same as "calendar"
     if xpath[0:2] == './': xpath = xpath[2:]  # treat "./calendar" the same as "calendar"
-    for sd in _g_skip_dirs:
-        # Changed by gerv to make skip_dirs require whole path
-        if xpath == sd:
-            log.info("Skipping '%s' (according to _g_skip_dirs).", path)
-            return 1
+    
+    if xpath in _g_skip_dirs:
+        log.info("Skipping '%s' (according to _g_skip_dirs).", path)
+        return 1
+    
+    if _g_mode == "add":
+        if xpath in _g_skip_add_dirs:
+            log.info("Skipping '%s' (according to _g_skip_add_dirs).", path)
+            return 1  
+    
     if _should_skip_according_to_cvsignore(path):
         log.info("Skipping '%s' (according to .cvsignore).", path)
         return 1
+    
     return 0
 
 
-def _get_license_info(filename, quick=0):
+def _get_license_info(filename, quick=0, contributors=0):
     """Return license block information for the given file.
 
         "filename" is the path to the file to scan.
@@ -1418,7 +1471,198 @@ def _get_license_info(filename, quick=0):
     log.info("license lines: %d-%d", beginline["linenum"], endline["linenum"])
 
     # So at this point we have the beginline, secondline, and endline
-    # dicts describing and bounding the license block.    
+    # dicts describing and bounding the license block.
+
+    if not contributors:
+        return lic_info
+
+    # - gather embedded lic data
+    # As described here:
+    #   http://www.mozilla.org/MPL/relicensing-faq.html#new-license
+    # we have to parse out the following possible fields:
+    #   original_code_is
+    #   original_code_date
+    #   initial_developer
+    #   initial_copyright_date
+    #   contributors
+    lic_line_pattern = re.compile( # regex to parse out the line _body_
+        "^(?P<prefix>%s)(?P<space>\s*)(?P<body>.*?)(?P<suffix>%s|)\s*?$"
+        % (prefix_pattern, suffix_pattern))
+
+    original_code_is = None
+    original_code_date = None
+    # Parse out the "The Original Code is ..." paragraph _content_.
+    paragraph = ""
+    in_paragraph = 0
+    for i in range(beginline["linenum"], endline["linenum"]+1):
+        body = lic_line_pattern.match(lines[i]).group("body")
+        if (not in_paragraph and body.startswith("The Original Code is")):
+            in_paragraph = 1
+        if in_paragraph:
+            if not body.strip(): # i.e. a blank line, end of paragraph
+                break
+            # ensure one space btwn lines
+            if paragraph: paragraph = paragraph.rstrip() + " "
+            paragraph += body
+    if paragraph:
+        pattern1 = re.compile('^The Original Code is (.*), released (.*)\.')
+        match = pattern1.search(paragraph)
+        if match:
+            original_code_is = match.group(1)
+            original_code_date = match.group(2)
+        else:
+             pattern2 = re.compile('^The Original Code is (.*?)\.?$')
+             match = pattern2.search(paragraph)
+             if match:
+                 original_code_is = match.group(1)
+             else:
+                raise RelicError( 
+                    "%s: 'The Original Code is' paragraph did not match the "
+                    "expected patterns. paragraph=\n\t%r\n"
+                    "pattern1=\n\t%r\npattern2=\n\t%r"
+                    % (filename, paragraph, pattern1.pattern, pattern2.pattern))
+    lic_info["original_code_is"] = original_code_is
+    lic_info["original_code_date"] = original_code_date
+    log.info("original code is: %s", original_code_is)
+    log.info("original_code_date: %s", original_code_date)
+
+    initial_developer = None
+    initial_copyright_date = None
+    # Parse out the "The Initial Developer..." paragraph _content_.
+    paragraph = ""
+    in_paragraph = 0
+    for i in range(beginline["linenum"], endline["linenum"]+1):
+        body = lic_line_pattern.match(lines[i]).group("body")
+        if (not in_paragraph and
+            (body.startswith("The Initial Developer of") or
+             body.startswith("The Initial Developers of"))):
+            in_paragraph = 1
+        if in_paragraph:
+            if not body.strip(): # i.e. a blank line, end of paragraph
+                # Catch the possible case where there is an empty line
+                # but the paragraph picks up on the next line with
+                # "Portions created by"
+                # (test_relicense_no_period_after_origcodeis.cpp).
+                try:
+                    nextlinebody = lic_line_pattern.match(lines[i+1]).group("body")
+                except:
+                    nextlinebody = ""
+                if not nextlinebody.startswith("Portions created by"):
+                    break
+            # ensure one space btwn lines
+            if paragraph: paragraph = paragraph.rstrip() + " "
+            paragraph += body
+    if paragraph:
+        pattern = re.compile("""^
+            The\ Initial\ Developers?\ of\ 
+            (the\ Original\ Code\ (is\ |are\ |is\.)|this\ code\ under\ the\ [MN]PL\ (is|are)\ )
+            (?P<developer>.*?)
+            \.?         # maybe a trailing period
+            (
+                \s+Portions\ created\ by\ .*?
+                are\ Copyright\ \(C\)\[?\ (?P<date>[\d-]+)
+                .*?     # maybe a trailing period
+                (\s+All\ Rights\ Reserved\.)?
+            )?
+            $""", re.VERBOSE)
+        match = pattern.search(paragraph)
+        if not match:
+            raise RelicError(
+                "%s: 'This Initial Developer' paragraph did not match the "
+                "expected pattern. paragraph=\n\t%r\npattern=\n\t%s"
+                % (filename, paragraph, pattern.pattern))
+        initial_developer = match.group("developer")
+        initial_copyright_date = match.group("date")
+    lic_info["initial_developer"] = initial_developer
+    lic_info["initial_copyright_date"] = initial_copyright_date
+    log.info("initial developer paragraph: %r", paragraph)
+    log.info("initial developer: %r", initial_developer)
+    log.info("initial copyright date: %r", initial_copyright_date)
+
+    contributors = []
+    normal_leading_space = None
+    in_contributors_block = 0
+    contrib_end = endline["linenum"]
+    # If line-style comment, include the last line in the block in the
+    # range we examine; if block-style comment, we only allow it if the
+    # comment-block doesn't end on the endline. On top of these
+    # conditions we don't search the last line if it includes the
+    # special end-of-license marker.
+    if len(comment_delims) == 1 or not endline["suffix"]:
+        if endline["content"].find("END LICENSE BLOCK") == -1:
+            contrib_end += 1
+    for i in range(beginline["linenum"], contrib_end):
+        match = lic_line_pattern.match(lines[i])
+        body = match.group("body")
+        space = match.group("space").replace('\t', ' '*8)
+        if not in_contributors_block \
+           and body.startswith("Contributor"):
+            in_contributors_block = 1
+            normal_leading_space = space
+            # Try to pickup "foo@bar.org" as a contributor for a
+            # possible line like this:
+            #   Contributor(s): foo@bar.org
+            pivot = body.find(':')
+            if pivot != -1:
+                remainder = body[pivot+1:].strip()
+                if remainder:
+                    contributors.append(remainder)
+        elif in_contributors_block:
+            if not body.strip():
+                # i.e. a blank line, end of paragraph
+                #XXX:BUG This condition causes the latter two
+                #        contributor lines to be lost from, e.g.,
+                #        test/x_thead_align_center.xml.
+                break
+            if len(space) <= len(normal_leading_space):
+                # A line in the "Contributor(s) paragraph is not
+                # indented. This is considered an error.  Likely this is
+                # a (not indented) contributor, but it might also be the
+                # start of another paragraph (i.e. no blank line
+                # terminating the "Contributor(s):" paragraph). We could
+                # just error out here, but this is very common in the
+                # Moz tree (~500) so lets try to deal with it.
+                # - Heuristic #1: if the line contains what looks like
+                #   an email address then this it is a contributor.
+                # - Heuristic #2 (to accomodate js/rhino): if the line
+                #   looks like just a person's name.
+                # Otherwise, error out.
+                words = body.split()
+                if '@' in body:
+                    lic_info["unindented_contributor_lines"] = 1
+                elif (2 <= len(words) <= 3 and
+                      words == [word[0].upper()+word[1:] for word in words]):
+                    # Try to accept the following names:
+                    #    Norris Boyd
+                    #    Mike McCabe
+                    #    George C. Scott
+                    lic_info["unindented_contributor_lines"] = 1
+                else:
+                    raise RelicError("This line is part of the "
+                        "'Contributor(s):' paragraph but (1) is not indented "
+                        "and (2) does not look like it contains an email "
+                        "address: %s:%s: %r" % (filename, i, lines[i]))
+            contributors.append(body.strip())
+    log.info("contributors: %s", contributors)
+    lic_info["contributors"] = contributors
+
+    ## Optimization: The only content in the remain license block lines
+    ## (i.e. after the contributors block) should really be the GPL/LGPL
+    ## or nothing. Trapping this will avoid losing the latter two
+    ## contributor lines in test/x_thead_align_center.xml.
+    #gpl_lgpl_lines = _g_trilicense_parts["gpl/lgpl"].splitlines(0)
+    #gpl_lgpl = " ".join(gpl_lgpl_lines)
+    #for i in range(i, endline["linenum"]):
+    #    match = lic_line_pattern.match(lines[i])
+    #    body = match.group("body")
+    #    space = match.group("space").replace('\t', ' '*8)
+    #    if not body.strip():
+    #        continue
+    #    #XXX This test is no robust enough to use.
+    #    if (gpl_lgpl.find(body) == -1 and
+    #        body.find(gpl_lgpl) == -1):
+    #        print "QQQ: bogus following text: %r" % body
+    
     return lic_info
 
 
@@ -1475,6 +1719,39 @@ def _report_on_file(path, (results, quick, _errors)):
 
     print output;
 
+
+def _list_contributors_for_file(path, (results, _errors)):
+    log.debug("_list_contributors_for_file(path='%s', results)", path)
+    output = ""
+    lic_info = {}
+
+    if not _is_binary(path):
+        try:
+            lic_info = _get_license_info(path, 0, 1)
+        except RelicError, ex:
+            return _relicensing_error(ex, path, _errors)
+        if "initial_developer" in lic_info:
+            idev = lic_info["initial_developer"]
+            if type(idev) == str:
+                output += _make_name_nice(idev) + "\n"
+        if "contributors" in lic_info:
+            for c in lic_info["contributors"]:
+                if type(c) == str:
+                    output += _make_name_nice(c) + "\n"
+
+    sys.stdout.write(output)
+
+def _make_name_nice(name):
+    # Collapse whitespace
+    name = re.sub(r'\s+', ' ', name)
+    # Remove cruft
+    name = re.sub(r'\(([Oo]riginal [Aa]uthor|Initial Code).*\)', '', name)
+    # Trim
+    name = name.strip()
+        
+    return name    
+
+    
 def _gather_info_on_file(path, (results, _errors)):
     log.debug("_gather_info_on_file(path='%s', results)", path)
     # Skip binary files.
@@ -2183,6 +2460,24 @@ def report(paths, quick=0, _errors=None):
           (results, quick, _errors))
 
 
+def list_contributors(paths, _errors=None):
+    """List contributors in the given file(s).
+    
+        "paths" is either a list of files or directories, or it is an
+            input stream with a path on each line.
+        "_errors" (optional) is a dictionary on which errors are reported
+            (keyed by file path) when the force option is in effect.
+
+    This method does not return anything. It will raise RelicError if
+    there is a problem.
+    """
+    log.debug("list_contributors(paths=%s)", paths)
+    results = {}
+    _traverse(paths,\
+          _list_contributors_for_file,\
+          (results, None))
+
+
 def statistics(paths, extended=0, quick=0, _errors=None):
     """Show a summary table of licenses in files in the given path(s).
 
@@ -2257,11 +2552,11 @@ def statistics(paths, extended=0, quick=0, _errors=None):
 
 def main(argv):
     try:
-        opts, args = getopt.getopt(argv[1:], "VvahdqfL:sxrA",
+        opts, args = getopt.getopt(argv[1:], "VvahdqfL:sxrAc",
             ["version", "verbose", "all", "help", "debug",
              "dry-run", "force", "license=",
              "statistics", "relicense", "backup", "add",
-             "quick", "slow-binary", "incompatible"])
+             "quick", "slow-binary", "incompatible", "contributors"])
     except getopt.GetoptError, ex:
         log.error(str(ex))
         log.error("Try `%s --help'.", argv[0])
@@ -2300,6 +2595,8 @@ def main(argv):
             extended = 1
         elif opt in ("-r", "--relicense"):
             mode = "relicense"
+        elif opt in ("-c", "--contributors"):
+            mode = "contributors"
         elif opt in ("-A", "--add"):
             mode = "add"
         elif opt == "--backup":
@@ -2334,6 +2631,8 @@ def main(argv):
             statistics(paths, extended, quick, _errors=_errors)
         elif mode == "report":
             report(paths, quick, _errors=_errors)
+        elif mode == "contributors":
+            list_contributors(paths, _errors=_errors)
         elif mode == "add":
             addlicense(paths,
                        backup,
