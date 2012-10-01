@@ -696,6 +696,7 @@ _g_ext_to_comment_info = {
     ".win98":  (["/*", "*", "*/"], ),
     ".php":    (["/*", "*", "*/"], ),
     ".php-dist": (["/*", "*", "*/"], ),
+    ".module": (["/*", "*", "*/"], ),
     ".m":      (["/*", "*", "*/"], ),
     ".jnot":   (["/*", "*", "*/"], ),
     ".l":      (["/*", "*", "*/"], ),
@@ -724,7 +725,7 @@ _g_ext_to_comment_info = {
     ".jstest":   (["//"], ),
     ".less":     (["//"], ),
 
-    ".html": (["{#", "#", "#}"], ["#"]),
+    ".html": (["<!--", "-", "-->"], ["#"]),
     ".xml":  (["<!--", "-", "-->"], ["#"]),
     ".xbl":  (["<!--", "-", "-->"], ["#"]),
     ".xsl":  (["<!--", "-", "-->"], ),
@@ -816,6 +817,7 @@ _g_ext_to_comment_info = {
     ".DEF":  ([";+#"], [";"]),
     ".ini":  ([";"], ),
     ".it":   ([";"], ),
+    ".info": ([";"], ),
     ".lisp": ([";;;"], ),
 
     ".cmd": (["REM"], ["rem"]),
@@ -2151,6 +2153,9 @@ def _add_license_to_file(original_path,
                 startline += 1
         # And advance past an @echo off line
         if lines and lines[startline].startswith("@echo off"):
+            startline += 1
+        # Or a <?php marker
+        if lines and lines[startline].startswith("<?php"):
             startline += 1
 
     # Advance past an Emacs local variable line.
