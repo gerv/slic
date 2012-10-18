@@ -66,17 +66,39 @@ import subprocess
 class RelicError(Exception):
     pass
 
-#---- setup logging
+###############################################################################
+# Logging
+###############################################################################
 import logging
 logging.basicConfig(filename="relic.log",level="INFO")
 log = logging.getLogger("relic")
 
-#---- globals
+###############################################################################
+# Globals
+###############################################################################
 _version_ = (2, 0, 0)
 
-#######################################################################
+_g_newlicense = """\
+This Source Code Form is subject to the terms of the Mozilla Public
+License, v. 2.0. If a copy of the MPL was not distributed with this
+file, You can obtain one at http://mozilla.org/MPL/2.0/."""
+
+_g_incompatible = """
+
+This Source Code Form is "Incompatible With Secondary Licenses", as
+defined by the Mozilla Public License, v. 2.0."""
+
+_g_mode             = "report"
+_g_dry_run          = 0 # if true, don't modify any files
+_g_force            = 0 # if true, continue after errors
+_g_check_all        = 0
+_g_fast_binary      = 1 # if true, do a simple check on files to see if binary
+                        # if false, do a slow check using the 'file' command
+_g_add_incompatible = 0
+
+###############################################################################
 # Config
-#######################################################################
+###############################################################################
 
 # When processing files, 'relic' skips files and directories according
 # to these settings. Note: files identified in .cvsignore files are also
@@ -131,7 +153,7 @@ _g_skip_add_exts = get_config(_g_skip_add_exts_config, treename)
 # Filenames to always skip, wherever they are found
 _g_skip_file_basenames_config = {
   '_common': [
-    # Used by CVS (and this script)
+    # Used by various SCMs
     ".cvsignore",
     ".gitignore",
     ".gitattributes",
@@ -216,7 +238,8 @@ _g_skip_add_dir_basenames_config = {
   ],
 }
 
-_g_skip_add_dir_basenames = get_config(_g_skip_add_dir_basenames_config, treename)
+_g_skip_add_dir_basenames = get_config(_g_skip_add_dir_basenames_config,
+                                       treename)
 
 # Individual files to skip
 _g_skip_files_config = {
@@ -351,7 +374,8 @@ _g_skip_dirs_config = {
   'bedrock': [
     "vendor-local",
     "media/js/libs",
-    "media/fonts", # OpenSans is Apache-licensed, but FontSquirrel puts in bogus stuff
+    # OpenSans is Apache-licensed, but FontSquirrel puts in bogus stuff
+    "media/fonts",
   ],
   
   'mozilla_central': [
@@ -388,7 +412,7 @@ _g_skip_dirs_config = {
     "js/src/config/mkdepend",
     "security/coreconf/mkdepend",
     
-    "browser/app/profile/extensions/testpilot@labs.mozilla.com/content/flot", # Copy of jquery
+    "browser/app/profile/extensions/testpilot@labs.mozilla.com/content/flot",
     "build/pgo/js-input", # SunSpider - Apple BSD
     "content/canvas/test/webgl", # WebGL test suite - BSD
     "db/sqlite3", # Public Domain
@@ -860,138 +884,25 @@ _g_shebang_pattern_to_comment_info = [
     (re.compile(ur'\A#!.*env node.*$', re.IGNORECASE), (["/*", "*", "*/"], )),
 ]
 
-_g_newlicense = """\
-This Source Code Form is subject to the terms of the Mozilla Public
-License, v. 2.0. If a copy of the MPL was not distributed with this
-file, You can obtain one at http://mozilla.org/MPL/2.0/."""
-
-_g_incompatible = """
-
-This Source Code Form is "Incompatible With Secondary Licenses", as
-defined by the Mozilla Public License, v. 2.0."""
-
-_g_dry_run = 0 # if true, don't modify any files
-_g_force = 0 # if true, continue after errors
-_g_check_all = 0
-_g_fast_binary = 1 # if true, do a simple check on files to see if binary
-                   # if false, do a slow check using the 'file' command
-_g_mode = "report"
-_g_add_incompatible = 0
-
-#######################################################################
-# Internal support routines
-#######################################################################
-def _is_binary(filename):
-    """Return true iff the given filename is binary.
-
-    Raises an EnvironmentError if the file does not exist or cannot be
-    accessed.
-    """
-    if not _g_fast_binary:
-        # http://stackoverflow.com/questions/898669/how-can-i-detect-if-a-file-is-binary-non-text-in-python
-        return (re.search(r':.* text',
-                          subprocess.Popen(["file", '-L', filename], 
-                                           stdout=subprocess.PIPE).stdout.read())
-                is None)
-    
-    fin = open(filename, 'rb')
+###############################################################################
+# Get info on a file
+###############################################################################
+def _gather_info_on_file(path, (results, _errors)):
+    log.debug("_gather_info_on_file(path='%s', results)", path)
+    # Skip binary files.
     try:
-        CHUNKSIZE = 1024
-        while 1:
-            chunk = fin.read(CHUNKSIZE)
-            if '\0' in chunk: # found null byte
-                return 1
-            if len(chunk) < CHUNKSIZE:
-                break # done
-    finally:
-        fin.close()
+        if _is_binary(path):
+            log.debug("Skipping binary file '%s'.", path)
+            return
+    except Exception, ex:
+        return _relicensing_error(
+            "error determining if file is binary: %s" % ex,
+            path, _errors)
 
-    return 0
-
-
-_g_cvsignore_cache = {} # optimization: keep a cache of .cvsignore content
-def _should_skip_according_to_cvsignore(path):
-    dirname, basename = os.path.split(path)
-    cvsignore = os.path.join(dirname, ".cvsignore")
-    if not os.path.exists(cvsignore):
-        return 0
-    elif cvsignore not in _g_cvsignore_cache:
-        fin = open(cvsignore, 'r')
-        to_ignore = []
-        try:
-            for f in fin:
-                if f[-1] == "\n": f = f[:-1] # chomp
-                if not f: continue # skip empty lines
-                to_ignore.append(f)
-        finally:
-            fin.close()
-        _g_cvsignore_cache[cvsignore] = to_ignore
-
-    # At this point .cvsignore exists and its contents are in the cache.
-    to_ignore = _g_cvsignore_cache[cvsignore]
-    if basename in to_ignore:
-        return 1
-    else:
-        return 0
-
-_g_backup_pattern = re.compile("~\d+$")
-def _should_skip_file(path):
-    log.debug("_should_skip_file(path='%s')", path)
-    if _g_check_all:
-        return 0
-    ext = os.path.splitext(path)[1]
-    if ext in _g_skip_exts:
-        log.info("Skipping '%s' (according to '_g_skip_exts').", path)
-        return 1
-    xpath = '/'.join(path.split(os.sep)) # use same sep as in _g_skip_files
-    for sf in _g_skip_files:
-        if xpath.endswith(sf):
-            log.info("Skipping '%s' (according to '_g_skip_files').", path)
-            return 1
-    if os.path.basename(path) in _g_skip_file_basenames:
-        log.info("Skipping '%s' (according to '_g_skip_file_basenames').", path)
-        return 1
-    if _should_skip_according_to_cvsignore(path):
-        log.info("Skipping '%s' (according to .cvsignore).", path)
-        return 1
-    if _g_backup_pattern.search(path):
-        log.info("Skipping '%s' (looks like backup file).", path)
-        return 1
-    return 0
-
-def _should_skip_dir(path):
-    log.debug("_should_skip_dir(path='%s')", path)
-    basename = os.path.basename(path)
-    if basename in _g_skip_dir_basenames:
-        log.info("Skipping '%s' (according to _g_skip_dir_basenames).", path)
-        return 1
-    
-    if _g_check_all:
-        return 0
-    
-    if _g_mode == "add" and basename in _g_skip_add_dir_basenames:
-        log.info("Skipping '%s' (according to _g_skip_add_dir_basenames).", path)
-        return 1        
-
-    xpath = '/'.join(path.split(os.sep)) # use same sep as in _g_skip_dirs
-    # These could do with being a proper path canonicalisation function...
-    if xpath[-1] == '/': xpath = xpath[:-1]  # treat "calendar/" the same as "calendar"
-    if xpath[0:2] == './': xpath = xpath[2:]  # treat "./calendar" the same as "calendar"
-    
-    if xpath in _g_skip_dirs:
-        log.info("Skipping '%s' (according to _g_skip_dirs).", path)
-        return 1
-    
-    if _g_mode == "add":
-        if xpath in _g_skip_add_dirs:
-            log.info("Skipping '%s' (according to _g_skip_add_dirs).", path)
-            return 1  
-    
-    if _should_skip_according_to_cvsignore(path):
-        log.info("Skipping '%s' (according to .cvsignore).", path)
-        return 1
-    
-    return 0
+    try:
+        results[path] = _get_license_info(path)
+    except RelicError, ex:
+        return _relicensing_error(ex, path, _errors, 1)
 
 
 def _get_license_info(filename, quick=0, contributors=0):
@@ -1028,7 +939,7 @@ def _get_license_info(filename, quick=0, contributors=0):
     finally:
         fin.close()
     
-    # Help me find filena
+    # Help me find filename
     log.info("Next file is: %s", filename)
 
     # do quick search to see if any of the desired licenses is in here
@@ -1061,9 +972,9 @@ def _get_license_info(filename, quick=0, contributors=0):
         match = parts_pattern.search(content, start)
         if match:
             parts = match.groupdict()
-            # Skip this block, if the last license block is more than 1024 chars
-            # away (file is probably used for autogeneration of files and has
-            # multiple license blocks).
+            # Skip this block, if the last license block is more than 1024 
+            # chars away (file is probably used for autogeneration of files 
+            # and has multiple license blocks).
             if start > 0 and lic_info["parts"][0] != "block_begin":
                 log.info("Found multiple matches but not tri-license; exit")
                 break
@@ -1087,7 +998,8 @@ def _get_license_info(filename, quick=0, contributors=0):
     if not parts:
         # - if not, check to see if License or Copyright shows up in the
         #   file; if so, then error out; if not, skip out
-        any_lic_pattern = re.compile("(Copyright|Licen[sc]e|Public\s*Domain)", re.IGNORECASE)
+        any_lic_pattern = re.compile("(Copyright|Licen[sc]e|Public\s*Domain)",
+                                     re.IGNORECASE)
         match = any_lic_pattern.search(content)
         if match:
             lic_info["parts"].append("unknown")
@@ -1104,8 +1016,10 @@ def _get_license_info(filename, quick=0, contributors=0):
         return lic_info
 
     # license block with tri-license version headers   
-    elif (lic_info["parts"] == ["block_begin", "mpl", "gpl", "lgpl", "block_end"] or
-          lic_info["parts"] == ["block_begin", "npl", "gpl", "lgpl", "block_end"]):
+    elif (lic_info["parts"] ==
+                          ["block_begin", "mpl", "gpl", "lgpl", "block_end"] or
+          lic_info["parts"] ==
+                          ["block_begin", "npl", "gpl", "lgpl", "block_end"]):
         log.info("tri-license found")
     
     elif (lic_info["parts"] == ["mpl2"]):
@@ -1312,7 +1226,7 @@ def _get_license_info(filename, quick=0, contributors=0):
                     line = lines[endlinenum]
                     match = lic_middle_pattern.search(line)
                     if not match:
-                        raise RelicError("Line did not match lic_middle_pattern "
+                        raise RelicError("Line !match lic_middle_pattern "
                                          "unexpectedly: %r" % line)
                     if match.group("content").strip(): # non-empty line
                         break
@@ -1343,7 +1257,7 @@ def _get_license_info(filename, quick=0, contributors=0):
                     line = lines[endlinenum]
                     match = lic_middle_pattern.search(line)
                     if not match:
-                        raise RelicError("Line did not match lic_middle_pattern "
+                        raise RelicError("Line !match lic_middle_pattern "
                                          "unexpectedly: %r" % line)
                     if match.group("content").strip(): # non-empty line
                         break
@@ -1385,7 +1299,7 @@ def _get_license_info(filename, quick=0, contributors=0):
                     line = lines[endlinenum]
                     match = lic_middle_pattern.search(line)
                     if not match:
-                        raise RelicError("Line did not match lic_middle_pattern "
+                        raise RelicError("Line !match lic_middle_pattern "
                                          "unexpectedly: %r" % line)
                     if match.group("content").strip(): # non-empty line
                         break
@@ -1522,7 +1436,7 @@ def _get_license_info(filename, quick=0, contributors=0):
                     "%s: 'The Original Code is' paragraph did not match the "
                     "expected patterns. paragraph=\n\t%r\n"
                     "pattern1=\n\t%r\npattern2=\n\t%r"
-                    % (filename, paragraph, pattern1.pattern, pattern2.pattern))
+                   % (filename, paragraph, pattern1.pattern, pattern2.pattern))
     lic_info["original_code_is"] = original_code_is
     lic_info["original_code_date"] = original_code_date
     log.info("original code is: %s", original_code_is)
@@ -1546,7 +1460,8 @@ def _get_license_info(filename, quick=0, contributors=0):
                 # "Portions created by"
                 # (test_relicense_no_period_after_origcodeis.cpp).
                 try:
-                    nextlinebody = lic_line_pattern.match(lines[i+1]).group("body")
+                    nextlinebody = \
+                               lic_line_pattern.match(lines[i+1]).group("body")
                 except:
                     nextlinebody = ""
                 if not nextlinebody.startswith("Portions created by"):
@@ -1668,6 +1583,9 @@ def _get_license_info(filename, quick=0, contributors=0):
     return lic_info
 
 
+###############################################################################
+# Report on a file
+###############################################################################
 def _report_on_file(path, (results, quick, _errors)):
     log.debug("_report_on_file(path='%s', results)", path)
     output = path + "\n"
@@ -1698,30 +1616,33 @@ def _report_on_file(path, (results, quick, _errors)):
 
         if not quick:
             if "begin_line" in lic_info and "end_line" in lic_info:
-                output += "... license block lines: %(begin_line)d-%(end_line)d"\
-                  % lic_info + "\n"
+                output += "... license block lines: " + \
+                  "%(begin_line)d-%(end_line)d" % lic_info + "\n"
             if "original_code_is" in lic_info:
-                output += "... original code is: %(original_code_is)s"\
-                  % lic_info + "\n"
+                output += "... original code is: " + \
+                  "%(original_code_is)s" % lic_info + "\n"
             if "original_code_date" in lic_info:
-                output += "... original code date: %(original_code_date)s"\
-                      % lic_info + "\n"
+                output += "... original code date: " + \
+                  "%(original_code_date)s" % lic_info + "\n"
             if "initial_developer" in lic_info:
                 output += "... initial developer: %(initial_developer)s"\
-                      % lic_info + "\n"
+                  % lic_info + "\n"
             if "initial_copyright_date" in lic_info:
-                output += "... initial copyright date: %(initial_copyright_date)s"\
-                      % lic_info + "\n"
+                output += "... initial copyright date: " + \
+                  "%(initial_copyright_date)s" % lic_info + "\n"
             if "contributors" in lic_info:
                 output += "... contributors: %s"\
                   % ", ".join(lic_info["contributors"]) + "\n"
             if lic_info.get("unindented_contributor_lines"):
-                output += "... one or more contributor lines were not indented properly"\
-                      + "\n"
+                output += "... one or more contributor lines " + \
+                  "were not indented properly\n"
 
     print output;
 
 
+###############################################################################
+# List contributors for a file
+###############################################################################
 def _list_contributors_for_file(path, (results, _errors)):
     log.debug("_list_contributors_for_file(path='%s', results)", path)
     output = ""
@@ -1743,6 +1664,7 @@ def _list_contributors_for_file(path, (results, _errors)):
 
     sys.stdout.write(output)
 
+
 def _make_name_nice(name):
     # Collapse whitespace
     name = re.sub(r'\s+', ' ', name)
@@ -1753,25 +1675,10 @@ def _make_name_nice(name):
         
     return name    
 
-    
-def _gather_info_on_file(path, (results, _errors)):
-    log.debug("_gather_info_on_file(path='%s', results)", path)
-    # Skip binary files.
-    try:
-        if _is_binary(path):
-            log.debug("Skipping binary file '%s'.", path)
-            return
-    except Exception, ex:
-        return _relicensing_error(
-            "error determining if file is binary: %s" % ex,
-            path, _errors)
 
-    try:
-        results[path] = _get_license_info(path)
-    except RelicError, ex:
-        return _relicensing_error(ex, path, _errors, 1)
-
-
+###############################################################################
+# Helper functions for add and relicense
+###############################################################################    
 def _make_backup_path(path):
     for n in range(100):
         backup_path = "%s~%d" % (path, n)
@@ -1814,6 +1721,7 @@ def _get_true_filename(filename):
         xfilename = filename
     
     return xfilename
+
     
 def _get_comment_delim_sets(filename):
     comment_delims = None
@@ -1850,8 +1758,11 @@ def _get_comment_delim_sets(filename):
             "or one of the '_g_skip_*' globals"
             % (filename, basename, ext))
     return comment_delims
-    
 
+
+###############################################################################
+# Relicense a single file
+###############################################################################
 def _relicense_file(original_path,
                     (backup,
                      results,
@@ -2040,6 +1951,9 @@ def _relicense_file(original_path,
                                   original_path, _errors)
 
 
+###############################################################################
+# Add a license to a single file
+###############################################################################
 def _add_license_to_file(original_path,
                          (backup,
                           results,
@@ -2301,6 +2215,129 @@ def _add_license_to_file(original_path,
                                   original_path, _errors)
 
 
+###############################################################################
+# Helper routines for traversing directory trees
+###############################################################################
+def _is_binary(filename):
+    """Return true iff the given filename is binary.
+
+    Raises an EnvironmentError if the file does not exist or cannot be
+    accessed.
+    """
+    if not _g_fast_binary:
+        # http://stackoverflow.com/questions/898669/
+        # how-can-i-detect-if-a-file-is-binary-non-text-in-python
+        return (re.search(r':.* text',
+                           subprocess.Popen(["file", '-L', filename], 
+                                         stdout=subprocess.PIPE).stdout.read())
+                is None)
+    
+    fin = open(filename, 'rb')
+    try:
+        CHUNKSIZE = 1024
+        while 1:
+            chunk = fin.read(CHUNKSIZE)
+            if '\0' in chunk: # found null byte
+                return 1
+            if len(chunk) < CHUNKSIZE:
+                break # done
+    finally:
+        fin.close()
+
+    return 0
+
+
+_g_cvsignore_cache = {} # optimization: keep a cache of .cvsignore content
+def _should_skip_according_to_cvsignore(path):
+    dirname, basename = os.path.split(path)
+    cvsignore = os.path.join(dirname, ".cvsignore")
+    if not os.path.exists(cvsignore):
+        return 0
+    elif cvsignore not in _g_cvsignore_cache:
+        fin = open(cvsignore, 'r')
+        to_ignore = []
+        try:
+            for f in fin:
+                if f[-1] == "\n": f = f[:-1] # chomp
+                if not f: continue # skip empty lines
+                to_ignore.append(f)
+        finally:
+            fin.close()
+        _g_cvsignore_cache[cvsignore] = to_ignore
+
+    # At this point .cvsignore exists and its contents are in the cache.
+    to_ignore = _g_cvsignore_cache[cvsignore]
+    if basename in to_ignore:
+        return 1
+    else:
+        return 0
+
+
+_g_backup_pattern = re.compile("~\d+$")
+def _should_skip_file(path):
+    log.debug("_should_skip_file(path='%s')", path)
+    if _g_check_all:
+        return 0
+    ext = os.path.splitext(path)[1]
+    if ext in _g_skip_exts:
+        log.info("Skipping '%s' (according to '_g_skip_exts').", path)
+        return 1
+    xpath = '/'.join(path.split(os.sep)) # use same sep as in _g_skip_files
+    for sf in _g_skip_files:
+        if xpath.endswith(sf):
+            log.info("Skipping '%s' (according to '_g_skip_files').", path)
+            return 1
+    if os.path.basename(path) in _g_skip_file_basenames:
+        log.info(
+                "Skipping '%s' (according to '_g_skip_file_basenames').", path)
+        return 1
+    if _should_skip_according_to_cvsignore(path):
+        log.info("Skipping '%s' (according to .cvsignore).", path)
+        return 1
+    if _g_backup_pattern.search(path):
+        log.info("Skipping '%s' (looks like backup file).", path)
+        return 1
+    return 0
+
+
+def _should_skip_dir(path):
+    log.debug("_should_skip_dir(path='%s')", path)
+    basename = os.path.basename(path)
+    if basename in _g_skip_dir_basenames:
+        log.info("Skipping '%s' (according to _g_skip_dir_basenames).", path)
+        return 1
+    
+    if _g_check_all:
+        return 0
+    
+    if _g_mode == "add" and basename in _g_skip_add_dir_basenames:
+        log.info(
+               "Skipping '%s' (according to _g_skip_add_dir_basenames).", path)
+        return 1        
+
+    xpath = '/'.join(path.split(os.sep)) # use same sep as in _g_skip_dirs
+    # These could do with being a proper path canonicalisation function...
+    # treat "calendar/" the same as "calendar"
+    if xpath[-1] == '/': xpath = xpath[:-1]
+    # treat "./calendar" the same as "calendar"
+    if xpath[0:2] == './': xpath = xpath[2:]
+    
+    if xpath in _g_skip_dirs:
+        log.info("Skipping '%s' (according to _g_skip_dirs).", path)
+        return 1
+    
+    if _g_mode == "add":
+        if xpath in _g_skip_add_dirs:
+            log.info("Skipping '%s' (according to _g_skip_add_dirs).", path)
+            return 1  
+    
+    if _should_skip_according_to_cvsignore(path):
+        log.info("Skipping '%s' (according to .cvsignore).", path)
+        return 1
+    
+    return 0
+
+
 def _traverse_dir((file_handler, results), dirname, names):
     """os.path.walk target to traverse the give dir"""
     log.debug("_traverse_dir((file_handler, results), dirname='%s', "
@@ -2320,6 +2357,7 @@ def _traverse_dir((file_handler, results), dirname, names):
                 continue
             if file_handler is not None:
                 file_handler(path, results)
+
 
 def _traverse(paths, file_handler, arg):
     """Traverse the given path(s) and call the given callback for each.
@@ -2356,9 +2394,9 @@ def _traverse(paths, file_handler, arg):
             raise RelicError("unexpected path type '%s'" % path)
 
 
-
-#---- public routines
-
+###############################################################################
+# Functions for each mode
+###############################################################################
 def relicense(paths,
               backup=0, 
               _errors=None):
@@ -2389,8 +2427,8 @@ def relicense(paths,
     print
     print "--------------------- Summary of Results ------------------------"
     print "Files skipped b/c they are binary:", results["binary"]
-    print "Files skipped b/c they already had proper license:", results["good"]
-    print "Files skipped b/c they had no license:", results["no license"]
+    print "Files skipped b/c they had a proper licence:", results["good"]
+    print "Files skipped b/c they had no licence:", results["no license"]
     print "Files skipped b/c they are empty:", results["empty"]
     if _g_dry_run:
         print "Files re-licensed: %d (dry-run)" % results["relicensed"]
@@ -2434,14 +2472,14 @@ def addlicense(paths,
     print "--------------------- Summary of Results ------------------------"
     print "Files skipped b/c they are binary:", results["binary"]
     print "Files skipped b/c they already had a license:", results["license"]
-    print "Files skipped b/c they had an extension we aren't relicensing:", results["badext"]
+    print "Files skipped b/c they had an ext. we ignore:", results["badext"]
     print "Files skipped b/c they were empty:", results["empty"]
     print "Files skipped b/c of other weirdness:", results["weird"]
     print "Total files analysed:", results["total"]
     if _g_dry_run:
-        print "Files to which a license was added: %d (dry-run)" % results["added"]
+        print "Files license added to: %d (dry-run)" % results["added"]
     else:
-        print "Files to which a license was added: %d" % results["added"]
+        print "Files license added to: %d" % results["added"]
     print "-----------------------------------------------------------------"
 
 
@@ -2465,7 +2503,7 @@ def report(paths, quick=0, _errors=None):
           (results, quick, _errors))
 
 
-def list_contributors(paths, _errors=None):
+def contributors(paths, _errors=None):
     """List contributors in the given file(s).
     
         "paths" is either a list of files or directories, or it is an
@@ -2518,9 +2556,11 @@ def statistics(paths, extended=0, quick=0, _errors=None):
         # Distinguish between complete mpl/gpl/lgpl (i.e. with the block
         # begin and end tokens) and incomplete mpl/gpl/lgpl. Likewise
         # NPL.
-        elif (info["parts"] == ["block_begin", "mpl", "gpl", "lgpl", "block_end"]):
+        elif (info["parts"] ==
+                           ["block_begin", "mpl", "gpl", "lgpl", "block_end"]):
             name = "mpl/gpl/lgpl (standard block)"
-        elif (info["parts"] == ["block_begin", "npl", "gpl", "lgpl", "block_end"]):
+        elif (info["parts"] ==
+                           ["block_begin", "npl", "gpl", "lgpl", "block_end"]):
             name = "npl/gpl/lgpl (standard block)"
         else:
             name = "/".join(lic_types)
@@ -2552,9 +2592,9 @@ def statistics(paths, extended=0, quick=0, _errors=None):
     print
 
 
-
-#---- mainline
-
+###############################################################################
+# Main function
+###############################################################################
 def main(argv):
     try:
         opts, args = getopt.getopt(argv[1:], "VvahdqfL:sxrAc",
@@ -2637,7 +2677,7 @@ def main(argv):
         elif mode == "report":
             report(paths, quick, _errors=_errors)
         elif mode == "contributors":
-            list_contributors(paths, _errors=_errors)
+            contributors(paths, _errors=_errors)
         elif mode == "add":
             addlicense(paths,
                        backup,
