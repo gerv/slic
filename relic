@@ -163,13 +163,23 @@ _g_skip_file_basenames_config = {
     ".hgtags",
     ".bzrignore",
     
+    # Auto-generated from other files
+    "configure",
+
+    "AUTHORS",
+    "NEWS",
+    "TODO",
+    "ChangeLog",
+    
+    ".mozconfig",
+    "ignore-me",
+   ],
+   
+ 'mozilla-central': [
     # GPL with autoconf exception
     "config.guess",
     "config.sub",
     "aclocal.m4",
-
-    # Auto-generated from other files
-    "configure",
 
     # license and readme files
     "LICENSE",
@@ -180,18 +190,9 @@ _g_skip_file_basenames_config = {
     "README",
     "readme",
     "README.txt",
-    "AUTHORS",
-    "NEWS",
-    "TODO",
-    "ChangeLog",
     "ReadMe",
     "README.md",
 
-    ".mozconfig",
-    "ignore-me",
-   ],
-   
-   'mozilla-central': [
     "AndroidManifest.xml.in",
     
     # Catted into makefiles; can't have a header
@@ -202,6 +203,23 @@ _g_skip_file_basenames_config = {
   ],
   
   'comm-central': [
+    # GPL with autoconf exception
+    "config.guess",
+    "config.sub",
+    "aclocal.m4",
+
+    # license and readme files
+    "LICENSE",
+    "license",
+    "LICENSE-MPL",
+    "LEGAL",
+    "copyright",
+    "README",
+    "readme",
+    "README.txt",
+    "ReadMe",
+    "README.md",
+
     # Don't know comment char; always short
     "module.ver",  
   ],
@@ -886,17 +904,21 @@ _g_shebang_pattern_to_comment_info = [
     (re.compile(ur'\A#!.*env node.*$', re.IGNORECASE), (["/*", "*", "*/"], )),
 ]
 
+#      (?P<block_begin>\*\*\*\*\*\ BEGIN\ LICENSE\ BLOCK\ \*\*\*\*\*)
+#    | (?P<npl>The\ contents\ of\ this\ file\ are\ subject\ to\ the\ Netscape)
+#    | (?P<block_end>\*\*\*\*\*\ END\ LICENSE\ BLOCK\ \*\*\*\*\*)
+
+# Temp removal
+#     | (?P<bsdrtfmwaiver>RTFM,\ Inc\.\ has\ waived\ clause)
+
 _g_license_pattern = re.compile("""(
-      (?P<block_begin>\*\*\*\*\*\ BEGIN\ LICENSE\ BLOCK\ \*\*\*\*\*)
-    | (?P<mpl>The\ contents\ of\ this\ file\ are\ subject\ to\ the\ Mozilla)
-    | (?P<npl>The\ contents\ of\ this\ file\ are\ subject\ to\ the\ Netscape)
+      (?P<mpl>The\ contents\ of\ this\ file\ are\ subject\ to\ the\ Mozilla)
     | (?P<gpl>under\ the\ terms\ of\ the\ GNU\ (?:General\ )?Public\ License)
     | (?P<lgpl>under\ the\ terms\ of\ the\ GNU\ (?:Library|Lesser)\ General\ Public)
     | (?P<gpllgpltri>in\ which\ case\ the\ provisions\ of\ the\ GPL\ or\ the\ LGPL\ are\ applicable)
     | (?P<mplgpltri>Mozilla\ Public\ License.*or\ the\ GNU\ General)
-    | (?P<block_end>\*\*\*\*\*\ END\ LICENSE\ BLOCK\ \*\*\*\*\*)
     | (?P<mpl2>This\ Source\ Code\ Form\ is\ subject\ to\ the\ terms\ of)
-    | (?P<apache2>Licensed\ under\ the\ Apache\ License,\ Version\ 2\.0)
+    | (?P<apache2>Licensed\ under\ the\ Apache\ License,?\ Version\ 2\.0)
     
     | (?P<ace>Use\ of\ this\ source\ code\ is\ governed\ by\ the\ ACE\ copyright\ license)
     
@@ -958,16 +980,21 @@ _g_license_pattern = re.compile("""(
     | (?P<Cwebm>Copyright.*The\ Web[mM]\ project\ authors)
     | (?P<Cratchov>Copyright.*Alexandre\ Ratchov)
     | (?P<Cgieseking>Copyright.*Martin\ Gieseking)
+    | (?P<Cietfskype>Copyright.*IETF\ Trust\ and\ Skype\ Limited)
+    | (?P<Cbeazley>David\ M\.\ Beazley\ \(Dabeaz\ LLC\))
+    | (?P<Crichmoore>Copyright.*Rich\ Moore)
+    | (?P<Copera>Copyright.*Opera\ Software\ ASA)
+    | (?P<Ckhronos>Copyright.*The\ Khronos\ Group\ Inc)
+    | (?P<Cxconsortium>Copyright.*X\ Consortium)
     
     | (?P<bsdheader>Redistribution\ and\ use\ of\ this\ software|
                     Redistribution\ and\ use\ in\ source\ and\ binary\ forms)
     | (?P<bsdsource>Redistributions\ of\ source\ code\ must\ retain\ the\ above)
     | (?P<bsdbinary>Redistributions\ in\ binary\ form\ must\ reproduce\ the\ above)
-    | (?P<bsdendorse>Neither\ the\ names?\ of.*nor\ the\ names\ of|
+    | (?P<bsdendorse>Neither\ the\ names?\ of|
                      The\ name\ of\ the\ author\ may\ not\ be\ used)
-    | (?P<bsdevil>All\ advertising\ materials\ mentioning)
+    | (?P<bsdadvert>All\ advertising\ materials\ mentioning)
     | (?P<bsdlebedev>Modified\ versions\ must\ be\ clearly\ marked\ as\ such)
-    | (?P<bsdrtfmwaiver>RTFM,\ Inc\.\ has\ waived\ clause)
     
     | (?P<bsdgeneral1>Licensed\ under\ the\ New\ BSD\ license)
     | (?P<bsdgeneral2>The\ program\ is\ distributed\ under\ terms\ of\ BSD\ license)
@@ -975,9 +1002,12 @@ _g_license_pattern = re.compile("""(
 
     | (?P<seecopying>See\ the\ file\ COPYING)
     
-    | (?P<mit>Permission\ is\ hereby\ granted,\ (?:free\ of\ charge|
-                                                   without\ written\ agreement))
+    | (?P<mit>(?:Permission\ is\ hereby\ granted,\ (?:free\ of\ charge|
+                                                      without\ written\ agreement)|
+                 licensed\ under\ the\ MIT))
+    
     | (?P<pd>[Pp]ublic\ [Dd]omain)
+    | (?P<gnupermissive>Copying\ and\ distribution\ of\ this\ file,\ with\ or\ without)
 
     | (?P<gplexception>part\ or\ all\ of\ the\ Bison\ parser\ skeleton|
                        is\ built\ using\ GNU\ Libtool,\ you\ may\ include\ this\ file|
@@ -987,7 +1017,8 @@ _g_license_pattern = re.compile("""(
     | (?P<icu>ICU\ License)
     | (?P<jpnic>license\ is\ obtained\ from\ Japan\ Network\ Information\ Center)
     | (?P<gemmell>This\ software\ is\ supplied\ to\ you\ by\ Matt\ Gemmell)
-    | (?P<ofl>This\ Font\ Software\ is\ licensed\ under\ the\ SIL\ Open\ Font\ License)
+    | (?P<ofl10>SIL\ OPEN\ FONT\ LICENSE\ Version\ 1\.0)
+    | (?P<ofl11>This\ Font\ Software\ is\ licensed\ under\ the\ SIL\ Open\ Font\ License,\ Version\ 1\.1)
     | (?P<hpnd>Permission\ to\ use,\ copy,\ modify,(?:\ and)?\ distribute(?:,\ and\ sell)?\ th)
     | (?P<edl>the\ Eclipse\ Distribution)
     | (?P<iscgeneral>This\ program\ is\ made\ available\ under\ an\ ISC\-style\ license)
@@ -995,7 +1026,7 @@ _g_license_pattern = re.compile("""(
     
     | (?P<vp8patent>and\ otherwise\ transfer\ this\ implementation\ of\ VP8)
 
-    | (?P<Cunknown>Copyright.*[Aa]ll\ [Rr]rights)
+    | (?P<Cunknown>Copyright\ )
     )""",
     re.VERBOSE)
 
@@ -1134,7 +1165,7 @@ def _get_license_info(filename, contributors=0):
         log.info("OFL found")
         return lic_info
             
-    elif (lic_info["parts"] == ["bsdevil"]):
+    elif (lic_info["parts"] == ["bsdadvert"]):
         log.info("4-clause BSD found!")
         return lic_info
 

@@ -28,7 +28,8 @@
 'MPL-2.0': {
     # Match tri-license and dual licenses as well; we can use the code under the MPL 2
     # mpl2/mpl2 is files which generate other files
-    'regexp': r'^(mpl2|mpl/gpllgpltri|lgpl/mplgpltri|((Credhat|Cmoco)/)*lgpl/mpl|mpl2/mpl2)$',
+    # mpl2/Capple is the MPL added to a WHAT-WG permissions statement
+    'regexp': r'^mpl2|mpl/gpllgpltri|lgpl/mplgpltri|((Credhat|Cmofo|Cmoco)/)*lgpl/mpl|mpl2/mpl2|mpl2/Capple$',
     'title': 'Mozilla Public License 2.0',
 },
 
@@ -43,7 +44,7 @@
 },
 
 'BSD-3-Clause-Angle': {
-    'regexp': r'^Cangle/(3bsd|bsdfileref)$',
+    'regexp': r'^Cangle/(3bsd|bsdfileref)(/Cangle/(3bsd|bsdfileref))?$',
     'title': 'ANGLE License',
 },
 
@@ -68,7 +69,7 @@
 },
 
 'BSD-3-Clause-Google': {
-    'regexp': r'Cgoogle/(3bsd|bsdfileref)$',
+    'regexp': r'Cgoogle/(3bsd|bsdfileref)(/Cgoogle)?$',
     'title': 'Google 3-Clause BSD License',
 },
 
@@ -139,7 +140,7 @@
 },
 
 'MIT-Harfbuzz': {
-    'regexp': r'^harfbuzz/mit$',
+    'regexp': r'^(C\w+/)*harfbuzz/mit$',
     'title': 'HarfBuzz License',
 },
 
@@ -164,7 +165,7 @@
 },
 
 'HPND-Mozilla': {
-    'regexp': r'^Cmozilla/hpnd$',
+    'regexp': r'^Cmofo/hpnd$',
     'title': 'Mozilla HPND License',
 },
 
@@ -219,12 +220,13 @@
 },
 
 'BSD-3-Clause-NetworkResonance': {
-    'regexp': r'^Cnetworkresonance/3bsd$',
+    'regexp': r'^(Cnetworkresonance/)+3bsd$',
     'title': 'nrappkit License',
 },
 
 'BSD-4-Clause-RTFM': {
-    'regexp': r'^Crtfm/2bsd/bsdevil/bsdendorse/bsdrtfmwaiver$',
+    # We have a waiver for the 4th clause
+    'regexp': r'^Crtfm/4bsd$',
     'title': 'Modified ssldump License',
 },
 
@@ -239,12 +241,12 @@
 },
 
 'praton': {
-    'regexp': r'^Cucalregents/3bsd/Cdec/hpnd/Cisc/hpnd$',
+    'regexp': r'^Cucalregents/4bsd/Cdec/hpnd/Cisc/hpnd$',
     'title': 'praton License',
 },
 
 'MIT-Mozilla-Maria': {
-    'regexp': r'^Cmozilla/Cmaria/mit$',
+    'regexp': r'^Cmofo/Cmaria/mit$',
     'title': 'qcms License',
 },
 
@@ -259,7 +261,7 @@
 },
 
 'BSD-sctp': {
-    'regexp': r'^Cpenoff/Ckamal/2bsd/Ccisco/Cpenoff/3bsd$',
+    'regexp': r'^Cpenoff/Ckamal/2bsd(/Ccisco/Cpenoff/3bsd)?$',
     'title': 'SCTP Licenses',
 },
 
@@ -324,6 +326,53 @@
     'title': 'Mozilla MIT License',
 },
 
+'BSD-3-Clause-IETF-Skype': {
+    'regexp': r'^Cietfskype/3bsd$',
+    'title': 'libopus License',
+},
+
+'BSD-3-Clause-Beazley': {
+    'regexp': r'^Cbeazley/3bsd$',
+    'title': 'Ply License',
+},
+
+'BSD-2-Clause-RichMoore': {
+    'regexp': r'^Crichmoore/2bsd$',
+    'title': 'CORDIC License',
+},
+
+'BSD-2-Clause-Opera': {
+    'regexp': r'^Copera/2bsd$',
+    'title': 'Opera Software BSD 2-Clause License',
+},
+
+'MIT-Khronos': {
+    'regexp': r'^(apache/)?Ckhronos/mit$',
+    'title': 'Khronos Group MIT License',
+},
+
+'MIT-XConsortium': {
+    'regexp': r'^Cxconsortium/mit(/pd)?$',
+    'title': 'X Consortium MIT License',
+},
+
+'MIT-HTML5': {
+    'regexp': r'^Csivonen/Cmofo/Capple/mit$',
+    'title': 'HTML5 Parser License',
+},
+
+# Note: get and ship an updated version of Gentium
+'OFL-1.0': {
+    # Note: "mit" is a false positive
+    'regexp': r'^ofl10/mit$',
+    'title': 'Open Font License 1.0',
+},
+
+'OFL-1.1': {
+    # Note: "mit" is a false positive
+    'regexp': r'^ofl11/mit$',
+    'title': 'Open Font License 1.1',
+},
 
 }
 

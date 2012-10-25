@@ -7,6 +7,7 @@ copyright holders are as follows:
 * Chris Wilson
 * Keith Stribley <devel@thanlwinsoft.org>
 * Mozilla Foundation
+* Google, Inc.
 
 Copyright (C) <YEARS> <copyright holder>
 
