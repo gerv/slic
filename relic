@@ -94,9 +94,7 @@ _g_force            = 0 # if true, continue after errors
 _g_check_all        = 0
 _g_fast_binary      = 1 # if true, do a simple check on files to see if binary
                         # if false, do a slow check using the 'file' command
-_g_quick            = 0
 _g_add_incompatible = 0
-_g_computer         = 0 # if true, make output computer-parseable
 
 ###############################################################################
 # Config
@@ -163,23 +161,13 @@ _g_skip_file_basenames_config = {
     ".hgtags",
     ".bzrignore",
     
-    # Auto-generated from other files
-    "configure",
-
-    "AUTHORS",
-    "NEWS",
-    "TODO",
-    "ChangeLog",
-    
-    ".mozconfig",
-    "ignore-me",
-   ],
-   
- 'mozilla-central': [
     # GPL with autoconf exception
     "config.guess",
     "config.sub",
     "aclocal.m4",
+
+    # Auto-generated from other files
+    "configure",
 
     # license and readme files
     "LICENSE",
@@ -190,9 +178,18 @@ _g_skip_file_basenames_config = {
     "README",
     "readme",
     "README.txt",
+    "AUTHORS",
+    "NEWS",
+    "TODO",
+    "ChangeLog",
     "ReadMe",
     "README.md",
 
+    ".mozconfig",
+    "ignore-me",
+   ],
+   
+   'mozilla-central': [
     "AndroidManifest.xml.in",
     
     # Catted into makefiles; can't have a header
@@ -203,23 +200,6 @@ _g_skip_file_basenames_config = {
   ],
   
   'comm-central': [
-    # GPL with autoconf exception
-    "config.guess",
-    "config.sub",
-    "aclocal.m4",
-
-    # license and readme files
-    "LICENSE",
-    "license",
-    "LICENSE-MPL",
-    "LEGAL",
-    "copyright",
-    "README",
-    "readme",
-    "README.txt",
-    "ReadMe",
-    "README.md",
-
     # Don't know comment char; always short
     "module.ver",  
   ],
@@ -904,133 +884,6 @@ _g_shebang_pattern_to_comment_info = [
     (re.compile(ur'\A#!.*env node.*$', re.IGNORECASE), (["/*", "*", "*/"], )),
 ]
 
-#      (?P<block_begin>\*\*\*\*\*\ BEGIN\ LICENSE\ BLOCK\ \*\*\*\*\*)
-#    | (?P<npl>The\ contents\ of\ this\ file\ are\ subject\ to\ the\ Netscape)
-#    | (?P<block_end>\*\*\*\*\*\ END\ LICENSE\ BLOCK\ \*\*\*\*\*)
-
-# Temp removal
-#     | (?P<bsdrtfmwaiver>RTFM,\ Inc\.\ has\ waived\ clause)
-
-_g_license_pattern = re.compile("""(
-      (?P<mpl>The\ contents\ of\ this\ file\ are\ subject\ to\ the\ Mozilla)
-    | (?P<gpl>under\ the\ terms\ of\ the\ GNU\ (?:General\ )?Public\ License)
-    | (?P<lgpl>under\ the\ terms\ of\ the\ GNU\ (?:Library|Lesser)\ General\ Public)
-    | (?P<gpllgpltri>in\ which\ case\ the\ provisions\ of\ the\ GPL\ or\ the\ LGPL\ are\ applicable)
-    | (?P<mplgpltri>Mozilla\ Public\ License.*or\ the\ GNU\ General)
-    | (?P<mpl2>This\ Source\ Code\ Form\ is\ subject\ to\ the\ terms\ of)
-    | (?P<apache2>Licensed\ under\ the\ Apache\ License,?\ Version\ 2\.0)
-    
-    | (?P<ace>Use\ of\ this\ source\ code\ is\ governed\ by\ the\ ACE\ copyright\ license)
-    
-    | (?P<Candroid>Copyright.*The\ Android\ Open\ Source\ Project)
-    | (?P<Cangle>Copyright.*The\ ANGLE\ Project\ Authors)
-    | (?P<Capplemozilla>Copyright.*Apple\ Computer,\ Inc\.\ and\ The\ Mozilla\ Foundation)
-    | (?P<Capple>Copyright.*Apple(\ Computer,)?\ Inc)
-    | (?P<Ctorch>Copyright.*Torch\ Mobile,\ Inc)
-    | (?P<Cgoogle>Copyright.*Google,?\ Inc)
-    | (?P<Cpercival>Copyright.*Colin\ Percival)
-    | (?P<Cworth>Copyright.*Richard\ D\.\ Worth)
-    | (?P<Cchromium>Copyright.*The\ Chromium\ Authors)
-    | (?P<Clucent>Copyright.*Lucent\ Technologies)
-    | (?P<Copentaal>Copyright.*OpenTaal)
-    | (?P<Cbrouwer>Copyright.*Simon\ Brouwer)
-    | (?P<Cdutchtex>Copyright.*Nederlandstalige\ Tex\ Gebruikersgroep)
-    | (?P<Ceclipse>Copyright.*Eclipse\ Foundation,\ Inc)
-    | (?P<Cthaiopen>Copyright.*Thai\ Open\ Source\ Software\ Center\ Ltd)
-    | (?P<Cexpat>Copyright.*Expat\ maintainers)
-    | (?P<Cparakey>Copyright.*Parakey\ Inc)
-    | (?P<Cwatt>Copyright.*Alf\ Watt)
-    | (?P<harfbuzz>This\ is\ part\ of\ HarfBuzz)
-    | (?P<Cpankratov>Copyright.*Alex\ Pankratov)
-    | (?P<Cevans>Copyright.*Jason\ Evans)
-    | (?P<Cmofo>Copyright.*Mozilla\ Foundation)
-    | (?P<Cmoco>Copyright.*Mozilla\ Corporation)
-    | (?P<Cfacebook>Copyright.*Facebook,\ Inc)
-    | (?P<Cresig>Copyright.*John\ Resig)
-    | (?P<Cprovos>Copyright.*Niels\ Provos)
-    | (?P<Credhatothers>Copyright.*Red\ Hat,\ Inc\ and\ others)
-    | (?P<Ccisco>Copyright.*Cisco\ Systems,\ Inc)
-    | (?P<Clibyuv>Copyright.*The\ LibYuv\ project\ authors)
-    | (?P<Cagejevas>Copyright.*Albertas\ Agejevas)
-    | (?P<Cchemeris>Copyright.*Alexander\ Chemeris)
-    | (?P<Cadobe>Copyright\*Adobe\ Systems\ Inc)
-    | (?P<Cnetworkresonance>Copyright.*Network\ Resonance,\ Inc)
-    | (?P<Copenvision>Copyright.*OpenVision\ Technologies,\ Inc)
-    | (?P<Crtfm>Copyright.*RTFM,\ Inc)
-    | (?P<Cucalregents>The\ Regents\ of\ the\ University\ of\ California)
-    | (?P<Ctoddmiller>Copyright.*Todd\ C\.\ Miller)
-    | (?P<Cdec>Copyright.*Digital\ Equipment\ Corporation)
-    | (?P<Cisc>Copyright.*Internet\ Systems\ Consortium,\ Inc)
-    | (?P<Cmaria>Copyright.*Marti\ Maria)
-    | (?P<Credhat>Copyright.*Red\ Hat,\ Inc)
-    | (?P<Clebedev>Copyright\*Alexander\ I\.\ Lebedev)
-    | (?P<Cpenoff>Copyright.*Brad\ Penoff)
-    | (?P<Ckamal>Copyright.*Humaira\ Kamal)
-    | (?P<Cmatuschak>Copyright.*Andy\ Matuschak)
-    | (?P<Csuitable>Copyright.*Suitable\ Systems)
-    | (?P<Csunsoft>Copyright.*SunSoft,\ Inc)
-    | (?P<Ccambridge>Copyright.*University\ of\ Cambridge)
-    | (?P<Cszeged>Copyright.*University\ of\ Szeged)
-    | (?P<Catkinson>Copyright.*by\ Kevin\ Atkinson)
-    | (?P<Cv8>Copyright.*the\ V8\ project\ authors)
-    | (?P<Cwebrtc>Copyright.*The\ WebRTC\ project\ authors)
-    | (?P<Cxiph>Copyright.*Xiph\.org\ Foundation)
-    | (?P<Cskia>Copyright.*Skia)
-    | (?P<Cmotorola>(?:Copyright|COPYRIGHT).*Motorola)
-    | (?P<Cwebm>Copyright.*The\ Web[mM]\ project\ authors)
-    | (?P<Cratchov>Copyright.*Alexandre\ Ratchov)
-    | (?P<Cgieseking>Copyright.*Martin\ Gieseking)
-    | (?P<Cietfskype>Copyright.*IETF\ Trust\ and\ Skype\ Limited)
-    | (?P<Cbeazley>David\ M\.\ Beazley\ \(Dabeaz\ LLC\))
-    | (?P<Crichmoore>Copyright.*Rich\ Moore)
-    | (?P<Copera>Copyright.*Opera\ Software\ ASA)
-    | (?P<Ckhronos>Copyright.*The\ Khronos\ Group\ Inc)
-    | (?P<Cxconsortium>Copyright.*X\ Consortium)
-    
-    | (?P<bsdheader>Redistribution\ and\ use\ of\ this\ software|
-                    Redistribution\ and\ use\ in\ source\ and\ binary\ forms)
-    | (?P<bsdsource>Redistributions\ of\ source\ code\ must\ retain\ the\ above)
-    | (?P<bsdbinary>Redistributions\ in\ binary\ form\ must\ reproduce\ the\ above)
-    | (?P<bsdendorse>Neither\ the\ names?\ of|
-                     The\ name\ of\ the\ author\ may\ not\ be\ used)
-    | (?P<bsdadvert>All\ advertising\ materials\ mentioning)
-    | (?P<bsdlebedev>Modified\ versions\ must\ be\ clearly\ marked\ as\ such)
-    
-    | (?P<bsdgeneral1>Licensed\ under\ the\ New\ BSD\ license)
-    | (?P<bsdgeneral2>The\ program\ is\ distributed\ under\ terms\ of\ BSD\ license)
-    | (?P<bsdfileref>Use\ of\ this\ source\ code\ is\ governed\ by\ a\ BSD\-style\ license)
-
-    | (?P<seecopying>See\ the\ file\ COPYING)
-    
-    | (?P<mit>(?:Permission\ is\ hereby\ granted,\ (?:free\ of\ charge|
-                                                      without\ written\ agreement)|
-                 licensed\ under\ the\ MIT))
-    
-    | (?P<pd>[Pp]ublic\ [Dd]omain)
-    | (?P<gnupermissive>Copying\ and\ distribution\ of\ this\ file,\ with\ or\ without)
-
-    | (?P<gplexception>part\ or\ all\ of\ the\ Bison\ parser\ skeleton|
-                       is\ built\ using\ GNU\ Libtool,\ you\ may\ include\ this\ file|
-                       configuration\ script\ generated\ by\ Autoconf|
-                       need\ not\ follow the\ terms\ of\ the\ GNU\ General|
-                       As\ a\ special\ exception,\ when\ this\ file\ is\ read\ by\ TeX)
-    | (?P<icu>ICU\ License)
-    | (?P<jpnic>license\ is\ obtained\ from\ Japan\ Network\ Information\ Center)
-    | (?P<gemmell>This\ software\ is\ supplied\ to\ you\ by\ Matt\ Gemmell)
-    | (?P<ofl10>SIL\ OPEN\ FONT\ LICENSE\ Version\ 1\.0)
-    | (?P<ofl11>This\ Font\ Software\ is\ licensed\ under\ the\ SIL\ Open\ Font\ License,\ Version\ 1\.1)
-    | (?P<hpnd>Permission\ to\ use,\ copy,\ modify,(?:\ and)?\ distribute(?:,\ and\ sell)?\ th)
-    | (?P<edl>the\ Eclipse\ Distribution)
-    | (?P<iscgeneral>This\ program\ is\ made\ available\ under\ an\ ISC\-style\ license)
-    | (?P<costellodisclaimer>Regarding\ this\ entire\ document\ or\ any\ portion\ of\ it)
-    
-    | (?P<vp8patent>and\ otherwise\ transfer\ this\ implementation\ of\ VP8)
-
-    | (?P<Cunknown>Copyright\ )
-    )""",
-    re.VERBOSE)
-
-
 ###############################################################################
 # Get info on a file
 ###############################################################################
@@ -1052,11 +905,11 @@ def _gather_info_on_file(path, (results, _errors)):
         return _relicensing_error(ex, path, _errors, 1)
 
 
-def _get_license_info(filename, contributors=0):
+def _get_license_info(filename, quick=0, contributors=0):
     """Return license block information for the given file.
 
         "filename" is the path to the file to scan.
-        Set the _g_quick boolean for a quick scan. In this
+        "quick" is a boolean that can be set for a quick scan. In this
             case, only the "parts" field of the return dictionary will
             be filled out.
     
@@ -1092,20 +945,52 @@ def _get_license_info(filename, contributors=0):
     # do quick search to see if any of the desired licenses is in here
     # - if it looks like all the parts are there, good, done
     # - if some but not all parts, continue
+    parts_pattern = re.compile("""(
+        (?P<block_begin>\*\*\*\*\*\ BEGIN\ LICENSE\ BLOCK\ \*\*\*\*\*)
+        | (?P<mpl>The\ contents\ of\ this\ file\ are\ subject\ to\ the\ Mozilla)
+        | (?P<npl>The\ contents\ of\ this\ file\ are\ subject\ to\ the\ Netscape)
+        | (?P<gpl>GNU\ (General\ )?Public\ License)
+        | (?P<lgpl>(Library|Lesser)\ General\ Public\ License)
+        | (?P<block_end>\*\*\*\*\*\ END\ LICENSE\ BLOCK\ \*\*\*\*\*)
+        | (?P<mpl2>This\ Source\ Code\ Form\ is\ subject\ to\ the\ terms\ of)
+        | (?P<apache2>Licensed\ under\ the\ Apache\ License,\ Version\ 2\.0)
+        | (?P<bsdevil>All\ advertising\ materials\ mentioning)
+        | (?P<bsd>Redistribution\ and\ use\ of\ this\ software|
+                  Redistribution\ and\ use\ in\ source\ and\ binary\ forms|
+                  Licensed\ under\ the\ New\ BSD\ license)
+        | (?P<ofl>This\ Font\ Software\ is\ licensed\ under\ the\ SIL\ Open\ Font\ License)
+        | (?P<mit>Permission\ is\ hereby\ granted,\ free\ of\ charge)
+        | (?P<hpnd>Permission\ to\ use,\ copy,\ modify,\ and\ distribute\ this\ software)
+        | (?P<pd>Any\ copyright\ is\ dedicated\ to\ the\ Public\ Domain|
+                [Pp]ublic\ [Dd]omain)
+        )""",
+        re.VERBOSE)
     parts = [] # found license parts in this file
     start = 0
+    blocks = 0
     while 1:
-        match = _g_license_pattern.search(content, start)
+        match = parts_pattern.search(content, start)
         if match:
             parts = match.groupdict()
-            for part in parts:
-                if parts[part]:
-                    lic_info["parts"].append(part)
-                    log.info("%s license/delimiter found", part)
-                    start = match.end()
-                    break
+            # Skip this block, if the last license block is more than 1024 
+            # chars away (file is probably used for autogeneration of files 
+            # and has multiple license blocks).
+            if start > 0 and lic_info["parts"][0] != "block_begin":
+                log.info("Found multiple matches but not tri-license; exit")
+                break
             else:
-                raise RelicError("unexpected license part: %r" % parts)
+                for part in parts:
+                    if parts[part]:
+                        lic_info["parts"].append(part)
+                        log.info("%s license/delimiter found", part)
+                        start = match.end()
+                        if part == "block_end":
+                            blocks = blocks + 1
+                        else:
+                            blocks = 0
+                        break
+                else:
+                    raise RelicError("unexpected license part: %r" % parts)
         else:
             break
 
@@ -1165,11 +1050,11 @@ def _get_license_info(filename, contributors=0):
         log.info("OFL found")
         return lic_info
             
-    elif (lic_info["parts"] == ["bsdadvert"]):
+    elif (lic_info["parts"] == ["bsdevil"]):
         log.info("4-clause BSD found!")
         return lic_info
-
-    if _g_quick:
+            
+    if quick:
         return lic_info
 
     # Otherwise, the license needs to be fixed, so gather more detailed
@@ -1701,7 +1586,7 @@ def _get_license_info(filename, contributors=0):
 ###############################################################################
 # Report on a file
 ###############################################################################
-def _report_on_file(path, (results, _errors)):
+def _report_on_file(path, (results, quick, _errors)):
     log.debug("_report_on_file(path='%s', results)", path)
     output = path + "\n"
     lic_info = {}
@@ -1710,7 +1595,7 @@ def _report_on_file(path, (results, _errors)):
         output += "... binary, skipping this file\n"
     else:
         try:
-            lic_info = _get_license_info(path)
+            lic_info = _get_license_info(path, quick)
         except RelicError, ex:
             return _relicensing_error(ex, path, _errors)
     
@@ -1729,7 +1614,7 @@ def _report_on_file(path, (results, _errors)):
         else:
             output += "... %s found" % "/".join(parts) + "\n"
 
-        if not _g_quick:
+        if not quick:
             if "begin_line" in lic_info and "end_line" in lic_info:
                 output += "... license block lines: " + \
                   "%(begin_line)d-%(end_line)d" % lic_info + "\n"
@@ -2598,11 +2483,13 @@ def addlicense(paths,
     print "-----------------------------------------------------------------"
 
 
-def report(paths, _errors=None):
+def report(paths, quick=0, _errors=None):
     """Report on the existing licenses in the given file(s).
     
         "paths" is either a list of files or directories, or it is an
             input stream with a path on each line.
+        "quick" (optional, default false) is a boolean indicating if only
+            basic license checking should be applied.
         "_errors" (optional) is a dictionary on which errors are reported
             (keyed by file path) when the force option is in effect.
 
@@ -2613,7 +2500,7 @@ def report(paths, _errors=None):
     results = {}
     _traverse(paths,\
           _report_on_file,\
-          (results, _errors))
+          (results, quick, _errors))
 
 
 def contributors(paths, _errors=None):
@@ -2634,19 +2521,20 @@ def contributors(paths, _errors=None):
           (results, None))
 
 
-def statistics(paths, extended=0, _errors=None):
+def statistics(paths, extended=0, quick=0, _errors=None):
     """Show a summary table of licenses in files in the given path(s).
 
         "paths" is either a list of files or directories, or it is an
             input stream with a path on each line.
         "extended" (optional) is a boolean indicating if extended
             statistics should be shown
+        "quick" (optional) is a boolean indicating if quick scan mode should
+            be enabled.
         "_errors" (optional) is a dictionary on which errors are reported
             (keyed by file path) when the force option is in effect.
 
     This method does not return anything.
     """
-            
     #XXX Info gathering returns a lot more info now. We might be able to
     #    output more interesting stats.
     log.debug("statistics(paths=%s, extended=%s)",
@@ -2679,14 +2567,7 @@ def statistics(paths, extended=0, _errors=None):
         if name not in stats: stats[name] = [0, []]
         stats[name][0] += 1
         stats[name][1].append(file)
-    
-    if _g_computer:
-        computerprint_stats(results, stats, extended)
-    else:
-        prettyprint_stats(results, stats, extended)
 
-
-def prettyprint_stats(results, stats, extended):
     statslist = [(hits, name, files) for name, (hits, files) in stats.items()]
     statslist.sort()    # sort by number of hits
     statslist.reverse() # most common first
@@ -2711,11 +2592,6 @@ def prettyprint_stats(results, stats, extended):
     print
 
 
-def computerprint_stats(results, stats, extended):
-    pp = pprint.PrettyPrinter(indent=4)
-    pp.pprint(stats)
-
-
 ###############################################################################
 # Main function
 ###############################################################################
@@ -2735,6 +2611,7 @@ def main(argv):
     mode = "report"
     extended = 0
     backup = 0
+    quick = 0
     for opt, optarg in opts:
         if opt in ("-h", "--help"):
             sys.stdout.write(__doc__)
@@ -2757,9 +2634,6 @@ def main(argv):
         elif opt in ("-f", "--force"):
             global _g_force
             _g_force = 1
-        elif opt in ("-c", "--computer"):
-            global _g_computer
-            _g_computer = 1
         elif opt in ("-s", "--statistics"):
             mode = "statistics"
         elif opt in ("-x",):
@@ -2773,8 +2647,7 @@ def main(argv):
         elif opt == "--backup":
             backup = 1
         elif opt in ("-q", "--quick"):
-            global _g_quick
-            _g_quick = 1
+            quick = 1
         elif opt in ("--slow-binary"):
             global _g_fast_binary
             _g_fast_binary = 0
@@ -2800,9 +2673,9 @@ def main(argv):
                       backup,
                       _errors=_errors)
         elif mode == "statistics":
-            statistics(paths, extended, _errors=_errors)
+            statistics(paths, extended, quick, _errors=_errors)
         elif mode == "report":
-            report(paths, _errors=_errors)
+            report(paths, quick, _errors=_errors)
         elif mode == "contributors":
             contributors(paths, _errors=_errors)
         elif mode == "add":

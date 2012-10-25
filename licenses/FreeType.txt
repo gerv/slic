@@ -1,2 +1,0 @@
-Portions of this software are copyright (C) <YEARS> The FreeType Project.
-All rights reserved.
