@@ -1,0 +1,4 @@
+* Multiple BSD-like licenses in a file, e.g.
+  gfx/cairo/libpixman/src/pixman.h
+  gfx/cairo/libpixman/src/pixman-region.c 
+  How do we keep them separate?
