@@ -12,7 +12,7 @@ def get_config(structname, treename):
 # Returns comment delimiters for this filename, or None if we can't work it out
 def get_delims(filename):
     delims = None
-    xfilename = _get_true_filename(filename)
+    xfilename = get_true_filename(filename)
     
     # special cases for some basenames
     basename = os.path.basename(xfilename)
@@ -39,7 +39,7 @@ def get_delims(filename):
     return delims
 
 
-def _get_true_filename(filename):
+def get_true_filename(filename):
     splitname = os.path.splitext(filename)
     if splitname[1] in _g_strip_exts:
         # Strip extensions which hide the real extension. E.g. 
@@ -600,12 +600,13 @@ _g_ext_to_comment = {
     ".FP":    (["", ]),
     ".spec":  (["", ]),
 
-    ".CPP":    (["/*", "*", "*/"], ),
-    ".cpp":    (["/*", "*", "*/"], ),
-    ".H":      (["/*", "*", "*/"], ),
-    ".h":      (["/*", "*", "*/"], ),
-    ".hxx":    (["/*", "*", "*/"], ),
-    ".c":      (["/*", "*", "*/"], ),
+    ".CPP":    (["/*", "*", "*/"], ["//"]),
+    ".cpp":    (["/*", "*", "*/"], ["//"]),
+    ".H":      (["/*", "*", "*/"], ["//"]),
+    ".h":      (["/*", "*", "*/"], ["//"]),
+    ".hxx":    (["/*", "*", "*/"], ["//"]),
+    ".c":      (["/*", "*", "*/"], ["//"]),
+    ".cc":     (["/*", "*", "*/"], ["//"]),
     ".css":    (["/*", "*", "*/"], ['#']),
     ".js":     (["/*", "*", "*/"], ['#']),
     ".idl":    (["/*", "*", "*/"], ),
@@ -622,7 +623,6 @@ _g_ext_to_comment = {
     ".jst":    (["/*", "*", "*/"], ),
     ".tbl":    (["/*", "*", "*/"], ),
     ".tab":    (["/*", "*", "*/"], ),
-    ".cc":     (["/*", "*", "*/"], ),
     ".msg":    (["/*", "*", "*/"], ),
     ".y":      (["/*", "*", "*/"], ),
     ".r":      (["/*", "*", "*/"], ),

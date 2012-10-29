@@ -2,3 +2,8 @@
   gfx/cairo/libpixman/src/pixman.h
   gfx/cairo/libpixman/src/pixman-region.c 
   How do we keep them separate?
+
+Work on:
+
+gfx/skia/third_party/glu/gluos.h
+gfx/skia/third_party/glu/sk_glu.h

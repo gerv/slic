@@ -1,5 +1,6 @@
 import re
 import hashlib
+import os.path
 from config import get_config, get_delims
 
 import logging
@@ -46,7 +47,7 @@ def get_license_block(filename, licenses):
                 log.debug("License found")
                 # Extract copyright lines into array
                 (copyrights, license) = extract_copyrights(comment)
-                license = tidy_license(license, license_tag)
+                license = tidy_license(license, license_tag, filename)
                 
                 # Canonicalize them
                 copyrights = canonicalize_copyrights(copyrights)
@@ -123,7 +124,38 @@ def find_next_comment(starting_from, lines, delims):
     return start_line, end_line
 
 
-def extract_copyrights(comment):    
+def extract_copyrights(comment):
+    start_patterns = re.compile("""(
+      (?P<mpl>The\ contents\ of\ this\ file\ are\ subject\ to\ the\ Mozilla)
+    | (?P<mpl2>This\ Source\ Code\ Form\ is\ subject\ to\ the\ terms\ of)
+    | (?P<gnu>This\ program\ is\ free\ software:\ you\ can\ redistribute\ it)
+    | (?P<apache2>Licensed\ under\ the\ Apache\ License,?\ Version\ 2\.0)
+    | (?P<hpnd>Permission\ to\ use,\ copy,\ modify,(?:\ and)?\ distribute)
+    | (?P<mit>(?:Permission\ is\ hereby\ granted,
+                 \ (?:free\ of\ charge
+                      |without\ written\ agreement)
+              |licensed\ under\ the\ MIT))
+    
+    | (?P<bsd>Redistribution\ and\ use\ of\ this\ software|
+              Redistribution\ and\ use\ in\ source\ and\ binary\ forms)
+    | (?P<bsdfileref>Licensed\ under\ the\ New\ BSD\ license|
+                     The\ program\ is\ distributed\ under\ terms\ of\ BSD
+                     \ license|
+                     Use\ of\ this\ source\ code\ is\ governed\ by\ a
+                     \ BSD\-style\ license)
+    | (?P<gnupermissive>Copying\ and\ distribution\ of\ this\ file,\ with
+                        \ or\ without)
+    | (?P<icu>ICU\ License)
+    | (?P<jpnic>license\ is\ obtained\ from\ Japan\ Network\ Information\ Center)
+    | (?P<gemmell>This\ software\ is\ supplied\ to\ you\ by\ Matt\ Gemmell)
+    | (?P<ofl10>SIL\ OPEN\ FONT\ LICENSE\ Version\ 1\.0)
+    | (?P<ofl11>This\ Font\ Software\ is\ licensed\ under\ the\ SIL\ Open
+                \ Font\ License,\ Version\ 1\.1)
+    | (?P<iscgeneral>This\ program\ is\ made\ available\ under\ an\ ISC\-style
+                     \ license)
+    )""",
+        re.VERBOSE | re.IGNORECASE)
+
     copyrights = []
     license = []
     in_copyrights = False
@@ -135,7 +167,7 @@ def extract_copyrights(comment):
             log.debug("Ignorable line: %s" % line)
             continue
             
-        if re.search("Copyright ", line):
+        if re.search("Copyright ", line, re.IGNORECASE):
             log.debug("Copyright line: %s" % line)
             copyrights.append(line)
             in_copyrights = True
@@ -145,6 +177,11 @@ def extract_copyrights(comment):
             if re.search("^\s*$", line): 
                 log.debug("Blank line (while in copyrights)")
                 # Blank line
+                in_copyrights = False
+            elif start_patterns.search(line):
+                # Normal license line
+                log.debug("First license line: %s" % line)
+                license.append(line)
                 in_copyrights = False
             else:
                 # Continuation line
@@ -175,10 +212,17 @@ def canonicalize_copyrights(copyrights):
     return copyrights   
 
 
-def tidy_license(license, license_tag):
+def tidy_license(license, license_tag, filename):
     # This is where we collect hacks to try and remove cruft which gets caught
     # up in various license blocks
 
+    # Some files rather pointlessly include the name of the file in the license
+    # block, which makes them all different :-|
+    ignoreme = re.compile("""
+    %s
+    """ % re.escape(os.path.basename(filename)),
+    re.VERBOSE | re.IGNORECASE)
+    
     # Strip non-copyright lists of names or blank lines from end of licenses    
     if re.search("mit|hpnd|mpl", license_tag):
         while re.search("""Author
@@ -192,6 +236,22 @@ def tidy_license(license, license_tag):
                         re.IGNORECASE | re.VERBOSE):
             license = license[0:-1]
 
+    # Loop downwards so we can remove items
+    is_blank = False
+    for i in range(len(license) - 1, -1, -1):
+
+        # Remove general lines we don't like
+        if ignoreme.search(license[i]):
+            license = license[:i] + license[i + 1:]
+            
+        # Remove multiple successive blank lines
+        if re.search("^\s*$", license[i]):
+            if is_blank:
+                license = license[:i] + license[i + 1:]
+            is_blank = True
+        else:
+            is_blank = False
+    
     # Remove any trailing blank lines
     while re.search("^\s*$", license[-1], re.IGNORECASE):
         license = license[0:-1]

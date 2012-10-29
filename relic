@@ -65,7 +65,7 @@ import subprocess
 import hashlib
 
 import licblock
-from config import get_config, get_delims
+from config import get_config, get_delims, get_true_filename
 
 
 class RelicError(Exception):
@@ -1178,7 +1178,7 @@ def _add_license_to_file(original_path,
             "error determining if file is binary: %s" % ex,
             original_path, _errors)
 
-    ext = os.path.splitext(_get_true_filename(original_path))[1]
+    ext = os.path.splitext(get_true_filename(original_path))[1]
     if ext in get_config("skip_add_exts", treename):
         print "... not adding license to %s files" % ext
         results["badext"] += 1
@@ -1211,6 +1211,8 @@ def _add_license_to_file(original_path,
     startline = 0
     try:
         comment_delim_sets = get_delims(original_path)
+        if not comment_delim_sets:
+            return
     except RelicError, ex:
         return _relicensing_error(ex, original_path, _errors, 1)
     fin = open(original_path, 'r')
