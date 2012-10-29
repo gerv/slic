@@ -4,7 +4,7 @@ import os.path
 from config import get_config, get_delims
 
 import logging
-logging.basicConfig(filename="relic.log", level=logging.DEBUG)
+# logging.basicConfig(filename="relic.log", level=logging.DEBUG)
 log = logging.getLogger("relic")
 
 # "licenses" is an accumulating result parameter
@@ -19,7 +19,7 @@ def get_license_block(filename, licenses):
 
     # Get comment delimiter info for this file.
     comment_delim_sets = get_delims(filename)
-
+    
     if not comment_delim_sets:
         # We can't handle this type of file
         log.info("No comment delimiters found")
@@ -28,18 +28,27 @@ def get_license_block(filename, licenses):
     lines = content.splitlines()
     
     for delims in comment_delim_sets:
-        log.debug("Trying delims: %s", delims)
+        # Hack to get around strange Python single member empty tuple behaviour
+        if type(delims) == str:
+            delims = [delims]
+        
+        log.debug("Trying delims: %r", delims)
         end_line = 0
 
         while 1:
-            (start_line, end_line) = find_next_comment(end_line, lines, delims)
+            if delims[0] == '':
+                comment = lines
+            else:
+                (start_line, end_line) = find_next_comment(end_line,
+                                                           lines,
+                                                           delims)
 
-            if start_line == -1:
-                # No more comments
-                break
+                if start_line == -1:
+                    # No more comments
+                    break
 
-            comment = lines[start_line:end_line]
-            comment = strip_comment_chars(comment, delims)
+                comment = lines[start_line:end_line]
+                comment = strip_comment_chars(comment, delims)
             
             # We have a comment - is it a license block?
             license_tag = identify_license(comment)
@@ -71,6 +80,9 @@ def get_license_block(filename, licenses):
                         'files': [filename]
                     }
 
+            if delims[0] == '':
+                break
+                
     return
 
 
@@ -86,7 +98,9 @@ def find_next_comment(starting_from, lines, delims):
     if len(delims) == 3:
         end_re = re.compile("\s*%s" % re.escape(delims[2]))             
     elif len(delims) == 1:
-        end_re = re.compile("^\s*([^%s\s].*)?$" % re.escape(delims[0]))
+        # Negative lookahead assertion: whitespace not followed by the
+        # delimiter (needed because delimiter can be multiple chars, e.g. //)
+        end_re = re.compile("^\s*(?!%s|\s)" % re.escape(delims[0]))
 
     # Find start
     for i in range(starting_from, len(lines)):
@@ -105,7 +119,7 @@ def find_next_comment(starting_from, lines, delims):
     found_end = False
     # Begin on the same line to account for single-line /* */
     for i in range(start_line, len(lines)):
-        log.debug("Examining line %s" % lines[i])
+        log.debug("Finding end: checking line %s" % lines[i])
         match = end_re.search(lines[i])
         end_line = i
         if match:
@@ -167,7 +181,7 @@ def extract_copyrights(comment):
             log.debug("Ignorable line: %s" % line)
             continue
             
-        if re.search("Copyright ", line, re.IGNORECASE):
+        if re.search("^\s*(Copyright|COPYRIGHT) ", line):
             log.debug("Copyright line: %s" % line)
             copyrights.append(line)
             in_copyrights = True
@@ -216,8 +230,17 @@ def tidy_license(license, license_tag, filename):
     # This is where we collect hacks to try and remove cruft which gets caught
     # up in various license blocks
 
+    if not license:
+        return license
+        
     # Some files rather pointlessly include the name of the file in the license
-    # block, which makes them all different :-|
+    # block, which makes them all different :-| However, there also exist files
+    # with names like "copyright", which makes life more complex. We exclude
+    # all extensionless filenames from this, to be safe.
+    (base, ext) = os.path.splitext(filename)
+    if ext == '':
+        filename = filename + ".xxxdontmatchanything"
+    
     ignoreme = re.compile("""
     %s
     """ % re.escape(os.path.basename(filename)),
@@ -234,6 +257,7 @@ def tidy_license(license, license_tag, filename):
                          """,
                         license[-1],
                         re.IGNORECASE | re.VERBOSE):
+            log.debug("Removing attrib line: %s" % license[-1])
             license = license[0:-1]
 
     # Loop downwards so we can remove items
@@ -242,7 +266,9 @@ def tidy_license(license, license_tag, filename):
 
         # Remove general lines we don't like
         if ignoreme.search(license[i]):
+            log.debug("Removing ignoreme line: %s" % license[i])
             license = license[:i] + license[i + 1:]
+            continue
             
         # Remove multiple successive blank lines
         if re.search("^\s*$", license[i]):
@@ -253,8 +279,9 @@ def tidy_license(license, license_tag, filename):
             is_blank = False
     
     # Remove any trailing blank lines
-    while re.search("^\s*$", license[-1], re.IGNORECASE):
-        license = license[0:-1]
+    if license:
+        while re.search("^\s*$", license[-1], re.IGNORECASE):
+            license = license[0:-1]
             
     return license
 
@@ -366,7 +393,7 @@ def strip_comment_chars(comment, delims):
         comment[-1] = re.sub(suffix_re, "", comment[-1])
     
     cont_re = re.compile("^\s*%s+\s?" % re.escape(cont))
-    for i in range(len(comment)):
+    for i in range(1, len(comment)):
         # Strip continuation char
         comment[i] = re.sub(cont_re, "", comment[i])
         # Strip trailing whitespace

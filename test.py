@@ -21,10 +21,10 @@ class TestStringMunging(unittest.TestCase):
 
     def test_canonicalize_comment(self):
         result = licblock.canonicalize_comment(["Wibble"])
-        self.assertEqual(result, "Wibble")
+        self.assertEqual(result, "wibble")
         
         result = licblock.canonicalize_comment(["  Wibble ", " Fish  ", "R "])
-        self.assertEqual(result, "Wibble Fish R")
+        self.assertEqual(result, "wibble fish r")
 
     def test_strip_comment_chars_1(self):
         result = licblock.strip_comment_chars(["# Foo", "# Bar"], ['#'])
@@ -40,6 +40,8 @@ class TestStringMunging(unittest.TestCase):
         result = licblock.strip_comment_chars(["/* Foo", "* Bar", "*/"], ['/*', '*', '*/'])
         self.assertEqual(result, ["Foo", "Bar", ""])
 
+        result = licblock.strip_comment_chars(["/* **** Foo ****", "* Bar", "*/"], ['/*', '*', '*/'])
+        self.assertEqual(result, ["**** Foo ****", "Bar", ""])
     
 class TestLicenseMunging(unittest.TestCase):
     def setUp(self):
@@ -131,6 +133,14 @@ And this is not a comment
 
 """.splitlines()
 
+        self.block3 = """\
+/* Foo */
+// Bar
+/* Baz
+ * Quux
+ */
+""".splitlines()
+
     def test_find_next_comment(self):
         delims = ['#']
         end_line = 0
@@ -159,11 +169,20 @@ And this is not a comment
             self.assertEqual(start_line, result1)
             self.assertEqual(end_line, result2)
 
+        delims = ['//']
+        end_line = 0
+        results = [(1, 2), (-1, None)]
+        
+        for result1, result2 in results:
+            (start_line, end_line) = licblock.find_next_comment(end_line, self.block3, delims)
+            self.assertEqual(start_line, result1)
+            self.assertEqual(end_line, result2)
+
 
 class TestGetLicenseBlock(unittest.TestCase):
     def test_get_license_block(self):
         licenses = {}
-        lic_hash = "291fc3e3c632e671df470cbefbfbe07c"
+        lic_hash = "f7496ee7e625212ac7c80b78e1514ce5"
         filename = "test_data/main.cc"
         
         licblock.get_license_block(filename, licenses)

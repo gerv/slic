@@ -35,7 +35,7 @@ def get_delims(filename):
                 if pattern.match(firstline):
                     delims = cds
                     break
-    
+
     return delims
 
 
@@ -590,9 +590,8 @@ _g_basename_to_comment = {
 # Comment character to use (or a set of them) for each extension
 # When adding new licence blocks, the first will be used
 _g_ext_to_comment = {
-    ".txt":   (["##", "#", ], ["#"]),
-    ".TXT":   (["##", "#", ]),
-
+    ".txt":   (["", ]),
+    ".TXT":   (["", ]),
     ".doc":   (["", ]),
     ".build": (["", ]),
     ".1st":   (["", ]),
