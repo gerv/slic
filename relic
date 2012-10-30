@@ -55,6 +55,13 @@ variables inside the script.
 
 """
 
+###############################################################################
+# Logging
+###############################################################################
+import logging
+logging.basicConfig(filename="relic.log", level=logging.INFO)
+log = logging.getLogger("relic")
+
 import os
 import sys
 import re
@@ -67,16 +74,8 @@ import hashlib
 import licblock
 from config import get_config, get_delims, get_true_filename
 
-
 class RelicError(Exception):
     pass
-
-###############################################################################
-# Logging
-###############################################################################
-import logging
-logging.basicConfig(filename="relic.log",level="INFO")
-log = logging.getLogger("relic")
 
 ###############################################################################
 # Globals

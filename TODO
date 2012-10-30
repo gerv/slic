@@ -2,40 +2,27 @@
   gfx/cairo/libpixman/src/pixman.h
   gfx/cairo/libpixman/src/pixman-region.c 
   How do we keep them separate?
-
+./media/mtransport/nr_socket_prsock.cpp
+./netwerk/wifi/osx_wifi.h
+./extensions/spellcheck/locales/en-US/hunspell/README_en_US.txt
+./browser/app/profile/extensions/testpilot@labs.mozilla.com/content/flot/jquery.flot.navigate.js
 
 To investigate:
 
 ./mobile/android/base/sqlite/MatrixBlobCursor.java
 ./editor/libeditor/html/tests/browserscope/lib/richtext2/richtext2/static/js/units.js
-./browser/extensions/pdfjs/content/web/viewer.html
-./toolkit/crashreporter/google-breakpad/src/processor/disassembler_x86.cc
-
-* Make lines like:
-"-------------------"
-"*******************"
-ignorable
+XXX ./browser/extensions/pdfjs/content/web/viewer.html
+XXX ./toolkit/crashreporter/google-breakpad/src/processor/disassembler_x86.cc
 
 * copyright with lower-case C OK at start of line, if followed by (C), or date?
 ./other-licenses/android/resolv_cache.h also problematic. Need to rework this
-
-* Make #! lines ignorable:
-./media/webrtc/trunk/testing/gtest/scripts/upload.py
+Also: "This Font Software is Copyright (c) 2003-2005, SIL International "
 
 * Multiple detections?
 ./toolkit/devtools/sourcemap/SourceMap.jsm
 ./toolkit/devtools/sourcemap/tests/unit/Utils.jsm
 
-* Make $Id lines ignorable
 
-* Rename bsdgenerals to bsdfilerefs
 
-* ./tools/trace-malloc/getopt.c has ad clause but not detected
-
-* Make BEGIN LICENSE BLOCK and END LICENSE BLOCK ignorable
-./js/src/assembler/assembler/AssemblerBufferWithConstantPool.h
-
-* Can we deal with /** openings?
-./media/mtransport/third_party/nrappkit/src/util/libekr/r_defaults.h
-
-* Author line still present? ./toolkit/crashreporter/google-breakpad/src/third_party/glog/src/logging_striptest10.cc
+* .txt file problems:
+gfx/graphite2/src/CMakeLists.txt

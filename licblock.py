@@ -2,9 +2,9 @@ import re
 import hashlib
 import os.path
 from config import get_config, get_delims
+import detector
 
 import logging
-# logging.basicConfig(filename="relic.log", level=logging.DEBUG)
 log = logging.getLogger("relic")
 
 # "licenses" is an accumulating result parameter
@@ -14,7 +14,7 @@ def get_license_block(filename, licenses):
         content = fin.read()
     finally:
         fin.close()
-
+    
     log.info("Processing: %s", filename)
 
     # Get comment delimiter info for this file.
@@ -26,16 +26,19 @@ def get_license_block(filename, licenses):
         return
 
     lines = content.splitlines()
+    license_found = False
     
     for delims in comment_delim_sets:
         # Hack to get around strange Python single member empty tuple behaviour
+        # XXX find the proper fix; test with rpm.spec files
         if type(delims) == str:
             delims = [delims]
         
         log.debug("Trying delims: %r", delims)
+        start_line = 0
         end_line = 0
-
-        while 1:
+        
+        while start_line < 300:
             if delims[0] == '':
                 comment = lines
             else:
@@ -51,14 +54,14 @@ def get_license_block(filename, licenses):
                 comment = strip_comment_chars(comment, delims)
             
             # We have a comment - is it a license block?
-            license_tag = identify_license(comment)
+            license_tag = detector.id_license(comment)
             if license_tag:
-                log.debug("License found")
-                # Extract copyright lines into array
-                (copyrights, license) = extract_copyrights(comment)
-                license = tidy_license(license, license_tag, filename)
+                license_found = True
+                log.debug("License found: %s" % license_tag)
                 
-                # Canonicalize them
+                (copyrights, license) = \
+                  detector.extract_copyrights_and_license(comment, license_tag)
+                
                 copyrights = canonicalize_copyrights(copyrights)
 
                 copyrights_by_md5 = {}
@@ -81,7 +84,18 @@ def get_license_block(filename, licenses):
                     }
 
             if delims[0] == '':
+                # We did the whole file in one go
                 break
+        
+        if not license_found:
+            if 'none' in licenses:
+                licenses['none']['files'].append(filename)
+            else:
+                licenses['none'] = {
+                    'text': '',
+                    'tag': 'none',
+                    'files': [filename]
+                }            
                 
     return
 
@@ -138,240 +152,13 @@ def find_next_comment(starting_from, lines, delims):
     return start_line, end_line
 
 
-def extract_copyrights(comment):
-    start_patterns = re.compile("""(
-      (?P<mpl>The\ contents\ of\ this\ file\ are\ subject\ to\ the\ Mozilla)
-    | (?P<mpl2>This\ Source\ Code\ Form\ is\ subject\ to\ the\ terms\ of)
-    | (?P<gnu>This\ program\ is\ free\ software:\ you\ can\ redistribute\ it)
-    | (?P<apache2>Licensed\ under\ the\ Apache\ License,?\ Version\ 2\.0)
-    | (?P<hpnd>Permission\ to\ use,\ copy,\ modify,(?:\ and)?\ distribute)
-    | (?P<mit>(?:Permission\ is\ hereby\ granted,
-                 \ (?:free\ of\ charge
-                      |without\ written\ agreement)
-              |licensed\ under\ the\ MIT))
-    
-    | (?P<bsd>Redistribution\ and\ use\ of\ this\ software|
-              Redistribution\ and\ use\ in\ source\ and\ binary\ forms)
-    | (?P<bsdfileref>Licensed\ under\ the\ New\ BSD\ license|
-                     The\ program\ is\ distributed\ under\ terms\ of\ BSD
-                     \ license|
-                     Use\ of\ this\ source\ code\ is\ governed\ by\ a
-                     \ BSD\-style\ license)
-    | (?P<gnupermissive>Copying\ and\ distribution\ of\ this\ file,\ with
-                        \ or\ without)
-    | (?P<icu>ICU\ License)
-    | (?P<jpnic>license\ is\ obtained\ from\ Japan\ Network\ Information\ Center)
-    | (?P<gemmell>This\ software\ is\ supplied\ to\ you\ by\ Matt\ Gemmell)
-    | (?P<ofl10>SIL\ OPEN\ FONT\ LICENSE\ Version\ 1\.0)
-    | (?P<ofl11>This\ Font\ Software\ is\ licensed\ under\ the\ SIL\ Open
-                \ Font\ License,\ Version\ 1\.1)
-    | (?P<iscgeneral>This\ program\ is\ made\ available\ under\ an\ ISC\-style
-                     \ license)
-    )""",
-        re.VERBOSE | re.IGNORECASE)
-
-    copyrights = []
-    license = []
-    in_copyrights = False
-    had_blank = True
-    
-    for line in comment:
-        # Ignorable lines, e.g. modelines
-        if re.search("-\*-|vim\:", line):
-            log.debug("Ignorable line: %s" % line)
-            continue
-            
-        if re.search("^\s*(Copyright|COPYRIGHT) ", line):
-            log.debug("Copyright line: %s" % line)
-            copyrights.append(line)
-            in_copyrights = True
-            continue
-            
-        if in_copyrights:
-            if re.search("^\s*$", line): 
-                log.debug("Blank line (while in copyrights)")
-                # Blank line
-                in_copyrights = False
-            elif start_patterns.search(line):
-                # Normal license line
-                log.debug("First license line: %s" % line)
-                license.append(line)
-                in_copyrights = False
-            else:
-                # Continuation line
-                log.debug("CopyConti line: %s" % line)
-                copyrights[-1] = copyrights[-1] + " " + line
-                had_blank = False
-        elif had_blank and re.search("^\s*$", line):
-            # 2nd or subsequent blank line
-            log.debug("Multiple blank line")
-            continue
-        else:
-            # Normal license line
-            log.debug("License line: %s" % line)
-            license.append(line)
-            had_blank = re.search("^\s*$", line)
-
-    if had_blank:
-        # Remove final blank line
-        license = license[0:-1]
-    
-    return copyrights, license
-
-
 def canonicalize_copyrights(copyrights):
     for i in range(len(copyrights)):
         copyrights[i] = collapse_whitespace(copyrights[i])
     
     return copyrights   
 
-
-def tidy_license(license, license_tag, filename):
-    # This is where we collect hacks to try and remove cruft which gets caught
-    # up in various license blocks
-
-    if not license:
-        return license
-        
-    # Some files rather pointlessly include the name of the file in the license
-    # block, which makes them all different :-| However, there also exist files
-    # with names like "copyright", which makes life more complex. We exclude
-    # all extensionless filenames from this, to be safe.
-    (base, ext) = os.path.splitext(filename)
-    if ext == '':
-        filename = filename + ".xxxdontmatchanything"
     
-    ignoreme = re.compile("""
-    %s
-    """ % re.escape(os.path.basename(filename)),
-    re.VERBOSE | re.IGNORECASE)
-    
-    # Strip non-copyright lists of names or blank lines from end of licenses    
-    if re.search("mit|hpnd|mpl", license_tag):
-        while re.search("""Author
-                         |Contributor
-                         |@
-                         |Initial\ Developer
-                         |Original\ Code
-                         |^\s*$
-                         """,
-                        license[-1],
-                        re.IGNORECASE | re.VERBOSE):
-            log.debug("Removing attrib line: %s" % license[-1])
-            license = license[0:-1]
-
-    # Loop downwards so we can remove items
-    is_blank = False
-    for i in range(len(license) - 1, -1, -1):
-
-        # Remove general lines we don't like
-        if ignoreme.search(license[i]):
-            log.debug("Removing ignoreme line: %s" % license[i])
-            license = license[:i] + license[i + 1:]
-            continue
-            
-        # Remove multiple successive blank lines
-        if re.search("^\s*$", license[i]):
-            if is_blank:
-                license = license[:i] + license[i + 1:]
-            is_blank = True
-        else:
-            is_blank = False
-    
-    # Remove any trailing blank lines
-    if license:
-        while re.search("^\s*$", license[-1], re.IGNORECASE):
-            license = license[0:-1]
-            
-    return license
-
-    
-def identify_license(license):
-    line_license = canonicalize_comment(license)
-    
-    parts_pattern = re.compile("""(
-      (?P<mpl>The\ contents\ of\ this\ file\ are\ subject\ to\ the\ Mozilla)
-    | (?P<gpl>under\ the\ terms\ of\ the\ GNU\ (?:General\ )?Public\ License)
-    | (?P<lgpl>under\ the\ terms\ of\ the\ GNU\ (?:Library|Lesser)\ General
-               \ Public)
-    | (?P<gpllgpltri>in\ which\ case\ the\ provisions\ of\ the\ GPL\ or\ the
-                     \ LGPL\ are\ applicable)
-    | (?P<mplgpltri>Mozilla\ Public\ License.*or\ the\ GNU\ General)
-    | (?P<mpl2>This\ Source\ Code\ Form\ is\ subject\ to\ the\ terms\ of)
-    | (?P<apache2>Licensed\ under\ the\ Apache\ License,?\ Version\ 2\.0)
-    
-    | (?P<ace>Use\ of\ this\ source\ code\ is\ governed\ by\ the\ ACE
-              \ copyright\ license)
-    | (?P<bsdheader>Redistribution\ and\ use\ of\ this\ software|
-                    Redistribution\ and\ use\ in\ source\ and\ binary\ forms)
-    | (?P<bsdsource>Redistributions\ of\ source\ code\ must\ retain\ the)
-    | (?P<bsdbinary>Redistributions\ in\ binary\ form\ must\ reproduce\ the)
-    | (?P<bsdendorse>Neither\ the\ names?\ of|
-                     The\ name\ of\ the\ author\ may\ not\ be\ used)
-    | (?P<bsdadvert>All\ advertising\ materials\ mentioning)
-    | (?P<bsdlebedev>Modified\ versions\ must\ be\ clearly\ marked\ as\ such)
-    
-    | (?P<bsdgeneral1>Licensed\ under\ the\ New\ BSD\ license)
-    | (?P<bsdgeneral2>The\ program\ is\ distributed\ under\ terms\ of\ BSD
-                      \ license)
-    | (?P<bsdgeneral3>Use\ of\ this\ source\ code\ is\ governed\ by\ a
-                      \ BSD\-style\ license)
-
-    | (?P<seecopying>See\ the\ file\ COPYING)
-    
-    | (?P<mit>(?:Permission\ is\ hereby\ granted,
-                 \ (?:free\ of\ charge
-                      |without\ written\ agreement)
-              |licensed\ under\ the\ MIT))
-    | (?P<hpnd>Permission\ to\ use,\ copy,\ modify,(?:\ and)?\ distribute)
-    
-    | (?P<pd>[Pp]ublic\ [Dd]omain)
-    | (?P<gnupermissive>Copying\ and\ distribution\ of\ this\ file,\ with
-                        \ or\ without)
-
-    | (?P<gplexception>part\ or\ all\ of\ the\ Bison\ parser\ skeleton|
-                       is\ built\ using\ GNU\ Libtool,\ you\ may\ include|
-                       configuration\ script\ generated\ by\ Autoconf|
-                       need\ not\ follow the\ terms\ of\ the\ GNU\ General|
-                       As\ a\ special\ exception,\ when\ this\ file\ is\ read\ by\ TeX)
-    
-    | (?P<icu>ICU\ License)
-    | (?P<jpnic>license\ is\ obtained\ from\ Japan\ Network\ Information\ Center)
-    | (?P<gemmell>This\ software\ is\ supplied\ to\ you\ by\ Matt\ Gemmell)
-    | (?P<ofl10>SIL\ OPEN\ FONT\ LICENSE\ Version\ 1\.0)
-    | (?P<ofl11>This\ Font\ Software\ is\ licensed\ under\ the\ SIL\ Open
-                \ Font\ License,\ Version\ 1\.1)
-    | (?P<edl>the\ Eclipse\ Distribution)
-    | (?P<iscgeneral>This\ program\ is\ made\ available\ under\ an\ ISC\-style
-                     \ license)
-    | (?P<costellodisclaimer>Regarding\ this\ entire\ document\ or\ any
-                             \ portion\ of\ it)
-    
-    | (?P<vp8patent>and\ otherwise\ transfer\ this\ implementation\ of\ VP8)
-    )""",
-        re.VERBOSE | re.IGNORECASE)
-
-    start = 0
-    tags = []
-    
-    while 1:
-        match = parts_pattern.search(line_license, start)
-    
-        if match:
-            parts = match.groupdict()
-            tags.extend([part for part in parts if parts[part]])
-            start = match.end()
-        else:
-            break
-
-    if tags:        
-        log.debug("License found: %s" % "/".join(tags))
-        return "/".join(tags)
-    else:
-        log.debug("No license found in comment")
-        return False
-
-
 def strip_comment_chars(comment, delims):
     prefix = delims[0]
     if len(delims) == 3:
@@ -420,5 +207,3 @@ def collapse_whitespace(line):
     line = re.sub("\s$", "", line)
     
     return line
-
-        
