@@ -1,6 +1,8 @@
 import licblock
 import config
 import unittest
+import os
+import re
 
 class TestStringMunging(unittest.TestCase):
     def test_collapse_whitespace(self):
@@ -42,54 +44,6 @@ class TestStringMunging(unittest.TestCase):
 
         result = licblock.strip_comment_chars(["/* **** Foo ****", "* Bar", "*/"], ['/*', '*', '*/'])
         self.assertEqual(result, ["**** Foo ****", "Bar", ""])
-    
-class TestLicenseMunging(unittest.TestCase):
-    def setUp(self):
-        self.mpl2 = """\
-This Source Code Form is subject to the terms of the Mozilla Public
-License, v. 2.0. If a copy of the MPL was not distributed with this
-file, You can obtain one at http://mozilla.org/MPL/2.0/.
-""".splitlines()
-
-        self.block0 = """
-Copyright (C) 2010 Fred Bloggs
-  
-This Source Code Form is subject to the terms of the Mozilla Public
-License, v. 2.0. If a copy of the MPL was not distributed with this
-file, You can obtain one at http://mozilla.org/MPL/2.0/.
-""".splitlines()
-
-        self.block1 = """\
-Copyright (C) 2010 Fred Bloggs
-Copyright (C) 2009-2012  George Jones
-
-This Source Code Form is subject to the terms of the Mozilla Public
-License, v. 2.0. If a copy of the MPL was not distributed with this
-file, You can obtain one at http://mozilla.org/MPL/2.0/.""".splitlines()
-
-        self.block2 = """\
-This Source Code Form is subject to the terms of the Mozilla Public
-License, v. 2.0. If a copy of the MPL was not distributed with this
-file, You can obtain one at http://mozilla.org/MPL/2.0/.
-
-""".splitlines()
-
-
-    def test_extract_copyrights(self):
-        (copyrights, license) = licblock.extract_copyrights(self.block0)
-        self.assertEqual(copyrights, ["Copyright (C) 2010 Fred Bloggs"])
-        self.assertEqual(license, self.mpl2)
-
-        (copyrights, license) = licblock.extract_copyrights(self.block1)
-        self.assertEqual(copyrights, ["Copyright (C) 2010 Fred Bloggs", "Copyright (C) 2009-2012  George Jones"])
-        self.assertEqual(license, self.mpl2)
-
-        (copyrights, license) = licblock.extract_copyrights(self.block2)
-        self.assertEqual(license, self.mpl2)
-
-        
-    def test_identify_license(self):
-        self.assertTrue(licblock.identify_license(self.mpl2))
 
 
 class TestCommentFinding(unittest.TestCase):
@@ -182,20 +136,34 @@ And this is not a comment
 class TestGetLicenseBlock(unittest.TestCase):
     def test_get_license_block(self):
         licenses = {}
-        lic_hash = "f7496ee7e625212ac7c80b78e1514ce5"
+        lic_hash = "9dd63be914c2eff5b6938c3047a5bd66"
         filename = "test_data/main.cc"
         
         licblock.get_license_block(filename, licenses)
         self.assertIn(lic_hash, licenses)
         self.assertIn('text', licenses[lic_hash])
         text = licenses[lic_hash]['text']
-        self.assertRegexpMatches(text[0], '^ This is part of')
+        self.assertRegexpMatches(text[0], '^Permission is hereby granted')
         self.assertIn('copyrights', licenses[lic_hash])
         
         copyrights = licenses[lic_hash]['copyrights']
         copy_hash = "157d5ef2a199fa205a4ba57f919a0338"
         self.assertIn(copy_hash, copyrights)
         self.assertEqual(copyrights[copy_hash], "Copyright \xc2\xa9 2007,2008,2009 Red Hat, Inc.")
+
+    # Test we correctly identify every test file in the test_data/licenses
+    # directory (using the filename to give us the right answer).
+    def test_get_license_block_2(self):
+        dir = "test_data/licenses"
+        for filename in os.listdir(dir):
+            match = re.match("^\w+", filename)
+            tag = match.group(0)
+            
+            licenses = {}
+            licblock.get_license_block(os.path.join(dir, filename), licenses)
+
+            self.assertEqual(licenses[licenses.keys()[0]]['tag'], tag)
+
         
 if __name__ == '__main__':
     unittest.main()

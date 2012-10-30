@@ -87,15 +87,15 @@ def get_license_block(filename, licenses):
                 # We did the whole file in one go
                 break
         
-        if not license_found:
-            if 'none' in licenses:
-                licenses['none']['files'].append(filename)
-            else:
-                licenses['none'] = {
-                    'text': '',
-                    'tag': 'none',
-                    'files': [filename]
-                }            
+    if not license_found:
+        if 'none' in licenses:
+            licenses['none']['files'].append(filename)
+        else:
+            licenses['none'] = {
+                'text': '',
+                'tag': 'none',
+                'files': [filename]
+            }            
                 
     return
 
