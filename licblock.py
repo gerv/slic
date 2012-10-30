@@ -27,6 +27,7 @@ def get_license_block(filename, licenses):
 
     lines = content.splitlines()
     license_found = False
+    default_tag = 'none'
     
     for delims in comment_delim_sets:
         # Hack to get around strange Python single member empty tuple behaviour
@@ -83,17 +84,20 @@ def get_license_block(filename, licenses):
                         'files': [filename]
                     }
 
+            elif re.match("copyright", canonicalize_comment(comment), re.IGNORECASE):
+                default_tag = "suspicious"
+                
             if delims[0] == '':
                 # We did the whole file in one go
                 break
         
     if not license_found:
-        if 'none' in licenses:
-            licenses['none']['files'].append(filename)
+        if default_tag in licenses:
+            licenses[default_tag]['files'].append(filename)
         else:
-            licenses['none'] = {
+            licenses[default_tag] = {
                 'text': '',
-                'tag': 'none',
+                'tag': default_tag,
                 'files': [filename]
             }            
                 
@@ -114,7 +118,9 @@ def find_next_comment(starting_from, lines, delims):
     elif len(delims) == 1:
         # Negative lookahead assertion: whitespace not followed by the
         # delimiter (needed because delimiter can be multiple chars, e.g. //)
-        end_re = re.compile("^\s*(?!%s|\s)" % re.escape(delims[0]))
+        # Requires one extra character to as to amalgamate blocks separated
+        # only by blank lines (a common but irritating case).
+        end_re = re.compile("^\s*(?!%s|\s).+$" % re.escape(delims[0]))
 
     # Find start
     for i in range(starting_from, len(lines)):

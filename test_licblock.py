@@ -64,7 +64,7 @@ This is not a comment
 /* Start of block comment, one line */
 /* Immediately following comment
  * Over multiple lines */
-
+XXX
 /* Another comment
 * This time with
  * the terminator on its own line
@@ -76,15 +76,19 @@ And this is not a comment
 
         self.block2 = """\
 #    This is a comment with multiple spaces before the text
-
+XXX
     #    This is a comment with spaces before and after the comment char
-
+XXX
 \t# This is a comment starting with a tab
-
+XXX
 ## Here's one where the comment char is doubled
+XXX
+# Part 1
 
+# Part 2 - should be all one because blanks are ignored
+XXX
 # This is a line comment exactly 1 line from the end
-
+XXX
 """.splitlines()
 
         self.block3 = """\
@@ -94,6 +98,7 @@ And this is not a comment
  * Quux
  */
 """.splitlines()
+
 
     def test_find_next_comment(self):
         delims = ['#']
@@ -116,7 +121,7 @@ And this is not a comment
 
         delims = ['#']
         end_line = 0
-        results = [(0, 1), (2, 3), (4, 5), (6, 7), (8, 9), (-1, None)]
+        results = [(0, 1), (2, 3), (4, 5), (6, 7), (8, 11), (12, 13), (-1, None)]
         
         for result1, result2 in results:
             (start_line, end_line) = licblock.find_next_comment(end_line, self.block2, delims)

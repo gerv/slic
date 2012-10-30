@@ -1833,7 +1833,7 @@ def aggregate(paths, _errors=None):
 ###############################################################################
 def main(argv):
     try:
-        opts, args = getopt.getopt(argv[1:], "VvahdqfL:sxrAc",
+        opts, args = getopt.getopt(argv[1:], "VvahdqfL:sxrAcg",
             ["version", "verbose", "all", "help", "debug",
              "dry-run", "force", "license=",
              "statistics", "relicense", "backup", "add", "aggregate",
@@ -1872,7 +1872,7 @@ def main(argv):
             _g_force = 1
         elif opt in ("-s", "--statistics"):
             mode = "statistics"
-        elif opt in ("-a", "--aggregate"):
+        elif opt in ("-g", "--aggregate"):
             mode = "aggregate"
         elif opt in ("-x",):
             extended = 1

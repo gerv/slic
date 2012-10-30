@@ -1,28 +1,29 @@
 * Multiple BSD-like licenses in a file, e.g.
+  How do we keep them separate?
+  
   gfx/cairo/libpixman/src/pixman.h
   gfx/cairo/libpixman/src/pixman-region.c 
-  How do we keep them separate?
-./media/mtransport/nr_socket_prsock.cpp
-./netwerk/wifi/osx_wifi.h
-./extensions/spellcheck/locales/en-US/hunspell/README_en_US.txt
-./browser/app/profile/extensions/testpilot@labs.mozilla.com/content/flot/jquery.flot.navigate.js
+  ./media/mtransport/nr_socket_prsock.cpp
+  ./netwerk/wifi/osx_wifi.h
+  ./extensions/spellcheck/locales/en-US/hunspell/README_en_US.txt
+  ./browser/app/profile/extensions/testpilot@labs.mozilla.com/content/flot/jquery.flot.navigate.js
 
-To investigate:
-
-./mobile/android/base/sqlite/MatrixBlobCursor.java
-./editor/libeditor/html/tests/browserscope/lib/richtext2/richtext2/static/js/units.js
-XXX ./browser/extensions/pdfjs/content/web/viewer.html
-XXX ./toolkit/crashreporter/google-breakpad/src/processor/disassembler_x86.cc
-
-* copyright with lower-case C OK at start of line, if followed by (C), or date?
-./other-licenses/android/resolv_cache.h also problematic. Need to rework this
-Also: "This Font Software is Copyright (c) 2003-2005, SIL International "
+* Irredemably broken (needs patch):
+./toolkit/crashreporter/google-breakpad/src/processor/disassembler_x86.cc
 
 * Multiple detections?
 ./toolkit/devtools/sourcemap/SourceMap.jsm
 ./toolkit/devtools/sourcemap/tests/unit/Utils.jsm
 
-
-
 * .txt file problems:
 gfx/graphite2/src/CMakeLists.txt
+
+* Amalgamate successive block comments:
+./modules/freetype2/include/freetype/ftadvanc.h
+
+* Not open source:
+./toolkit/crashreporter/google-breakpad/src/common/convert_UTF.c
+
+* Just a mess:
+./media/libvorbis/lib/vorbis_lpc.c
+

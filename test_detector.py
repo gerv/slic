@@ -37,22 +37,22 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
     def test_extract_copyrights_and_license(self):
         (copyrights, license) = \
-                   detector.extract_copyrights_and_license(self.block0, 'mpl2')
+                   detector.extract_copyrights_and_license(self.block0, 'MPL20')
         self.assertEqual(copyrights, ["Copyright (C) 2010 Fred Bloggs"])
         self.assertEqual(license, self.mpl2)
 
         (copyrights, license) = \
-                   detector.extract_copyrights_and_license(self.block1, 'mpl2')
+                   detector.extract_copyrights_and_license(self.block1, 'MPL20')
         self.assertEqual(copyrights, ["Copyright (C) 2010 Fred Bloggs", "Copyright (C) 2009-2012  George Jones"])
         self.assertEqual(license, self.mpl2)
 
         (copyrights, license) = \
-                   detector.extract_copyrights_and_license(self.block2, 'mpl2')
+                   detector.extract_copyrights_and_license(self.block2, 'MPL20')
         self.assertEqual(license, self.mpl2)
 
         
     def test_id_license(self):
-        self.assertEqual(detector.id_license(self.mpl2), 'mpl2')
+        self.assertEqual(detector.id_license(self.mpl2), 'MPL20')
         
 
 if __name__ == '__main__':
