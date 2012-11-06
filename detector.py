@@ -33,18 +33,25 @@ _license_parts = {
     'MPL20': {
         'start':  r"Source Code Form [Ii]s subject to the terms of the Mozilla",
         'match':  r"Mozilla Public License, v\. 2\.0",
-        'end':    r"You can obtain one at http://mozilla\.org/MPL/2\.0/"
+        'end':    r"You can obtain one at http://mozilla\.org/MPL/2\.0/",
+        'subs': {
+            'MPL20incompatible': {
+                'start':  r"Source Code Form [Ii]s subject to the terms of the Mozilla",
+                'match':  r"Incompatible With Secondary Licenses",
+                'end':    r"by the Mozilla Public License, v\. 2\.0"
+            },            
+        }
     },
     # GPL
     'GPL30': {
-        'start':  r"This program is free software[:;] you can redistribute it",
+        'start':  r"This (program|file) is free software[:;] you can redistribute it",
         'match':  r"GNU General Public License.*version 3 of the License",
         'end':    r"along with this program|gnu\.org/licenses/|0211[01].*USA"
     },
     'GPL20': {
-        'start':  r"This program is free software; you can redistribute it",
+        'start':  r"This (program|file) is free software; you can redistribute it",
         'match':  r"GNU General Public License.*version 2( of the License|, or)",
-        'end':    r"0211[01].*USA",
+        'end':    r"021(10|11|39).*USA|for more details|any later version",
         'subs': {
             'GPL20withautoconfexception1': {
                 'start':  r"This (program|file) is free software",
@@ -54,7 +61,7 @@ _license_parts = {
             'GPL20withlibtoolexception': {
                 'start':  r"GNU Libtool is free software; you can",
                 'match':  r"GNU Libtool",
-                'end':    r"0211[01].*USA"
+                'end':    r"021(10|11|39).*USA|for more details|any later version"
             },
             'GPL20withtexinfoexception': {
                 'start':  r"This .* file is free software",
@@ -67,15 +74,15 @@ _license_parts = {
     'LGPL21': {
         'start':  r"This (library|program) is free software; you can redistribute it",
         'match':  r"GNU (Lesser|Library) General Public License.*version 2",
-        'end':    r"0211[01].*USA|lgpl\.html",
+        'end':    r"021(10|11|39).*USA|lgpl\.html|Free Software Foundation|of the License",
         'subs': {
             'LGPL21_MPL11_GPL20': {
-                'start':  r"This library is free software; you can",
+                'start':  r"This (library|program) is free software; you can",
                 'match':  r"Alternatively, the.*Mozilla Public License",
                 'end':    r"\(at your option\) any later version"
             },
             'LGPL21_MPL11': { # Cairo
-                'start':  r"This library is free software; you can",
+                'start':  r"This (library|program) is free software; you can",
                 'match':  r"should have received a copy of the MPL along with",
                 'end':    r"governing rights and limitations"
             }
@@ -96,14 +103,15 @@ _license_parts = {
         'start':  r"Licensed under the Apache License,? Version 2\.0" + \
                   r"|Licensed to the Apache Software Foundation \(ASF\)",
         'match':  r"under the Apache License,? Version 2\.0",
-        'end':    r"the License\.|licenses/LICENSE-2\.0"
+        'end':    r"the License\.?|licenses/LICENSE-2\.0"
     },
     # Permissive
     'HPND': {
         'start':  r"Permission to use, copy, modify,(?: and(/or)?)? distribute",
         'match':  r"Permission to use, copy, modify,(?: and(/or)?)? distribute",
         'end':    r"OF THIS SOFTWARE|express or implied warranty" + \
-                  r"|written prior permission|supporting documentation"
+                  r"|written prior permission|supporting documentation" + \
+                  r"|is preserved|OR MODIFICATIONS|prior written authorization"
     },
     'MIT': {
         'start':  r"Permission is hereby granted, " + \
@@ -112,17 +120,17 @@ _license_parts = {
         'match':  r"Permission is hereby granted, " + \
                   r"(?:free of charge|without written agreement)" + \
                   r"|licensed under the MIT",
-        'end':    r"SOFTWARE\.|copyright holder|OR MODIFICATIONS",
+        'end':    r"SOFTWARE\.|copyright holder|OR MODIFICATIONS|MATERIALS",
         'subs': {
             'MIT_GPL20': { # jQuery
                 'start': r"Dual licensed under the MIT",
                 'match': r"Dual licensed under the MIT.*and GPL",
                 'end':   r"jquery\.com/License|licenses\."
             },
-            'BSDsuitable': {
+            'MITBSDHybrid': {
                 'start': r"Permission is hereby granted, free of charge",
-                'match': r"Neither the names of Suitable Systems",
-                'end':   r"WITH THE SOFTWARE"
+                'match': r"Redistributions? in binary form",
+                'end':   r"SOFTWARE"
             }
          }
     },
@@ -135,8 +143,8 @@ _license_parts = {
             'BSD3Clause': {
                 'start':  r"Redistribution and use of this software" + \
                           r"|Redistribution and use in source and binary",
-                'match':  r"name.*may not be used to" + \
-                          r"|Neither the name.*may be used to",
+                'match':  r"name.*(may|must) not be used to" + \
+                          r"|Neither the (author|name).*may be used to",
                 'end':    r"SUCH DAMAGE",
                 'subs': {
                     'BSD4Clause': {
@@ -154,6 +162,11 @@ _license_parts = {
                         }
                     }
                 }
+            },
+            'BSD4ClauseSSLeay': {
+                'start':  r"Redistribution and use in source and binary",
+                'match':  r"Eric Young|Tim Hudson",
+                'end':    r"SUCH DAMAGE",
             }
         }
     },
@@ -296,12 +309,12 @@ _license_parts = {
     'pd': {
         'start': r"[Pp]ublic [Dd]omain",
         'match': r"[Pp]ublic [Dd]omain",
-        'end':   r"[Pp]ublic [Dd]omain",
+        'end':   r"[Pp]ublic [Dd]omain|conceived",
         'subs': {
             'CC0': {
                 'start': r"Any copyright is dedicated to the Public Domain",
-                'match': r"http://creativecommons\.org/publicdomain/zero/1\.0/",
-                'end':   r"http://creativecommons\.org/publicdomain/zero/1\.0/"
+                'match': r"http://creativecommons\.org/(publicdomain/zero/1\.0/|licenses/publicdomain/)",
+                'end':   r"http://creativecommons\.org/(publicdomain/zero/1\.0/|licenses/publicdomain/)"
             }
         }
     },
@@ -434,7 +447,7 @@ def _remove_initial_rubbish(comment):
     if match:
         rubbish = match.group(0)
         for i in range(len(comment)):
-            # Last char is optional; it can be pre-text whitespace which
+            # Last char is made optional; it can be pre-text whitespace which
             # doesn't appear on blank lines
             comment[i] = re.sub("^" + re.escape(rubbish) + "?", "", comment[i])
 

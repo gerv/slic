@@ -118,7 +118,7 @@ def find_next_comment(starting_from, lines, delims):
     elif len(delims) == 1:
         # Negative lookahead assertion: whitespace not followed by the
         # delimiter (needed because delimiter can be multiple chars, e.g. //)
-        # Requires one extra character to as to amalgamate blocks separated
+        # Requires one extra character so as to amalgamate blocks separated
         # only by blank lines (a common but irritating case).
         end_re = re.compile("^\s*(?!%s|\s).+$" % re.escape(delims[0]))
 
@@ -197,9 +197,7 @@ def strip_comment_chars(comment, delims):
 
 def canonicalize_comment(comment):
     line = " ".join(comment)
-
     line = collapse_whitespace(line)
-    line = line.lower()
     
     return line
 

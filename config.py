@@ -97,7 +97,7 @@ _g_skip_file_basenames = {
     "NEWS",
     "TODO",
     "ChangeLog",
-   ],
+  ],
    
   'mozilla-central': [
     # license and readme files
@@ -138,6 +138,10 @@ _g_skip_dir_basenames = {
     ".hg",
     ".git",
     ".bzr",
+  ],
+
+  'b2g': [
+    "NOTICE_FILES",
   ],
 }
 
