@@ -128,6 +128,10 @@ _g_skip_file_basenames = {
     # Don't know comment char; always short
     "module.ver",  
   ],
+
+  'b2g': [
+    "Android.mk", # Loads of them, seemingly none without a license header
+  ],
 }
 
 

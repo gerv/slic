@@ -2,6 +2,7 @@
 import re
 
 import logging
+logging.basicConfig(filename="relic.log", level=logging.DEBUG)
 log = logging.getLogger("relic")
 
 # For each license, 'match' is a regexp which identifies that license or
@@ -44,14 +45,14 @@ _license_parts = {
     },
     # GPL
     'GPL30': {
-        'start':  r"This (program|file) is free software[:;] you can redistribute it",
-        'match':  r"GNU General Public License.*version 3 of the License",
+        'start':  r"is free software[:;] you can redistribute it|This file is part of the",
+        'match':  r"GNU General Public License.*version 3[ ,]",
         'end':    r"along with this program|gnu\.org/licenses/|0211[01].*USA"
     },
     'GPL20': {
-        'start':  r"This (program|file) is free software; you can redistribute it",
-        'match':  r"GNU General Public License.*version 2( of the License|, or)",
-        'end':    r"021(10|11|39).*USA|for more details|any later version",
+        'start':  r"is free software; you can redistribute it|This software is licensed under the terms of the GNU",
+        'match':  r"GNU General Public License.*version 2[ ,.]|version 2 .*GNU General Public License",
+        'end':    r"021(10|11|39).*USA|for more details|any later version|Free Software Foundation",
         'subs': {
             'GPL20withautoconfexception1': {
                 'start':  r"This (program|file) is free software",
@@ -105,10 +106,15 @@ _license_parts = {
         'match':  r"under the Apache License,? Version 2\.0",
         'end':    r"the License\.?|licenses/LICENSE-2\.0"
     },
+    'Apache20fileref': {
+        'start':  r"Use of this source code is governed by the Apache License, Version 2\.0",
+        'match':  r"Use of this source code is governed by the Apache License, Version 2\.0",
+        'end':    r"See the COPYING file for details"
+    },
     # Permissive
     'HPND': {
-        'start':  r"Permission to use, copy, modify,(?: and(/or)?)? distribute",
-        'match':  r"Permission to use, copy, modify,(?: and(/or)?)? distribute",
+        'start':  r"Permission to use, copy, modify,?(?: and(/or)?)? distribute",
+        'match':  r"Permission to use, copy, modify,?(?: and(/or)?)? distribute",
         'end':    r"OF THIS SOFTWARE|express or implied warranty" + \
                   r"|written prior permission|supporting documentation" + \
                   r"|is preserved|OR MODIFICATIONS|prior written authorization"
@@ -134,10 +140,16 @@ _license_parts = {
             }
          }
     },
+    'MITref': {
+        'start':  r"This is free software.*distribute,? or modify",
+        'match':  r"terms of the MIT/X [lL]icense",
+        'end':    r"terms of the MIT/X [lL]icense|with this distribution",
+    },
     'BSD2Clause': {
         'start':  r"Redistribution and use of this software" + \
                   r"|Redistribution and use in source and binary forms",
-        'match':  r"Redistributions in binary form must reproduce",
+        'match':  r"Redistribution and use of this software" + \
+                  r"|Redistribution and use in source and binary forms",
         'end':    r"SUCH DAMAGE",
         'subs': {
             'BSD3Clause': {
@@ -162,6 +174,11 @@ _license_parts = {
                         }
                     }
                 }
+            },
+            'BSD4ClauseCompact': {
+                'start':  r"Redistribution and use in source and binary",
+                'match':  r"in all such forms.*advertising materials",
+                'end':    r"A PARTICULAR PURPOSE",
             },
             'BSD4ClauseSSLeay': {
                 'start':  r"Redistribution and use in source and binary",
@@ -194,6 +211,16 @@ _license_parts = {
         'match':  r"See the file COPYING for copying permission",
         'end':    r"See the file COPYING for copying permission"
     },
+    'copyrightfileref': {
+        'start':  r"See the accompanying file \"COPYRIGHT\" for",
+        'match':  r"See the accompanying file \"COPYRIGHT\" for",
+        'end':    r"NO WARRANTY FOR THIS SOFTWARE"
+    },
+    'webmfileref': {
+        'start':  r"This code is licensed under the same terms as WebM",
+        'match':  r"This code is licensed under the same terms as WebM",
+        'end':    r"Additional IP Rights Grant|Software License Agreement"
+    },
     'gnupermissive1': {
         'start':  r"Copying and distribution of this file, with or without",
         'match':  r"Copying and distribution of this file, with or without",
@@ -203,6 +230,21 @@ _license_parts = {
         'start':  r"This (Makefile\.in|file) is free software",
         'match':  r"This (Makefile\.in|file) is free software.*with or without modifications",
         'end':    r"PARTICULAR PURPOSE|notice is preserved" 
+    },
+    'genericpermissive1': {
+        'start':  r"This software is provided \"as is\"; redistribution and",
+        'match':  r"This software is provided \"as is\"; redistribution and",
+        'end':    r"possibility of such damage" 
+    },
+    'genericpermissive2': {
+        'start':  r"This material is provided \"as is\", with absolutely no",
+        'match':  r"This material is provided \"as is\", with absolutely no",
+        'end':    r"above copyright notice" 
+    },
+    'genericpermissive3': {
+        'start':  r"You may redistribute unmodified or modified versions",
+        'match':  r"I shall in no event be liable",
+        'end':    r"using this software" 
     },
     'icu': {
         'start':  r"ICU License - ICU",
@@ -245,9 +287,14 @@ _license_parts = {
         'end':   r"fully"
     },
     'W3C': {
-        'start': r"This program is distributed under the W3C's Software",
-        'match': r"This program is distributed under the W3C's Software",
+        'start': r"(program|work) is distributed under the W3C('s|\(r\)) Software",
+        'match': r"(program|work) is distributed under the W3C('s|\(r\)) Software",
         'end':   r"A PARTICULAR PURPOSE|for more details"
+    },
+    'W3Curlref': {
+        'start': r"The following software licensing rules apply",
+        'match': r"http://www.w3.org/Consortium/Legal/copyright-software",
+        'end':   r"http://www.w3.org/Consortium/Legal/copyright-software"
     },
     'whatwg': {
         'start': r"You are granted a license to use",
@@ -305,6 +352,11 @@ _license_parts = {
         'match': r"use this software for any purpose, including commercial applications",
         'end':   r"any source distribution"
     },
+    'eclipse': {
+        'start': r"Licensed under the Eclipse Public License, Version 1\.0",
+        'match': r"Licensed under the Eclipse Public License, Version 1\.0",
+        'end':   r"under the License"
+    },  
     # PD
     'pd': {
         'start': r"[Pp]ublic [Dd]omain",
@@ -328,7 +380,8 @@ def _compile(parts):
     for (name, patterns) in parts.items():
         if not name:
             continue
-        
+
+#        print "Compiling regexps for %s" % name
         matches.append("(?P<" + name + ">" + patterns['match'] + ")")
         starts[name] = re.compile(patterns['start'])
         ends[name]   = re.compile(patterns['end'])

@@ -84,8 +84,12 @@ def get_license_block(filename, licenses):
                         'files': [filename]
                     }
 
-            elif re.match("copyright", canonicalize_comment(comment), re.IGNORECASE):
-                default_tag = "suspicious"
+            else:
+                line_comment = canonicalize_comment(comment)
+                if re.match("Copyright[\d\s,-]+The Android Open Source Project", line_comment):
+                    default_tag = "suspiciousAndroid"
+                elif re.match("copyright", line_comment, re.IGNORECASE):
+                    default_tag = "suspicious"
                 
             if delims[0] == '':
                 # We did the whole file in one go
@@ -139,7 +143,7 @@ def find_next_comment(starting_from, lines, delims):
     found_end = False
     # Begin on the same line to account for single-line /* */
     for i in range(start_line, len(lines)):
-        log.debug("Finding end: checking line %s" % lines[i])
+#        log.debug("Finding end: checking line %s" % lines[i])
         match = end_re.search(lines[i])
         end_line = i
         if match:

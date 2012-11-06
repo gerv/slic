@@ -23,10 +23,10 @@ class TestStringMunging(unittest.TestCase):
 
     def test_canonicalize_comment(self):
         result = licblock.canonicalize_comment(["Wibble"])
-        self.assertEqual(result, "wibble")
+        self.assertEqual(result, "Wibble")
         
         result = licblock.canonicalize_comment(["  Wibble ", " Fish  ", "R "])
-        self.assertEqual(result, "wibble fish r")
+        self.assertEqual(result, "Wibble Fish R")
 
     def test_strip_comment_chars_1(self):
         result = licblock.strip_comment_chars(["# Foo", "# Bar"], ['#'])
@@ -126,7 +126,7 @@ XXX
 class TestGetLicenseBlock(unittest.TestCase):
     def test_get_license_block(self):
         licenses = {}
-        lic_hash = "9dd63be914c2eff5b6938c3047a5bd66"
+        lic_hash = "6f87fe51bd692f515d8a4b19e7d8fef6"
         filename = "test_data/main.cc"
         
         licblock.get_license_block(filename, licenses)
@@ -141,10 +141,10 @@ class TestGetLicenseBlock(unittest.TestCase):
         self.assertIn(copy_hash, copyrights)
         self.assertEqual(copyrights[copy_hash], "Copyright \xc2\xa9 2007,2008,2009 Red Hat, Inc.")
 
-    # Test we correctly identify every test file in the test_data/licenses
+    # Test we correctly identify every test file in the test_data/files
     # directory (using the filename to give us the right answer).
     def test_get_license_block_2(self):
-        dir = "test_data/licenses"
+        dir = "test_data/files"
         for filename in os.listdir(dir):
             match = re.match("^\w+", filename)
             tag = match.group(0)
