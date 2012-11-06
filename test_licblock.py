@@ -48,7 +48,10 @@ class TestStringMunging(unittest.TestCase):
 
 class TestCommentFinding(unittest.TestCase):
     def setUp(self):
-        self.block0 = """\
+        self.blocks = [{
+            'delims':  ['#'],
+            'results': [(0, 1), (2, 4), (5, 8), (-1, None)],
+            'string':  """\
 # This is a comment
 this is not
 # This is, and it
@@ -57,9 +60,11 @@ var x = 0
 # Another one
 # this time over
 # 3 lines, and ending on the last line
-""".splitlines()
-
-        self.block1 = """\
+"""},
+        {
+            'delims':  ['/*', '*', '*/'],
+            'results': [(1, 2), (2, 4), (5, 9), (10, 12), (-1, None)],
+            'string':  """\
 This is not a comment
 /* Start of block comment, one line */
 /* Immediately following comment
@@ -72,9 +77,11 @@ XXX
 And this is not a comment
 /* This is a comment which extends to the
  * final line */
-""".splitlines()
-
-        self.block2 = """\
+"""},
+        {
+            'delims':  ['#'],
+            'results': [(0, 1), (2, 3), (4, 5), (6, 7), (8, 11), (12, 13), (-1, None)],
+            'string':  """\
 #    This is a comment with multiple spaces before the text
 XXX
     #    This is a comment with spaces before and after the comment char
@@ -89,53 +96,31 @@ XXX
 XXX
 # This is a line comment exactly 1 line from the end
 XXX
-""".splitlines()
-
-        self.block3 = """\
+"""},
+        {
+            'delims':  ['//'],
+            'results': [(1, 2), (-1, None)],
+            'string':  """\
 /* Foo */
 // Bar
 /* Baz
  * Quux
  */
-""".splitlines()
-
+"""}
+        ]
 
     def test_find_next_comment(self):
-        delims = ['#']
-        end_line = 0
-        results = [(0, 1), (2, 4), (5, 8), (-1, None)]
+        for i in range(len(self.blocks)):
+            delims =  self.blocks[i]['delims']
+            results = self.blocks[i]['results']
+            string =  self.blocks[i]['string'].splitlines()
+            end_line = 0
         
-        for result1, result2 in results:
-            (start_line, end_line) = licblock.find_next_comment(end_line, self.block0, delims)
-            self.assertEqual(start_line, result1)
-            self.assertEqual(end_line, result2)
-
-        delims = ['/*', '*', '*/']
-        end_line = 0
-        results = [(1, 2), (2, 4), (5, 9), (10, 12), (-1, None)]
-        
-        for result1, result2 in results:
-            (start_line, end_line) = licblock.find_next_comment(end_line, self.block1, delims)
-            self.assertEqual(start_line, result1)
-            self.assertEqual(end_line, result2)
-
-        delims = ['#']
-        end_line = 0
-        results = [(0, 1), (2, 3), (4, 5), (6, 7), (8, 11), (12, 13), (-1, None)]
-        
-        for result1, result2 in results:
-            (start_line, end_line) = licblock.find_next_comment(end_line, self.block2, delims)
-            self.assertEqual(start_line, result1)
-            self.assertEqual(end_line, result2)
-
-        delims = ['//']
-        end_line = 0
-        results = [(1, 2), (-1, None)]
-        
-        for result1, result2 in results:
-            (start_line, end_line) = licblock.find_next_comment(end_line, self.block3, delims)
-            self.assertEqual(start_line, result1)
-            self.assertEqual(end_line, result2)
+            for result1, result2 in results:
+                (start_line, end_line) = \
+                      licblock.find_next_comment(end_line, string, delims)
+                self.assertEqual(start_line, result1)
+                self.assertEqual(end_line, result2)
 
 
 class TestGetLicenseBlock(unittest.TestCase):
