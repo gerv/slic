@@ -1,0 +1,22 @@
+{# This is a comment #}
+
+{% for tag in licenses %}
+{% set licenselist = licenses[tag] %}
+{% print "-" * 60 %}    
+{{ tag }}
+
+{% for license in licenselist %}        
+{%- for filename in license.files %}
+{{ filename }}
+{% endfor %}
+
+{% if 'copyrights' in license %}
+{% for copyright in license.copyrights.values() %}
+{{ copyright }}
+{% endfor %}
+{% endif %}
+
+{{ "\n".join(license.text) }}
+{% endfor %}
+
+{% endfor %}

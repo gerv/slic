@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# -*- coding: utf-8 -*-
 
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -70,6 +71,7 @@ import pprint
 import shutil
 import subprocess
 import hashlib
+import json
 
 import licblock
 from config import get_config, get_delims, get_true_filename
@@ -99,6 +101,7 @@ _g_check_all        = 0
 _g_fast_binary      = 1 # if true, do a simple check on files to see if binary
                         # if false, do a slow check using the 'file' command
 _g_add_incompatible = 0
+_g_machine_readable = 0 # if true, output computer-readable structure
 
 ###############################################################################
 # Config
@@ -1811,21 +1814,28 @@ def aggregate(paths, _errors=None):
 
     # Sort by tag
     licenses = sorted(results.values(), key=lambda k: k['tag'])
-    
-    for license in licenses:
-        print "-" * 60
-        print license['tag']
-        for filename in license['files']:
-            print filename
-        print
-        
-        if 'copyrights' in license:
-            for copyright in license['copyrights'].values():
-                print copyright
+
+    if _g_machine_readable:
+       _print_structure(results) 
+    else:
+        for license in licenses:
+            print "-" * 60
+            print license['tag']
+            for filename in license['files']:
+                print filename
+            print
+            
+            if 'copyrights' in license:
+                for copyright in license['copyrights'].values():
+                    print copyright
+                print
+
+            print "\n".join(license['text'])
             print
 
-        print "\n".join(license['text'])
-        print
+
+def _print_structure(structure):
+    print json.dumps(structure, indent=4)
 
 
 ###############################################################################
@@ -1833,11 +1843,11 @@ def aggregate(paths, _errors=None):
 ###############################################################################
 def main(argv):
     try:
-        opts, args = getopt.getopt(argv[1:], "VvahdqfL:sxrAcg",
+        opts, args = getopt.getopt(argv[1:], "VvahdfL:msrAgcqx",
             ["version", "verbose", "all", "help", "debug",
-             "dry-run", "force", "license=",
-             "statistics", "relicense", "backup", "add", "aggregate",
-             "quick", "slow-binary", "incompatible", "contributors"])
+             "force", "license=", "machine-readable",
+             "statistics", "relicense", "add", "aggregate", "contributors", 
+             "quick", "slow-binary", "incompatible", "dry-run", "backup"])
     except getopt.GetoptError, ex:
         log.error(str(ex))
         log.error("Try `%s --help'.", argv[0])
@@ -1870,6 +1880,20 @@ def main(argv):
         elif opt in ("-f", "--force"):
             global _g_force
             _g_force = 1
+        elif opt == "--backup":
+            backup = 1
+        elif opt in ("-q", "--quick"):
+            quick = 1
+        elif opt in ("--slow-binary"):
+            global _g_fast_binary
+            _g_fast_binary = 0
+        elif opt in ("--incompatible"):
+            global _g_add_incompatible
+            _g_add_incompatible = 1
+        elif opt in ("-m", "--machine-readable"):
+            global _g_machine_readable
+            _g_machine_readable = 1
+        # Modes    
         elif opt in ("-s", "--statistics"):
             mode = "statistics"
         elif opt in ("-g", "--aggregate"):
@@ -1882,16 +1906,6 @@ def main(argv):
             mode = "contributors"
         elif opt in ("-A", "--add"):
             mode = "add"
-        elif opt == "--backup":
-            backup = 1
-        elif opt in ("-q", "--quick"):
-            quick = 1
-        elif opt in ("--slow-binary"):
-            global _g_fast_binary
-            _g_fast_binary = 0
-        elif opt in ("--incompatible"):
-            global _g_add_incompatible
-            _g_add_incompatible = 1
 
     try:
         # Prepare the input.

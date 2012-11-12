@@ -1,3 +1,13 @@
+# -*- coding: utf-8 -*-
+###############################################################################
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+#
+# A relic module for traversing a tree of files, extracting the comments, and
+# using the license detector module to extract the copyright lines and license
+# block.
+###############################################################################
 import re
 import hashlib
 import os.path
@@ -7,14 +17,21 @@ import detector
 import logging
 log = logging.getLogger("relic")
 
+MAX_SCAN_LINE = 300
+
 # "licenses" is an accumulating result parameter
 def get_license_block(filename, licenses):
     fin = open(filename, 'r')
     try:
-        content = fin.read()
+        content = fin.read(MAX_SCAN_LINE * 80)
     finally:
         fin.close()
-    
+
+    try:
+        content = content.decode('utf-8')
+    except UnicodeDecodeError:
+        content = content.decode('iso-8859-1')
+
     log.info("Processing: %s", filename)
 
     # Get comment delimiter info for this file.
@@ -22,13 +39,14 @@ def get_license_block(filename, licenses):
     
     if not comment_delim_sets:
         # We can't handle this type of file
-        log.info("No comment delimiters found")
+        log.info("No comment delimiters found for file %s" % filename)
         return
 
     lines = content.splitlines()
-    license_found = False
-    default_tag = 'none'
     
+    tag     = None
+    comment = ""
+            
     for delims in comment_delim_sets:
         # Hack to get around strange Python single member empty tuple behaviour
         # XXX find the proper fix; test with rpm.spec files
@@ -39,73 +57,102 @@ def get_license_block(filename, licenses):
         start_line = 0
         end_line = 0
         
-        while start_line < 300:
+        while start_line < MAX_SCAN_LINE:
             if delims[0] == '':
                 comment = lines
             else:
                 (start_line, end_line) = find_next_comment(end_line,
                                                            lines,
                                                            delims)
-
                 if start_line == -1:
-                    # No more comments
+                    # No more comments; try next delim
                     break
 
                 comment = lines[start_line:end_line]
                 comment = strip_comment_chars(comment, delims)
             
             # We have a comment - is it a license block?
-            license_tag = detector.id_license(comment)
-            if license_tag:
-                license_found = True
-                log.debug("License found: %s" % license_tag)
-                
-                (copyrights, license) = \
-                  detector.extract_copyrights_and_license(comment, license_tag)
-                
-                copyrights = canonicalize_copyrights(copyrights)
-
-                copyrights_by_md5 = {}
-                for c in copyrights:
-                    copyrights_by_md5[hashlib.md5(c).hexdigest()] = c
-
-                # Store license info
-                line_license = canonicalize_comment(license)
-                lic_md5 = hashlib.md5(line_license).hexdigest()
-
-                if lic_md5 in licenses:
-                    licenses[lic_md5]['copyrights'].update(copyrights_by_md5)
-                    licenses[lic_md5]['files'].append(filename)
-                else:
-                    licenses[lic_md5] = {
-                        'text': license,
-                        'tag': license_tag,
-                        'copyrights': copyrights_by_md5,
-                        'files': [filename]
-                    }
-
-            else:
-                line_comment = canonicalize_comment(comment)
-                if re.match("Copyright[\d\s,-]+The Android Open Source Project", line_comment):
-                    default_tag = "suspiciousAndroid"
-                elif re.match("copyright", line_comment, re.IGNORECASE):
-                    default_tag = "suspicious"
-                
-            if delims[0] == '':
-                # We did the whole file in one go
+            tag = detector.id_license(comment)
+            if tag:
+                # It is.
+                log.debug("License found: %s" % tag)
                 break
+
+            if delims[0] == '':
+                # We did the whole file in one go; try next delim
+                break        
+
+        if tag:
+            # Once we found one, no point trying more delims
+            break
+
+    # Store away the info about the license for this file
+    if tag:
+        (copyrights, license) = \
+                          detector.extract_copyrights_and_license(comment, tag)
         
-    if not license_found:
-        if default_tag in licenses:
-            licenses[default_tag]['files'].append(filename)
+        # Store license info
+        lic_md5 = make_hash(license)
+
+        copyrights = canonicalize_copyrights(copyrights)
+
+        copyrights_by_md5 = {}
+        for c in copyrights:
+            copyrights_by_md5[make_hash(c)] = c
+
+        if lic_md5 in licenses:
+            licenses[lic_md5]['copyrights'].update(copyrights_by_md5)
+            licenses[lic_md5]['files'].append(filename)
         else:
-            licenses[default_tag] = {
+            licenses[lic_md5] = {
+                'text': license,
+                'tag': tag,
+                'copyrights': copyrights_by_md5,
+                'files': [filename]
+            }
+    else:
+        # We also note if a comment is "suspicious" - in other words,
+        # if we don't detect a license but there is a suspicious
+        # comment, it suggests we should check the file by hand to 
+        # see if our script needs improving.
+        #
+        # There are a lot of files which are Copyright AOSP and nothing
+        # else. Perhaps I should file a bug... The distinction made 
+        # here is to eliminate false positives for suspicion.
+        tag = "none"
+        if re.search("copyright", content, re.IGNORECASE):
+            tag = "suspicious"
+            if re.search("Copyright[\d\s,-]+The Android Open Source Proj",
+                         content):
+                tag = "suspiciousAndroid"
+        
+        if tag in licenses:
+            licenses[tag]['files'].append(filename)
+        else:
+            licenses[tag] = {
                 'text': '',
-                'tag': default_tag,
+                'tag': tag,
                 'files': [filename]
             }            
                 
     return
+
+
+# Function to remove false positive differences from a thing or array and
+# then return a unique identifier for it
+def make_hash(thing):
+    if type(thing) == str:
+        thing = [thing]
+
+    line = " ".join(thing)
+    line = re.sub("[\*\.,\-\d]+", "", line)
+    line = collapse_whitespace(line)
+
+    line = line.encode('ascii', errors='ignore')
+    line = line.lower()
+    hash = hashlib.md5(line).hexdigest()
+
+    return hash
 
 
 # Returns the first line which is part of the next comment in the block, and
@@ -116,15 +163,16 @@ def find_next_comment(starting_from, lines, delims):
     start_line = -1
     
     start_re = re.compile("^\s*%s" % re.escape(delims[0]))
+    invert_end = False
     
     if len(delims) == 3:
-        end_re = re.compile("\s*%s" % re.escape(delims[2]))             
+        end_re = re.compile(re.escape(delims[2]))             
     elif len(delims) == 1:
-        # Negative lookahead assertion: whitespace not followed by the
-        # delimiter (needed because delimiter can be multiple chars, e.g. //)
-        # Requires one extra character so as to amalgamate blocks separated
-        # only by blank lines (a common but irritating case).
-        end_re = re.compile("^\s*(?!%s|\s).+$" % re.escape(delims[0]))
+        # This regexp actually looks for lines which _are_ in the comment,
+        # because negative lookahead assertions are 2x slower. Hence the need
+        # for result inversion.
+        end_re = re.compile("^\s*(%s|$)" % re.escape(delims[0]))
+        invert_end = True
 
     # Find start
     for i in range(starting_from, len(lines)):
@@ -143,9 +191,12 @@ def find_next_comment(starting_from, lines, delims):
     found_end = False
     # Begin on the same line to account for single-line /* */
     for i in range(start_line, len(lines)):
-#        log.debug("Finding end: checking line %s" % lines[i])
         match = end_re.search(lines[i])
         end_line = i
+        
+        if invert_end:
+            match = not match
+        
         if match:
             log.debug("Found end line: %i", end_line)
             found_end = True
@@ -163,12 +214,15 @@ def find_next_comment(starting_from, lines, delims):
 
 
 def canonicalize_copyrights(copyrights):
+    # Clean up individual lines
     for i in range(len(copyrights)):
         copyrights[i] = collapse_whitespace(copyrights[i])
+        # Remove end cruft
+        copyrights[i] = re.sub("[\*#\s/]+$", "", copyrights[i])
     
-    return copyrights   
+    return copyrights
 
-    
+
 def strip_comment_chars(comment, delims):
     prefix = delims[0]
     if len(delims) == 3:
@@ -181,29 +235,23 @@ def strip_comment_chars(comment, delims):
         raise Error("Unknown delimiter length in delims: %s" % delims)
         
     # Strip prefix
-    prefix_re = re.compile("\s*%s\s?" % re.escape(prefix))
+    prefix_re = re.compile("^\s*%s\s?" % re.escape(prefix))
     comment[0] = re.sub(prefix_re, "", comment[0])
 
     # Strip suffix
     if suffix:
         suffix_re = re.compile("\s*%s" % re.escape(suffix))
         comment[-1] = re.sub(suffix_re, "", comment[-1])
-    
+
+    # Allow multiple occurrences of cont char or last cont char
     cont_re = re.compile("^\s*%s+\s?" % re.escape(cont))
     for i in range(1, len(comment)):
         # Strip continuation char
         comment[i] = re.sub(cont_re, "", comment[i])
-        # Strip trailing whitespace
-        comment[i] = re.sub("\s*$", "", comment[i])
+        # Strip trailing whitespace and cruft
+        comment[i] = re.sub("[\*#\s]*$", "", comment[i])
 
     return comment
-
-
-def canonicalize_comment(comment):
-    line = " ".join(comment)
-    line = collapse_whitespace(line)
-    
-    return line
 
 
 def collapse_whitespace(line):

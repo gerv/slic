@@ -1,0 +1,130 @@
+{% set specials = [{
+        'tag':   'MPL20',
+        'title': 'Mozilla Public License 2.0'
+    }, {
+        'tag':   'Apache20',
+        'title': 'Apache License 2.0'
+    }, {
+        'tag':   'LGPL21',
+        'title': 'GNU Lesser General Public License 2.0'
+    }, {
+        'tag':   'GPL20',
+        'title': 'GNU General Public License 2.0'
+    }, {
+        'tag':   'GPL30',
+        'title': 'GNU General Public License 3.0'
+    }
+] %}
+
+{% set repro_res = ['^HPND', '^MIT', '^BSD', 'ICU', 'jpnic', 'OFL.*',
+                    '^libjpeg', '^W3C$', '^eclipse$', '^nvidia$',
+                    '^bsdprotection$', '^Python20$'] %}
+
+{% set tbd = ['fileref', 'freetype', 'ISC', 'CDDL1X', 'curl', 'sgib', 'urlref', 'Zlib'] %}
+                    
+{% set reproducibles = pop_by_re(repro_res, licenses) %}
+
+{% set ignore_res = ['^pd', '^CC0$', '^suspicious', '^none$',
+                     'permissive', 'MPL11', '^nocopyrightableinfo$',
+                     '^gnupermissive', '^whatwg$'] %}
+
+{% set ignorables = pop_by_re(ignore_res, licenses) %}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <style type="text/css">
+        dt {
+            font-weight: bold; 
+            font-size: 100%;
+		}
+
+        blockquote {
+            font-family: mono;
+        }     
+    </style>
+</head>
+
+<body>
+<h1>Open Source Licensing Information</h1>
+
+<p>This product would not be possible without the hard work of tens of
+thousands of contributors to many different
+<a href="http://www.opensource.org/docs/definition.php">open source</a> and
+<a href="http://www.gnu.org/philosophy/free-sw.html">free software</a>
+communities. The open source/free software in
+this product is available under one of the following licenses. (Please consult
+the source code to see which license applies to which part of the code.)
+
+<ul>
+
+{% for special in specials %}
+    {%- set tag = special['tag'] %}
+    {%- do special.update({'licenses': pop_by_re("^" + tag, licenses)}) %}
+    {%- if special['licenses'] %}
+        <li><a href="#{{ tag }}">{{ special['title'] }}</a></li>
+    {% endif %}
+{% endfor %}
+
+{% if reproducibles %}
+    <li><a href="#Permissive">Permissive Licenses</a></li>
+{% endif %}
+
+</ul>
+
+{% for special in specials %}
+    {% set tag = special['tag'] %}
+    {% if special['licenses'] %}
+        <hr>
+        <a name="{{ tag }}"></a>
+        <h2>{{ special['title'] }}</h2>
+        {% include tag + '.html' %}
+    {% endif %}
+{% endfor %}
+
+{% if reproducibles %}
+
+<hr>
+
+<a name="Permissive"></a>
+<h2>Permissive Licenses</h2>
+
+<p>Many free software licenses require reproduction of copyright ownership
+information and the license text in the distribution documentation. Those
+licenses are reproduced below.</p>
+
+{% for tag in reproducibles %}
+    {% set licenses = reproducibles[tag] %}
+    {% for license in licenses %}
+        <hr>
+
+        <ul>
+        {% for file in license.files %}
+            <li>{{ file|e }}</li>
+        {% endfor %}
+        </ul>
+
+        {% if 'copyrights' in license %}
+            <ul>
+            {% for copyright in license.copyrights %}
+                <li>{{ copyright|e }}</li>
+            {% endfor %}
+            </ul>
+        {% endif %}
+        <blockquote>{{ "<br>".join(license.text) }}</blockquote>
+    {% endfor %}
+{% endfor %}
+
+{% endif %}
+
+{% if licenses %}
+    <h2>XXX Licenses Unaccounted-For XXX</h2>
+    <ul>
+    {% for license in licenses %}
+        <li>{{ license }}</li>
+    {% endfor %}
+    </ul>
+{% endif %}
+
+</body>
+</html>

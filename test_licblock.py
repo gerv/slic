@@ -1,3 +1,9 @@
+# -*- coding: utf-8 -*-
+###############################################################################
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+###############################################################################
 import licblock
 import config
 import unittest
@@ -126,7 +132,7 @@ XXX
 class TestGetLicenseBlock(unittest.TestCase):
     def test_get_license_block(self):
         licenses = {}
-        lic_hash = "6f87fe51bd692f515d8a4b19e7d8fef6"
+        lic_hash = "34eb9c77640f88975eff1c6ed92b6317"
         filename = "test_data/main.cc"
         
         licblock.get_license_block(filename, licenses)
@@ -137,16 +143,16 @@ class TestGetLicenseBlock(unittest.TestCase):
         self.assertIn('copyrights', licenses[lic_hash])
         
         copyrights = licenses[lic_hash]['copyrights']
-        copy_hash = "157d5ef2a199fa205a4ba57f919a0338"
+        copy_hash = "138506d8bef249709352b12d9d1d45e0"
         self.assertIn(copy_hash, copyrights)
-        self.assertEqual(copyrights[copy_hash], "Copyright \xc2\xa9 2007,2008,2009 Red Hat, Inc.")
+        self.assertEqual(copyrights[copy_hash], u"Copyright \xa9 2007,2008,2009 Red Hat, Inc.")
 
     # Test we correctly identify every test file in the test_data/files
     # directory (using the filename to give us the right answer).
     def test_get_license_block_2(self):
         dir = "test_data/files"
         for filename in os.listdir(dir):
-            match = re.match("^\w+", filename)
+            match = re.search("^\w+", filename)
             tag = match.group(0)
             
             licenses = {}
@@ -154,6 +160,27 @@ class TestGetLicenseBlock(unittest.TestCase):
 
             self.assertEqual(licenses[licenses.keys()[0]]['tag'], tag)
 
+
+class TestSplitYears(unittest.TestCase):
+    def test_split_years(self):
+        self.assertEqual(licblock._split_years(""), [])
+        self.assertEqual(licblock._split_years("1999"), [1999])
+        self.assertEqual(licblock._split_years("2000-2002"), [2000, 2001, 2002])
+        self.assertEqual(licblock._split_years("2000-2001, 2004"), [2000, 2001, 2004])
+        self.assertEqual(licblock._split_years("  2000 -   2001,  2004"), [2000, 2001, 2004])
+        self.assertEqual(licblock._split_years("1997-98"), [1997, 1998])
+
+
+class TestAmalgamateYears(unittest.TestCase):
+    def test_amalgamate_years(self):
         
+        self.assertEqual(licblock._amalgamate_years([]), "")
+        self.assertEqual(licblock._amalgamate_years([1999]), "1999")
+        self.assertEqual(licblock._amalgamate_years([1999, 2000]), "1999-2000")
+        self.assertEqual(licblock._amalgamate_years([1997, 1998, 1999, 2001]), "1997-1999, 2001")
+        self.assertEqual(licblock._amalgamate_years([1999, 2000, 2001, 2003, 2004]), "1999-2001, 2003-2004")
+        self.assertEqual(licblock._amalgamate_years([1999, 2001, 2003, 2006]), "1999, 2001, 2003, 2006")
+
+
 if __name__ == '__main__':
     unittest.main()

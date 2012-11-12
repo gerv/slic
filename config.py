@@ -1,3 +1,11 @@
+###############################################################################
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+#
+# Configuration for relic
+###############################################################################
+
 import re
 import os
 
@@ -49,6 +57,9 @@ def get_true_filename(filename):
     else:
         return filename
 
+###############################################################################
+# Configuration lists
+###############################################################################
 
 # Extensions to strip off to reveal the "real" extension
 _g_strip_exts = [".in", ".dist"]
@@ -142,6 +153,7 @@ _g_skip_dir_basenames = {
     ".hg",
     ".git",
     ".bzr",
+    ".repo",
   ],
 
   'b2g': [
@@ -498,9 +510,14 @@ _g_skip_dirs = {
      "python-modules",
      "extension/content/flot",
    ],
+
+  'b2g': [
+    "gaia/profile/OfflineCache",
+  ]
 }
 
 
+# Directories to skip when adding files
 _g_skip_add_dirs = {
   '_common': [
   ],
@@ -596,7 +613,7 @@ _g_basename_to_comment = {
 }
 
 
-# Comment character to use (or a set of them) for each extension
+# Comment character (or a set of them) to use for each extension
 # When adding new licence blocks, the first will be used
 _g_ext_to_comment = {
     ".txt":   (["", ]),
@@ -801,6 +818,7 @@ _g_ext_to_comment = {
 }
 
 
+# We can find the comment char if the file is extensionless by shebang match
 _g_shebang_pattern_to_comment = [
     (re.compile(ur'\A#!.*/bin/(ba)?sh.*$', re.IGNORECASE), (["#"], )),
     (re.compile(ur'\A#!.*perl.*$', re.IGNORECASE), (["#"], )),
@@ -812,4 +830,3 @@ _g_shebang_pattern_to_comment = [
     (re.compile(ur'\A#!.*expect.*$', re.IGNORECASE), (["#"], )),
     (re.compile(ur'\A#!.*env node.*$', re.IGNORECASE), (["/*", "*", "*/"], )),
 ]
-

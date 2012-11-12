@@ -1,22 +1,32 @@
 # -*- coding: utf-8 -*-
+###############################################################################
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+#
+# A module to detect licenses in blocks of text, and split them into their
+# component parts.
+###############################################################################
 import re
 
 import logging
 logging.basicConfig(filename="relic.log", level=logging.DEBUG)
 log = logging.getLogger("relic")
 
+DEFAULT_MAX_LINES_IN_LICENSE = 50
+
 # For each license, 'match' is a regexp which identifies that license or
 # license family uniquely, when matched against a large runon string of the
 # entire comment. 'subs' is a set of sub-flavours of that license. Once a type
 # is detected, matches are run against the 'match' member of all the subs. If
 # none are detected, you have the base flavour; otherwise you have the
-# sub-flavour. This can happen recursively (see 'bsd2').
+# sub-flavour. This can happen recursively (see 'BSD2Clause').
 #
 # Once a block has been identified as containing a particular license, you
 # search from the start for a line matching 'start', and from the end
 # for a line matching 'end', and take all the text in between.
 #
-# License tags must be unique throughout the structure.
+# License tags (the dict keys) must be unique throughout the structure.
 _license_parts = {
     # MPL
     'MPL11': {
@@ -44,10 +54,22 @@ _license_parts = {
         }
     },
     # GPL
+    'GPLurlref': {
+        'start':  r"Licensed under the GPL \(http://www\.gnu\.org/licenses/gpl.html\) license",
+        'match':  r"Licensed under the GPL \(http://www\.gnu\.org/licenses/gpl.html\) license",
+        'end':    r"Licensed under the GPL \(http://www\.gnu\.org/licenses/gpl.html\) license"
+    },    
     'GPL30': {
         'start':  r"is free software[:;] you can redistribute it|This file is part of the",
         'match':  r"GNU General Public License.*version 3[ ,]",
-        'end':    r"along with this program|gnu\.org/licenses/|0211[01].*USA"
+        'end':    r"along with this program|gnu\.org/licenses/|0211[01].*USA",
+        'subs': {
+            'GPL20or30': {
+                'start':  r"is free software[:;] you can redistribute it|This file is part of the",
+                'match':  r"version 2",
+                'end':    r"along with this program|gnu\.org/licenses/|0211[01].*USA"
+            },
+        }
     },
     'GPL20': {
         'start':  r"is free software; you can redistribute it|This software is licensed under the terms of the GNU",
@@ -69,21 +91,26 @@ _license_parts = {
                 'match':  r"when this file is read by TeX",
                 'end':    r"Texinfo was invented"
             },
+            'GPL20BSD': {
+                'start':  r"is free software; you can redistribute it",
+                'match':  r"Alternatively.*BSD license",
+                'end':    r"See README and COPYING for more details"
+            },
         }
     },
     # XXX Also catches 2.0 at the moment
     'LGPL21': {
-        'start':  r"This (library|program) is free software; you can redistribute it",
+        'start':  r"is free software; you can redistribute it",
         'match':  r"GNU (Lesser|Library) General Public License.*version 2",
         'end':    r"021(10|11|39).*USA|lgpl\.html|Free Software Foundation|of the License",
         'subs': {
             'LGPL21_MPL11_GPL20': {
-                'start':  r"This (library|program) is free software; you can",
+                'start':  r"is free software; you can redistribute it",
                 'match':  r"Alternatively, the.*Mozilla Public License",
                 'end':    r"\(at your option\) any later version"
             },
             'LGPL21_MPL11': { # Cairo
-                'start':  r"This (library|program) is free software; you can",
+                'start':  r"is free software; you can redistribute it",
                 'match':  r"should have received a copy of the MPL along with",
                 'end':    r"governing rights and limitations"
             }
@@ -104,7 +131,8 @@ _license_parts = {
         'start':  r"Licensed under the Apache License,? Version 2\.0" + \
                   r"|Licensed to the Apache Software Foundation \(ASF\)",
         'match':  r"under the Apache License,? Version 2\.0",
-        'end':    r"the License\.?|licenses/LICENSE-2\.0"
+        'end':    r"the License\.?|licenses/LICENSE-2\.0",
+        'maxlines': 12
     },
     'Apache20fileref': {
         'start':  r"Use of this source code is governed by the Apache License, Version 2\.0",
@@ -117,7 +145,14 @@ _license_parts = {
         'match':  r"Permission to use, copy, modify,?(?: and(/or)?)? distribute",
         'end':    r"OF THIS SOFTWARE|express or implied warranty" + \
                   r"|written prior permission|supporting documentation" + \
-                  r"|is preserved|OR MODIFICATIONS|prior written authorization"
+                  r"|OR MODIFICATIONS|prior written authorization",
+        'subs': {
+            'genericpermissive4': {
+                'start':  r"Permission to use, copy, modify,?(?: and(/or)?)? distribute",
+                'match':  r"freely granted",
+                'end':    r"is preserved",
+            },
+        }
     },
     'MIT': {
         'start':  r"Permission is hereby granted, " + \
@@ -205,6 +240,11 @@ _license_parts = {
         'start': r"USE, DISTRIBUTION AND REPRODUCTION",
         'match': r"BSD-STYLE SOURCE LICENSE INCLUDED WITH",
         'end':   r"TERMS BEFORE DISTRIBUTING"
+    },
+    'bsdfilerefyui': {
+        'start': r"Code licensed under the BSD License",
+        'match': r"http://developer\.yahoo\.com/yui/license\.html",
+        'end':   r"http://developer\.yahoo\.com/yui/license\.html"
     },
     'copyingfileref': {
         'start':  r"See the file COPYING for copying permission",
@@ -359,9 +399,9 @@ _license_parts = {
     },  
     # PD
     'pd': {
-        'start': r"[Pp]ublic [Dd]omain",
-        'match': r"[Pp]ublic [Dd]omain",
-        'end':   r"[Pp]ublic [Dd]omain|conceived",
+        'start': r"[Pp]ublic [Dd]omain|PUBLIC DOMAIN",
+        'match': r"[Pp]ublic [Dd]omain|PUBLIC DOMAIN",
+        'end':   r"[Pp]ublic [Dd]omain|PUBLIC DOMAIN|conceived",
         'subs': {
             'CC0': {
                 'start': r"Any copyright is dedicated to the Public Domain",
@@ -370,32 +410,39 @@ _license_parts = {
             }
         }
     },
+    'nocopyrightableinfo': {
+        'start': r"This header was automatically generated from",
+        'match': r"no copyrightable information",
+        'end':   r"no copyrightable information"
+    }
 }
 
 starts = {}
 ends = {}
+maxlines = {}
 
-def _compile(parts):
+def _preprocess(struct):
     matches = []
-    for (name, patterns) in parts.items():
+    for (name, info) in struct.items():
         if not name:
             continue
 
-#        print "Compiling regexps for %s" % name
-        matches.append("(?P<" + name + ">" + patterns['match'] + ")")
-        starts[name] = re.compile(patterns['start'])
-        ends[name]   = re.compile(patterns['end'])
-        if 'subs' in patterns:
-            _compile(patterns['subs'])
+        matches.append("(?P<" + name + ">" + info['match'] + ")")
+        starts[name] = re.compile(info['start'])
+        ends[name]   = re.compile(info['end'])
+        maxlines[name] = info.get('maxlines', DEFAULT_MAX_LINES_IN_LICENSE)
+        if 'subs' in info:
+            _preprocess(info['subs'])
     
-    parts['_match_re'] = re.compile("|".join(matches))
+    struct['_match_re'] = re.compile("|".join(matches))
 
 
-_compile(_license_parts)
+_preprocess(_license_parts)
 
 
 def id_license(comment):
-    linear_comment = canonicalize_comment(comment)
+    linear_comment = " ".join(comment)
+    linear_comment = collapse_whitespace(linear_comment)
 
     tag = _id_license_against(_license_parts, linear_comment)
 
@@ -431,6 +478,18 @@ def _id_license_against(parts, comment):
     return None
 
 
+# Things to ignore on a line
+cruft_re = re.compile("""Derived from
+                         |Target configuration
+                         |Contributed by
+                         |File:
+                         |File\ speex
+                         |Author:
+                         |[Vv]ersion
+                         |Written by
+                         |Linux for
+                         """, re.VERBOSE)
+
 def extract_copyrights_and_license(text, tag):
     license = []
     copyrights = []
@@ -443,12 +502,16 @@ def extract_copyrights_and_license(text, tag):
     for i in range(len(text)):
         line = text[i]
         
-        if starts[tag].search(line):
+        if start_line == -1 and starts[tag].search(line):
             log.debug("First license line: %s" % line)
             start_line = i
+            in_copyrights = False
+            # If we break here, we only find copyrights written above the
+            # license. If we don't, we end up combining copyrights when
+            # there are multiple licenses in a file :-|
             break
         
-        if re.search("copyright [\d\(©]", line, re.IGNORECASE):
+        if re.search("copyright ?[\d\(©]", line, re.IGNORECASE):
             log.debug("Copyright line: %s" % line)
             copyrights.append(line)
             in_copyrights = True
@@ -459,6 +522,12 @@ def extract_copyrights_and_license(text, tag):
                 log.debug("Blank line (while in copyrights)")
                 # Blank line
                 in_copyrights = False
+            elif re.search("^\s*(\d{4}|©|\(C\))", line, re.IGNORECASE): 
+                log.debug("Another copyright line starting with year or symbol")
+                copyrights.append("Copyright " + line)
+            elif cruft_re.search(line): 
+                log.debug("Line with ignorable cruft")
+                in_copyrights = False
             else:
                 # Continuation line
                 log.debug("CopyConti line: %s" % line)
@@ -468,17 +537,25 @@ def extract_copyrights_and_license(text, tag):
         log.warning("Can't find start line for requested license '%s'!" % tag)
         return [], []
         
-    # Find license end, starting from text end (defaulting to text end)
-    end_line = len(text)
+    # Find license end, starting from text end
+    end_line = -1
     for i in range(len(text) - 1, -1, -1):
         line = text[i]
         
         if ends[tag].search(line):
             log.debug("Last license line: %s" % line)
             end_line = i
-            break
+                
+            if (end_line - start_line < maxlines[tag]):
+                # If the license seems too long, keep looking in case there's
+                # a nearer end line, otherwise break. This deals with files
+                # where there's multiple copies of the license text, e.g.
+                # concatenated files
+                break
     else:
-        log.warning("Can't find end line for requested license '%s'!" % tag)
+        if end_line == -1:
+            log.warning("Can't find end line for requested license '%s'!" % tag)
+            end_line = len(text)
 
     log.debug("License extends from line %i to %i" % (start_line, end_line))
     license = text[start_line:end_line + 1]
@@ -507,14 +584,7 @@ def _remove_initial_rubbish(comment):
     return comment
 
     
-# XXX these are currently in 2 places
-def canonicalize_comment(comment):
-    line = " ".join(comment)
-    line = collapse_whitespace(line)
-    
-    return line
-
-
+# XXX Currently in 2 places
 def collapse_whitespace(line):
     # Collapse whitespace
     line = re.sub("\s+", " ", line)

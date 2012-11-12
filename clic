@@ -1,0 +1,235 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+import re
+import pprint
+import json
+import argparse
+from jinja2 import Environment, PackageLoader
+
+import logging
+logging.basicConfig(filename="clic.log", level=logging.INFO)
+log = logging.getLogger("clic")
+
+env = Environment(loader=PackageLoader('__main__', 'templates'),
+                  trim_blocks=True,
+                  extensions=['jinja2.ext.do'])
+
+# For debugging
+pp = pprint.PrettyPrinter(indent=2)
+
+parser = argparse.ArgumentParser(description='Collate and process license information.')
+parser.add_argument('--tag', metavar="<tag>",
+                   help='List all files for a given license tag')
+parser.add_argument('--count', action="store_true",
+                   help='Print counts of files matched for each license')
+parser.add_argument('--template', metavar="<template>",
+                   help='Render the given template name')
+
+args = parser.parse_args()
+
+
+# Pop all keys from a dict which match a regexp or list of regexps, and return
+# the dict of the popped items
+#
+# XXX optimization; test against all res at once
+def pop_by_re(regexps, dic):
+    result = {}
+    
+    if type(regexps) == str:
+        regexps = [regexps]
+
+    for regexp in regexps:
+        key_re = re.compile(regexp)
+        for k in dic.keys():
+          if key_re.search(k):
+            result[k] = dic.pop(k)
+
+    return result
+
+
+canonical_holders = {
+    'Silicon Graphics': 'Silicon Graphics Computer Systems, Inc.',
+    'The Regents of the University of California. All rights reserved.': 'Regents of the University of California. All rights reserved.',
+    'Mozilla Foundation.': 'Mozilla Foundation'
+}
+
+def tidy_holder(holder):
+    # Ick. Prevent "obvious" duplications of copyright holders
+    if holder in canonical_holders:
+        holder = canonical_holders[holder]
+        
+    return holder
+
+
+def _amalgamate_years(years):
+    if not years:
+        return ""
+    
+    # uniq
+    set = {}
+    map(set.__setitem__, years, [])
+    years = set.keys()
+
+    # sort
+    years.sort()
+
+    years_as_str = []
+    range_start = None
+    for i in range(len(years) - 1):
+        if years[i + 1] == years[i] + 1:
+            if not range_start:
+                range_start = years[i]
+        elif range_start:
+            # No range continuation, pending value; finish range
+            years_as_str.append("%i-%i" % (range_start, years[i]))
+            range_start = None
+        else:
+            # No range continuation, no pending value
+            years_as_str.append(str(years[i]))
+
+    # Final year
+    if range_start:
+        # Pending value; finish range
+        years_as_str.append("%i-%i" % (range_start, years[-1]))
+    else:
+        # No pending value
+        years_as_str.append(str(years[-1]))
+
+    return ", ".join(years_as_str) + " "
+            
+    
+def _split_years(string):
+    if not string:
+        return []
+    
+    years = []
+    for piece in string.split(','):
+        if re.search("^\s*$", piece):
+            # Blank line
+            continue
+
+        cw_piece = collapse_whitespace(piece)
+        
+        if re.search("-", piece):
+            # Range
+            rng = piece.split('-')
+            if not rng[0] or not rng[1]:
+                continue
+            
+            start = _canonicalize_year(rng[0])
+            end = _canonicalize_year(rng[1])
+
+            if start < 1970 or end > 2030:
+                continue
+                
+            for i in range(start, end + 1):
+                years.append(i)
+        elif len(cw_piece) > 5:
+            # Space-separated years? 5 rather than 4 to try and deal with
+            # foolish typos such as "20010".
+            sp_years = [_canonicalize_year(year) for year in piece.split()]
+            years.extend(sp_years)
+        elif len(cw_piece) == 4:
+            # Single year
+            years.append(_canonicalize_year(piece))
+        else:
+            log.warning("Year with strange length: '%s'" % cw_piece) 
+            
+
+    return years
+
+
+def _canonicalize_year(year):
+    assert year != ''
+    year = int(year)
+    
+    if year > 100 and year < 1970:
+        log.warning("Strange year: '%s'" % year) 
+    
+    if year < 100:
+        if year > 70:
+            year = 1900 + year
+        else:
+            year = 2000 + year
+
+    return year
+
+
+# XXX Now in 3 places!
+def collapse_whitespace(line):
+    # Collapse whitespace
+    line = re.sub("\s+", " ", line)
+
+    # Strip leading and trailing whitespace
+    line = re.sub("^\s", "", line)
+    line = re.sub("\s$", "", line)
+    
+    return line
+
+
+###############################################################################
+# Load occurrence data file
+occurrences = json.loads(open("occurrences.json").read())
+
+# Rejig data structure so top-level key is the tag instead of the license
+# text hash, and value is a list of the corresponding license objects
+bytag = {}
+
+for hash, occurrence in occurrences.items():
+    tag = occurrence['tag']
+    if tag in bytag:
+        bytag[tag].append(occurrence)
+    else:
+        bytag[tag] = [occurrence]
+
+# Post-process and amalgamate copyright lines
+# \xa9 is the copyright symbol
+copy_re = re.compile("""Copyright\s*
+                        (\(C\)|\xa9)?\s*
+                        (?P<years>[-\d,\s]*)
+                        (?P<holder>.*)$""",
+                     re.IGNORECASE | re.VERBOSE)
+
+for tag in bytag:
+    for data in bytag[tag]:
+        if not 'copyrights' in data:
+            continue
+        
+        # values() call to get past md5 hash keys
+        copyrights = data['copyrights'].values()
+
+        # Amalgamate years
+        holders = {}
+        for i in range(len(copyrights)):
+            match = copy_re.search(copyrights[i])
+            if match:
+                hits = match.groupdict()
+                log.info("Hits: %r" % hits)
+                holder = tidy_holder(hits['holder'])
+                years = _split_years(hits['years'])
+                if holder in holders:
+                    holders[holder].extend(years)
+                else:
+                    holders[holder] = years
+            else:
+                log.info("Copyright line doesn't match re: %s" % copyrights[i])
+
+        # Rebuild copyright lines
+        clean_copyrights = []
+        for holder in holders:
+            log.debug("Years: %r" % holders[holder])
+            years = _amalgamate_years(holders[holder])
+            copyright = u"Copyright \xa9 %s%s" % (years, holder)
+            log.info("Clean C line: %s" % copyright)
+            clean_copyrights.append(copyright)
+
+        data['copyrights'] = clean_copyrights
+
+if args.template:
+    template = env.get_template(args.template)
+    log.info("Rendering")
+    print template.render({
+        'licenses': bytag,
+        'pop_by_re': pop_by_re,
+    }).encode('utf-8')
