@@ -1,38 +1,31 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+import sys
 import re
-import pprint
 import json
 import argparse
+from os.path import dirname, exists, join, basename, split
 from jinja2 import Environment, PackageLoader
 
 import logging
-logging.basicConfig(filename="clic.log", level=logging.INFO)
+logging.basicConfig(filename="clic.log", level=logging.DEBUG)
 log = logging.getLogger("clic")
 
 env = Environment(loader=PackageLoader('__main__', 'templates'),
                   trim_blocks=True,
                   extensions=['jinja2.ext.do'])
 
-# For debugging
-pp = pprint.PrettyPrinter(indent=2)
-
 parser = argparse.ArgumentParser(description='Collate and process license information.')
-parser.add_argument('--tag', metavar="<tag>",
-                   help='List all files for a given license tag')
-parser.add_argument('--count', action="store_true",
-                   help='Print counts of files matched for each license')
 parser.add_argument('--template', metavar="<template>",
                    help='Render the given template name')
 
 args = parser.parse_args()
 
-
+# A couple of functions used in the template
+#
 # Pop all keys from a dict which match a regexp or list of regexps, and return
 # the dict of the popped items
-#
-# XXX optimization; test against all res at once
 def pop_by_re(regexps, dic):
     result = {}
     
@@ -48,9 +41,17 @@ def pop_by_re(regexps, dic):
     return result
 
 
+def template_exists(template):
+     path = join(dirname(sys.argv[0]), "templates", template)
+     return exists(path)
+
+
+# A mapping to reduce the number of times you get a given copyright holder
+# listed "twice" because their name has multiple forms
 canonical_holders = {
     'Silicon Graphics': 'Silicon Graphics Computer Systems, Inc.',
-    'The Regents of the University of California. All rights reserved.': 'Regents of the University of California. All rights reserved.',
+    'The Regents of the University of California. All rights reserved.':
+               'Regents of the University of California. All rights reserved.',
     'Mozilla Foundation.': 'Mozilla Foundation'
 }
 
@@ -62,7 +63,9 @@ def tidy_holder(holder):
     return holder
 
 
-def _amalgamate_years(years):
+# Take an array of integer years and turn it into a comma-separated string
+# list of years and ranges
+def _join_years(years):
     if not years:
         return ""
     
@@ -98,7 +101,9 @@ def _amalgamate_years(years):
 
     return ", ".join(years_as_str) + " "
             
-    
+
+# Take a string list of years and ranges and turn it into an array of integer
+# years
 def _split_years(string):
     if not string:
         return []
@@ -135,11 +140,11 @@ def _split_years(string):
             years.append(_canonicalize_year(piece))
         else:
             log.warning("Year with strange length: '%s'" % cw_piece) 
-            
 
     return years
 
 
+# Make string year an integer, and expand from 2 digits to 4 if necessary
 def _canonicalize_year(year):
     assert year != ''
     year = int(year)
@@ -219,17 +224,115 @@ for tag in bytag:
         clean_copyrights = []
         for holder in holders:
             log.debug("Years: %r" % holders[holder])
-            years = _amalgamate_years(holders[holder])
+            years = _join_years(holders[holder])
             copyright = u"Copyright \xa9 %s%s" % (years, holder)
             log.info("Clean C line: %s" % copyright)
             clean_copyrights.append(copyright)
 
         data['copyrights'] = clean_copyrights
 
+# Reconcile Bison exception, which can be in a different comment to the GPL
+# license and so is noted as a different "license" :-|
+def resolve_bison_exception(bisonfile):
+    log.debug("Trying to resolve bisonexception for file %s" % bisonfile)
+    for tag in bytag:
+        if not re.search("^GPL", tag):
+            continue
+        
+        for data in bytag[tag]:
+            gplfiles = data['files']
+            for gplfile in gplfiles:
+                if gplfile == bisonfile:
+                    log.info("Resolved bisonexception for file %s" % bisonfile)
+                    gplfiles.remove(gplfile)
+                    return True
+
+    log.warning("Unable to resolve bisonexception for file %s" % bisonfile)
+    return False
+
+if 'Bisonexception' in bytag:
+    for data in bytag['Bisonexception']:
+        bisonfiles = data['files']
+        for bisonfile in bisonfiles:
+            resolve_bison_exception(bisonfile)
+
+# Sometimes a file header says "see file FOO for the license". If so, we tag
+# it with a tag including 'fileref'. We must now go through all files so
+# tagged and make sure that a corresponding license file has been found and
+# included.
+
+# Make a hash lookup table of all files found which match any of the special
+# filenames
+license_files_re = re.compile("^(LICENSE|COPYRIGHT|COPYING|MIT-LICENSE|NOTICE)")
+license_files = {}
+fileref_names = {
+    'copyingfileref':    ['COPYING', 'NOTICE'],
+    'copyrightfileref':  ['COPYRIGHT', 'NOTICE'],
+    'bzip2fileref':      ['LICENSE', 'NOTICE'],
+    'bsdfilerefxiph':    ['COPYING', 'NOTICE'],
+    'bsdfileref':        ['LICENSE', 'NOTICE'],
+    'mitfileref':        ['COPYING', 'NOTICE'],
+    'mit_gpl20_fileref': ['MIT-LICENSE.txt', 'NOTICE'],
+    'freetypefileref':   ['LICENSE.txt', 'NOTICE'],
+    'ISCfileref':        ['LICENSE', 'NOTICE'],
+}
+    
+for tag in bytag:
+    for data in bytag[tag]:
+        files = data['files']
+        for file in files:
+            filename = basename(file)
+            if license_files_re.match(filename):
+                license_files[file] = 1
+
+# For each file marked as having a "fileref" license, see if an appropriate
+# file in a higher directory is present and has been included somewhere
+def find_license_file_for(file, license_file_names):
+    log.debug("File path: %s" % file)
+    for license_file_name in license_file_names:
+        log.debug("Trying to find license file: %s" % license_file_name)
+        dir = dirname(file)
+        log.debug("Starting directory: %s" % dir)
+        while dir != ".":
+            if join(dir, license_file_name) in license_files:
+                log.debug("Found license %s in dir: %s" % (license_file_name, dir))
+                return True
+            # Up one level
+            dir = re.sub("/$", "", dir)
+            dir = dirname(dir)
+            log.debug("Moving up to dir: %s" % dir)
+        
+    log.debug("Found no license file for %s" % file)
+    return False
+
+fileref_problem_files = []
+fileref_problem_dirs = {}
+
+for tag in bytag:
+    if not re.search("fileref", tag):
+        continue
+
+    if not tag in fileref_names:
+        log.warning("No license file info for fileref tag '%s'" % tag)
+        continue
+
+    license_file_names = fileref_names[tag]
+    
+    for data in bytag[tag]:
+        log.debug("Checking filerefs for tag %s" % tag)
+        for file in data['files']:
+            if not find_license_file_for(file, license_file_names):
+                fileref_problem_files.append(file)
+                fileref_problem_dirs[split(file)[0]] = 1
+
+# Render output
 if args.template:
     template = env.get_template(args.template)
     log.info("Rendering")
     print template.render({
         'licenses': bytag,
         'pop_by_re': pop_by_re,
+        'template_exists': template_exists,
+        'fileref_problem_files': fileref_problem_files,
+        'fileref_problem_dirs': fileref_problem_dirs
     }).encode('utf-8')

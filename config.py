@@ -158,6 +158,18 @@ _g_skip_dir_basenames = {
 
   'b2g': [
     "NOTICE_FILES",
+    "toolchain", 
+
+    # Not shipping tests
+    "mochitest",
+    "reftest",
+    "reftests",
+    "crashtest",
+    "crashtests",
+    "test",
+    "tests",
+    "jsreftest",
+    "imptests",
   ],
 }
 
@@ -303,6 +315,23 @@ _g_skip_files = {
     "media/css/sandstone/mixins.less", # CC-BY
     "media/js/firefox/technology/beatdetektor.js", # LGPL 3.0
   ],
+
+  'b2g': [
+    # Files the script can't cope with, because they contain multiple licenses
+    'gecko/extensions/spellcheck/locales/en-US/hunspell/README_en_US.txt',
+    'gecko/media/mtransport/third_party/nrappkit/COPYRIGHT',
+    'prebuilt/common/jython/LICENSE',
+    'prebuilt/common/jython/LICENSE_CPython.txt',
+    'bionic/libm/NOTICE',
+    'external/icu4c/test/testdata/riwords.txt',
+    'libcore/NOTICE',
+
+    # License is all on one line; doesn't work well with <pre>
+    'gaia/apps/calendar/js/ext/page.js',
+
+    # Incorrect detection of Copyright lines
+    'gecko/layout/reftests/fonts/Chunkfive-license.txt',
+  ]
 }
 
 
@@ -513,6 +542,12 @@ _g_skip_dirs = {
 
   'b2g': [
     "gaia/profile/OfflineCache",
+    "prebuilt/ndk",
+    "prebuilt/sdk",
+    "out"
+    "ndk"
+    # Don't _think_ we are using this client-side...
+    "gecko/other-licenses/bsdiff"
   ]
 }
 
@@ -577,6 +612,9 @@ _g_basename_to_comment = {
     "README": ([""], ["#"]),
     "copyright": ([""], ),
     "LICENSE": ([""], ),
+    "NOTICE": ([""], ),
+    "COPYING": ([""], ),
+    "COPYRIGHT": ([""], ),
 
     "xptcstubs_asm_ppc_darwin.s.m4": (["/*", "*", "*/"], ),
     "xptcstubs_asm_mips.s.m4": (["/*", "*", "*/"], ),
@@ -610,6 +648,8 @@ _g_basename_to_comment = {
     "tabbrowser-aero.css": (["%"], ),
 
     "mozconfig-release": (["#"], ),
+
+    "MUTTUCData.txt": (["#"], ),
 }
 
 

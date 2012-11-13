@@ -20,7 +20,31 @@ log = logging.getLogger("relic")
 MAX_SCAN_LINE = 300
 
 # "licenses" is an accumulating result parameter
-def get_license_block(filename, licenses):
+def get_license_block(filename, all_licenses):
+
+    licenses = _get_licenses_for_file(filename)
+
+    for license in licenses:
+        lic_key = license['tag']
+        if 'text' in license:
+            lic_key = make_hash(license['text'])
+        
+        if lic_key in all_licenses:
+            if 'copyrights' in license:
+                # XXX ??? update?
+                all_licenses[lic_key]['copyrights'].update(license['copyrights'])
+            all_licenses[lic_key]['files'].append(filename)
+        else:
+            all_licenses[lic_key] = license
+            license['files'] = [filename]
+    
+    return
+
+
+# Find the license or licenses in a file. Returns a list of license objects.
+# The only guaranteed value in a license object is the 'tag', which may be
+# 'none'.
+def _get_licenses_for_file(filename):    
     fin = open(filename, 'r')
     try:
         content = fin.read(MAX_SCAN_LINE * 80)
@@ -43,9 +67,7 @@ def get_license_block(filename, licenses):
         return
 
     lines = content.splitlines()
-    
-    tag     = None
-    comment = ""
+    licenses = []
             
     for delims in comment_delim_sets:
         # Hack to get around strange Python single member empty tuple behaviour
@@ -76,41 +98,32 @@ def get_license_block(filename, licenses):
             if tag:
                 # It is.
                 log.debug("License found: %s" % tag)
-                break
+                # Store away the info about the license for this file
+                (copyrights, license) = \
+                          detector.extract_copyrights_and_license(comment, tag)
+                
+                # Store license info
+                copyrights = canonicalize_copyrights(copyrights)
+
+                copyrights_by_md5 = {}
+                for c in copyrights:
+                    copyrights_by_md5[make_hash(c)] = c
+
+                licenses.append({
+                    'tag': tag,
+                    'copyrights': copyrights_by_md5,
+                    'text': license
+                })                
 
             if delims[0] == '':
                 # We did the whole file in one go; try next delim
-                break        
+                break
 
-        if tag:
-            # Once we found one, no point trying more delims
+        if licenses:
+            # Once we found at least one license, no point trying more delims
             break
 
-    # Store away the info about the license for this file
-    if tag:
-        (copyrights, license) = \
-                          detector.extract_copyrights_and_license(comment, tag)
-        
-        # Store license info
-        lic_md5 = make_hash(license)
-
-        copyrights = canonicalize_copyrights(copyrights)
-
-        copyrights_by_md5 = {}
-        for c in copyrights:
-            copyrights_by_md5[make_hash(c)] = c
-
-        if lic_md5 in licenses:
-            licenses[lic_md5]['copyrights'].update(copyrights_by_md5)
-            licenses[lic_md5]['files'].append(filename)
-        else:
-            licenses[lic_md5] = {
-                'text': license,
-                'tag': tag,
-                'copyrights': copyrights_by_md5,
-                'files': [filename]
-            }
-    else:
+    if not licenses:
         # We also note if a comment is "suspicious" - in other words,
         # if we don't detect a license but there is a suspicious
         # comment, it suggests we should check the file by hand to 
@@ -126,16 +139,11 @@ def get_license_block(filename, licenses):
                          content):
                 tag = "suspiciousAndroid"
         
-        if tag in licenses:
-            licenses[tag]['files'].append(filename)
-        else:
-            licenses[tag] = {
-                'text': '',
-                'tag': tag,
-                'files': [filename]
-            }            
+        licenses.append({
+            'tag': tag,
+        })                
                 
-    return
+    return licenses
 
 
 # Function to remove false positive differences from a thing or array and
