@@ -10,17 +10,38 @@
 ###############################################################################
 import re
 import hashlib
+import sys
 import os.path
 from config import get_config, get_delims
 import detector
+import ws
 
 import logging
 log = logging.getLogger("relic")
 
-MAX_SCAN_LINE = 300
+MAX_SCAN_LINE = 400
+
+troublesome_files = {
+    './gecko/extensions/spellcheck/locales/en-US/hunspell/README_en_US.txt': 1,
+    './gecko/media/mtransport/third_party/nrappkit/COPYRIGHT': 1,
+    './prebuilt/common/jython/LICENSE': 1,
+    './prebuilt/common/jython/LICENSE_CPython.txt': 1,
+    './bionic/libm/NOTICE': 1,
+    './libcore/NOTICE': 1,
+}
 
 # "licenses" is an accumulating result parameter
 def get_license_block(filename, all_licenses):
+    # This is a bit of a hack to deal with files we can't cope with yet.
+    # We instead smuggle in a file which we've prepared with the same
+    # data in which the script can cope with. We use a ".license" extension
+    # to tell the code that we are using /* * */ delimiters.
+    real_filename = filename
+    if filename in troublesome_files:
+        script = os.path.realpath(sys.argv[0])
+        filename = os.path.join(os.path.dirname(script),
+                                "substitutes",
+                                filename + ".license")
 
     licenses = _get_licenses_for_file(filename)
 
@@ -30,13 +51,12 @@ def get_license_block(filename, all_licenses):
             lic_key = make_hash(license['text'])
         
         if lic_key in all_licenses:
+            all_licenses[lic_key]['files'].append(real_filename)
             if 'copyrights' in license:
-                # XXX ??? update?
                 all_licenses[lic_key]['copyrights'].update(license['copyrights'])
-            all_licenses[lic_key]['files'].append(filename)
         else:
+            license['files'] = [real_filename]
             all_licenses[lic_key] = license
-            license['files'] = [filename]
     
     return
 
@@ -57,17 +77,19 @@ def _get_licenses_for_file(filename):
         content = content.decode('iso-8859-1')
 
     log.info("Processing: %s", filename)
+    
+    licenses = []
 
     # Get comment delimiter info for this file.
     comment_delim_sets = get_delims(filename)
     
     if not comment_delim_sets:
         # We can't handle this type of file
-        log.info("No comment delimiters found for file %s" % filename)
-        return
+        ext = os.path.splitext(filename)[1]
+        log.info("No comment delimiters found for ext %s on file %s" % (ext, filename))
+        return licenses
 
     lines = content.splitlines()
-    licenses = []
             
     for delims in comment_delim_sets:
         # Hack to get around strange Python single member empty tuple behaviour
@@ -105,13 +127,13 @@ def _get_licenses_for_file(filename):
                 # Store license info
                 copyrights = canonicalize_copyrights(copyrights)
 
-                copyrights_by_md5 = {}
+                copyrights_dict = {}
                 for c in copyrights:
-                    copyrights_by_md5[make_hash(c)] = c
+                    copyrights_dict[c] = 1
 
                 licenses.append({
                     'tag': tag,
-                    'copyrights': copyrights_by_md5,
+                    'copyrights': copyrights_dict,
                     'text': license
                 })                
 
@@ -154,7 +176,7 @@ def make_hash(thing):
 
     line = " ".join(thing)
     line = re.sub("[\*\.,\-\d]+", "", line)
-    line = collapse_whitespace(line)
+    line = ws.collapse(line)
 
     line = line.encode('ascii', errors='ignore')
     line = line.lower()
@@ -224,7 +246,7 @@ def find_next_comment(starting_from, lines, delims):
 def canonicalize_copyrights(copyrights):
     # Clean up individual lines
     for i in range(len(copyrights)):
-        copyrights[i] = collapse_whitespace(copyrights[i])
+        copyrights[i] = ws.collapse(copyrights[i])
         # Remove end cruft
         copyrights[i] = re.sub("[\*#\s/]+$", "", copyrights[i])
     
@@ -261,13 +283,3 @@ def strip_comment_chars(comment, delims):
 
     return comment
 
-
-def collapse_whitespace(line):
-    # Collapse whitespace
-    line = re.sub("\s+", " ", line)
-
-    # Strip leading and trailing whitespace
-    line = re.sub("^\s", "", line)
-    line = re.sub("\s$", "", line)
-    
-    return line

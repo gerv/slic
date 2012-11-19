@@ -11,22 +11,6 @@ import os
 import re
 
 class TestStringMunging(unittest.TestCase):
-    def test_collapse_whitespace(self):
-        result = licblock.collapse_whitespace("   ")
-        self.assertEqual(result, "")
-
-        result = licblock.collapse_whitespace("  foo")
-        self.assertEqual(result, "foo")
-
-        result = licblock.collapse_whitespace("foo   ")
-        self.assertEqual(result, "foo")
-
-        result = licblock.collapse_whitespace("  foo    bar  ")
-        self.assertEqual(result, "foo bar")
-
-        result = licblock.collapse_whitespace("foo\t\nbar\r")
-        self.assertEqual(result, "foo bar")
-
     def test_strip_comment_chars_1(self):
         result = licblock.strip_comment_chars(["# Foo", "# Bar"], ['#'])
         self.assertEqual(result, ["Foo", "Bar"])
@@ -151,29 +135,7 @@ class TestGetLicenseBlock(unittest.TestCase):
             
             licenses = {}
             licblock.get_license_block(os.path.join(dir, filename), licenses)
-
             self.assertEqual(licenses[licenses.keys()[0]]['tag'], tag)
-
-
-class TestSplitYears(unittest.TestCase):
-    def test_split_years(self):
-        self.assertEqual(licblock._split_years(""), [])
-        self.assertEqual(licblock._split_years("1999"), [1999])
-        self.assertEqual(licblock._split_years("2000-2002"), [2000, 2001, 2002])
-        self.assertEqual(licblock._split_years("2000-2001, 2004"), [2000, 2001, 2004])
-        self.assertEqual(licblock._split_years("  2000 -   2001,  2004"), [2000, 2001, 2004])
-        self.assertEqual(licblock._split_years("1997-98"), [1997, 1998])
-
-
-class TestAmalgamateYears(unittest.TestCase):
-    def test_join_years(self):
-        
-        self.assertEqual(licblock._join_years([]), "")
-        self.assertEqual(licblock._join_years([1999]), "1999")
-        self.assertEqual(licblock._join_years([1999, 2000]), "1999-2000")
-        self.assertEqual(licblock._join_years([1997, 1998, 1999, 2001]), "1997-1999, 2001")
-        self.assertEqual(licblock._join_years([1999, 2000, 2001, 2003, 2004]), "1999-2001, 2003-2004")
-        self.assertEqual(licblock._join_years([1999, 2001, 2003, 2006]), "1999, 2001, 2003, 2006")
 
 
 if __name__ == '__main__':

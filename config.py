@@ -9,12 +9,18 @@
 import re
 import os
 
+config_cache = {}
+
 def get_config(structname, treename):
-    struct = globals()["_g_" + structname]
-    config = struct.get('_common')
-    config.extend(struct.get(treename, []))
+    cache_key = treename + "|" + structname
     
-    return config
+    if cache_key not in config_cache:    
+        struct = globals()["_g_" + structname]
+        config = struct.get('_common')
+        config.extend(struct.get(treename, []))
+        config_cache[cache_key] = config
+    
+    return config_cache[cache_key]
 
 
 # Returns comment delimiters for this filename, or None if we can't work it out
@@ -69,7 +75,7 @@ _g_strip_exts = [".in", ".dist"]
 # List includes binary extensions in case binary checking is turned off
 _g_skip_exts = {
   '_common' :
-      [".mdp", ".order", ".dsp", ".dsw", ".json",
+      [".mdp", ".order", ".dsp", ".dsw", ".json", ".webapp", ".sln",
        ".png", ".jpg", ".jpeg", ".gif", ".tiff", ".rtf",
        ".pbxproj", ".pch", ".pem", ".icns", ".patch", ".diff",
        ".dic_delta", ".dic"],
@@ -170,6 +176,8 @@ _g_skip_dir_basenames = {
     "tests",
     "jsreftest",
     "imptests",
+    "testsuite",
+    "examples",
   ],
 }
 
@@ -317,20 +325,11 @@ _g_skip_files = {
   ],
 
   'b2g': [
-    # Files the script can't cope with, because they contain multiple licenses
-    'gecko/extensions/spellcheck/locales/en-US/hunspell/README_en_US.txt',
-    'gecko/media/mtransport/third_party/nrappkit/COPYRIGHT',
-    'prebuilt/common/jython/LICENSE',
-    'prebuilt/common/jython/LICENSE_CPython.txt',
-    'bionic/libm/NOTICE',
-    'external/icu4c/test/testdata/riwords.txt',
-    'libcore/NOTICE',
+    # Random GPLv3 helper script which we aren't shipping
+    "gecko/js/src/vm/make_unicode.py",
 
-    # License is all on one line; doesn't work well with <pre>
-    'gaia/apps/calendar/js/ext/page.js',
-
-    # Incorrect detection of Copyright lines
-    'gecko/layout/reftests/fonts/Chunkfive-license.txt',
+    # Random LGPLed Symbian file
+    "gecko/js/src/assembler/jit/ExecutableAllocatorSymbian.cpp",
   ]
 }
 
@@ -542,12 +541,23 @@ _g_skip_dirs = {
 
   'b2g': [
     "gaia/profile/OfflineCache",
+    "gaia/test_apps",
     "prebuilt/ndk",
     "prebuilt/sdk",
-    "out"
-    "ndk"
+    "out",
+    "ndk",
     # Don't _think_ we are using this client-side...
-    "gecko/other-licenses/bsdiff"
+    "gecko/other-licenses/bsdiff",
+
+    # Unused bit of libpng
+    "external/libpng/contrib",
+
+    # Unused architectures,
+    "bionic/libc/arch-sh",
+    "bionic/libm/i387",
+
+    # NPOTB
+    "js/src/devtools",
   ]
 }
 
@@ -664,7 +674,8 @@ _g_ext_to_comment = {
     ".lsm":   (["", ]),
     ".FP":    (["", ]),
     ".spec":  (["", ]),
-
+    ".android": (["", ]),
+    
     ".CPP":    (["/*", "*", "*/"], ["//"]),
     ".cpp":    (["/*", "*", "*/"], ["//"]),
     ".H":      (["/*", "*", "*/"], ["//"]),
@@ -720,10 +731,15 @@ _g_ext_to_comment = {
     ".uf":     (["/*", "*", "*/"], ),
     ".dox":    (["/*", "*", "*/"], ),
     ".abs":    (["/*", "*", "*/"], ),
-    ".es":     (["/*", "*", "*/"], ),
     ".hh":     (["/*", "*", "*/"], ),
     ".pig":    (["/*", "*", "*/"], ),
-    
+    ".S":      (["/*", "*", "*/"], ),
+    ".aidl":   (["/*", "*", "*/"], ),
+    ".webidl": (["/*", "*", "*/"], ),
+    ".java-if":(["/*", "*", "*/"], ),
+    ".ipdlh":  (["/*", "*", "*/"], ),
+    ".hpp":    (["/*", "*", "*/"], ),
+
     ".api":    (["/*", "*", "*/"], ['#']),
     ".applescript": (["(*", "*", "*)"], ["--"], ["#"]),
 
@@ -732,6 +748,9 @@ _g_ext_to_comment = {
     ".doctest":  (["//"], ),
     ".jstest":   (["//"], ),
     ".less":     (["//"], ),
+    ".proto":    (["//"], ),
+    ".pump":     (["//"], ),         
+    ".bpf":      (["//"], ),         
 
     ".html": (["<!--", "-", "-->"], ["#"]),
     ".xml":  (["<!--", "-", "-->"], ["#"]),
@@ -752,6 +771,22 @@ _g_ext_to_comment = {
     ".md":   (["<!--", "-", "-->"], ),
     ".table":(["<!--", "-", "-->"], ),
     ".ejs":  (["<!--", "-", "-->"], ),
+    ".jd":   (["<!--", "-", "-->"], ),
+    ".man":  (["<!--", "-", "-->"], ['.\"']),
+    ".bpr":  (["<!--", "-", "-->"], ['.\"']),
+    ".nib":  (["<!--", "-", "-->"], ['.\"']),
+    ".xsd":  (["<!--", "-", "-->"], ['.\"']),
+    ".user": (["<!--", "-", "-->"], ['.\"']),
+    ".sgml": (["<!--", "-", "-->"], ),
+    ".ui":   (["<!--", "-", "-->"], ),
+    ".vcproj":  (["<!--", "-", "-->"], ),
+    ".vcxproj": (["<!--", "-", "-->"], ),
+    ".filters": (["<!--", "-", "-->"], ),
+    ".plist":   (["<!--", "-", "-->"], ),
+    ".graffle": (["<!--", "-", "-->"], ),
+    ".xliff":   (["<!--", "-", "-->"], ['.\"']),
+    ".cbproj":  (["<!--", "-", "-->"], ['.\"']),
+    ".vsprops": (["<!--", "-", "-->"], ['.\"']),
 
     ".inc":  (["<!--", "-", "-->"], 
               ["#"],
@@ -820,6 +855,20 @@ _g_ext_to_comment = {
     ".yaml":       (["#"], ),
     ".tac":        (["#"], ),
     ".pp":         (["#"], ),
+    ".ucm":        (["#"], ),
+    ".po":         (["#"], ),
+    ".gypi":       (["#"], ),
+    ".gyp":        (["#"], ),
+    ".prop":       (["#"], ),
+    ".appcache":   (["#"], ),
+    ".cmake":      (["#"], ),
+    ".rsh":        (["#"], ),
+    ".kl":         (["#"], ),
+    ".msc":        (["#"], ),
+    ".kcm":        (["#"], ),
+    ".idc":        (["#"], ),
+    ".sed":        (["#"], ),
+    ".flags":      (["#"], ),
 
     ".tdf":  ([";"], ),
     ".def":  ([";+#"], [";"]),
@@ -827,6 +876,7 @@ _g_ext_to_comment = {
     ".ini":  ([";"], ),
     ".it":   ([";"], ),
     ".info": ([";"], ),
+    ".nasm": ([";"], ),
     ".lisp": ([";;;"], ),
 
     ".cmd": (["REM"], ["rem"], ["/*", "*", "*/"]),
@@ -836,6 +886,7 @@ _g_ext_to_comment = {
     ".texi": (["%"], ),
 
     ".m4":  (["dnl"], ["#"]),
+    ".ac":  (["dnl"], ),
 
     ".asm": ([";"], ),
     ".vbs": (["'"], ),
@@ -855,6 +906,8 @@ _g_ext_to_comment = {
     ".tmpl":       (["[%#", "#", "#%]"], ["#"], ),
     ".t":          (["#"], ),
     ".conf":       (["#"], ),
+
+    ".license":    (["/*", "*", "*/"], ),
 }
 
 

@@ -1,33 +1,51 @@
+{% set debug = 1 %}
+
 {# Licenses we can safely explicitly ignore #}
-{% set ignore_res = ['^pd', '^CC0$', '^suspicious', '^none$',
-                     'permissive', 'MPL11', '^nocopyrightableinfo$',
-                     '^whatwg$', '^Zlib$', 'fileref' ] %}
+{# We use MPL 1.1 code under MPL 2. We check filerefs elsewhere. #}
+{% set ignore_res = ['^none$', '^pd', '^CC0$', '^nocopyrightableinfo$',
+                     '^suspicious', 'permissive',  '^whatwg$', '^zlib',
+                     'fileref', '^sqliteblessing$', 'MPL11',
+                     '^mozillalookelsewhere$', '^BSD4ClauseWinning$' ] %}
 
 {% set ignorables = pop_by_re(ignore_res, licenses) %}
 
-{# Licenses which are called out by name at the top #}
+{# Permissive licenses for which we are required to reproduce the text #}
+{% set repro_res = ['^HPND', '^MIT', '^BSD', 'ICU', 'jpnic', '^OFL',
+                    '^libjpeg', '^W3C$', '^nvidia$', '^icu$',
+                    '^bsdprotection$', '^Python20$', '^sgib$',
+                    '^mit_bsd_hybrid$', '^bsd\d?urlref', '^W3Curlref$',
+                    '^webmurlref$', '^curlurlref$', '^naist$',
+                    '^freetype', '^miros$', '^GPL20BSD$'] %}
+                    
+{% set reproducibles = pop_by_re(repro_res, licenses) %}
+
+{# Licenses which are called out by name at the top, in order #}
 {% set specials = [{
         'tag':   'MPL20',
-        'title': 'Mozilla Public License 2.0'
+        'title': 'Mozilla Public License 2.0',
     }, {
         'tag':   'Apache20',
-        'title': 'Apache License 2.0'
+        'title': 'Apache License 2.0',
     }, {
         'tag':   'LGPL21',
-        'title': 'GNU Lesser General Public License 2.1'
+        'title': 'GNU Lesser General Public License 2.1',
+        'showfiles': 1
     }, {
         'tag':   'GPL20',
-        'title': 'GNU General Public License 2.0'
+        'title': 'GNU General Public License 2.0',
     }, {
         'tag':   'GPL30',
         'title': 'GNU General Public License 3.0',
         'showfiles': 1
     }, {
         'tag':   'CDDL10',
-        'title': 'Common Development and Distribution License 1.0'
+        'title': 'Common Development and Distribution License 1.0',
     }, {
         'tag':   'EPL10',
         'title': 'Eclipse Public License 1.0',
+    }, {
+        'tag':   'CPL10',
+        'title': 'Common Public License 1.0',
     }
 ] %}
 
@@ -35,15 +53,6 @@
     {%- set tag = special['tag'] %}
     {%- do special.update({'licenses': pop_by_re("^" + tag, licenses)}) %}
 {% endfor %}
-
-{# Permissive licenses for which we are required to reproduce the text #}
-{% set repro_res = ['^HPND', '^MIT', '^BSD', 'ICU', 'jpnic', 'OFL.*',
-                    '^libjpeg', '^W3C$', '^nvidia$', '^icu$',
-                    '^bsdprotection$', '^Python20$', '^sgib$',
-                    '^mit_bsd_hybrid$', '^bsd\d?urlref', '^W3Curlref$',
-                    '^webmurlref$', '^curlurlref$'] %}
-                    
-{% set reproducibles = pop_by_re(repro_res, licenses) %}
 
 <!DOCTYPE html>
 <html>
@@ -63,15 +72,20 @@
 <body>
 <h1>Open Source Licensing Information</h1>
 
-<p>This product would not be possible without the hard work of tens of
-thousands of contributors to many different
-<a href="http://www.opensource.org/docs/definition.php">open source</a> and
-<a href="http://www.gnu.org/philosophy/free-sw.html">free software</a>
-communities over the past 30 years. The open source/free software in
-this product is available under one of the following licenses. Please consult
-the source code (available through
-<a href="http://www.mozilla.org/">mozilla.org</a>) to see which license applies
-to which part of the code.
+<p> The <a href="http://www.opensource.org/docs/definition.php">open source</a> and
+<a href="http://www.gnu.org/philosophy/free-sw.html">free software</a> in
+this product is available under one of the following licenses. These licenses
+give you the freedom to run the software, study it, change it to meet your
+needs, and share your changes with others. You can
+<a href="https://developer.mozilla.org/en-US/docs/Mozilla/Boot_to_Gecko/Building_and_installing_Firefox_OS">download the source code</a>
+from Mozilla. Please consult the source to see which license applies to which
+parts of the code.
+</p>
+
+<p>We are very grateful for the hard work of tens of thousands of contributors
+to many different open source and free software communities around the world
+over the past 30 years, without whose efforts this product would not exist.
+</p>
 
 <ul>
 
@@ -95,7 +109,7 @@ to which part of the code.
         <h2>{{ special['title'] }}</h2>
         {% include tag + '.html' %}
 
-        {% if 'showfiles' in special %}
+        {% if debug and 'showfiles' in special %}
             <ul>
             {% set licenses = special.licenses[tag] %}
             {% for license in licenses %}
@@ -124,11 +138,15 @@ licenses are reproduced below.</p>
     {% for license in licenses %}
         <hr>
 
-        <ul>
-        {% for file in license.files %}
-            <li>{{ file|e }}</li>
-        {% endfor %}
-        </ul>
+        {% if debug %}
+            <h2>{{ tag }}</h2>
+        
+            <ul>
+            {% for file in license.files %}
+                <li>{{ file|e }}</li>
+            {% endfor %}
+            </ul>
+        {% endif %}
 
         {% if 'copyrights' in license %}
             <ul>
@@ -150,31 +168,42 @@ licenses are reproduced below.</p>
 
 {% endif %}
 
-{% if licenses %}
-    <h2>XXX Licenses Unaccounted-For XXX</h2>
-    <ul>
-    {% for license in licenses %}
-        <li>{{ license }}</li>
-    {% endfor %}
-    </ul>
-{% endif %}
+{% if debug %}
+    {% if licenses %}
+        <h2>XXX Licenses Unaccounted-For XXX</h2>
+        <ul>
+        {% for license in licenses %}
+            <li>{{ license }}</li>
+        {% endfor %}
+        </ul>
+    {% endif %}
 
-{% if fileref_problem_dirs %}
-    <h2>XXX Dirs Containing Filerefs With No License File XXX</h2>
-    <ul>
-    {% for dir in fileref_problem_dirs %}
-        <li>{{ dir }}</li>
-    {% endfor %}
-    </ul>
-{% endif %}
+    {% if fileref_problem_dirs %}
+        <h2>XXX Dirs Containing Filerefs With No License File XXX</h2>
+        <ul>
+        {% for dir in fileref_problem_dirs %}
+            <li>{{ dir }}</li>
+        {% endfor %}
+        </ul>
+    {% endif %}
 
-{% if fileref_problem_files %}
-    <h2>XXX Filerefs With No License File XXX</h2>
-    <ul>
-    {% for file in fileref_problem_files %}
-        <li>{{ file }}</li>
-    {% endfor %}
-    </ul>
+    {% if fileref_problem_files %}
+        <h2>XXX Filerefs With No License File XXX</h2>
+        <ul>
+        {% for file in fileref_problem_files %}
+            <li>{{ file }}</li>
+        {% endfor %}
+        </ul>
+    {% endif %}
+
+    {% if license_files %}
+        <h2>XXX License Files Processed XXX</h2>
+        <ul>
+        {% for file in license_files %}
+            <li>{{ file }}: {{ license_files[file] }} </li>
+        {% endfor %}
+        </ul>
+    {% endif %}
 {% endif %}
 
 </body>

@@ -8,6 +8,7 @@
 # component parts.
 ###############################################################################
 import re
+import ws
 
 import logging
 logging.basicConfig(filename="relic.log", level=logging.DEBUG)
@@ -46,6 +47,11 @@ _license_parts = {
         'match':  r"Mozilla Public License, v\. 2\.0",
         'end':    r"You can obtain one at http://mozilla\.org/MPL/2\.0/",
         'subs': {
+            'MPL20fulltext': {
+                'start':  r"Mozilla Public License Version 2.0",
+                'match':  r"each individual or legal entity",
+                'end':    r"by the Mozilla Public License, v\. 2\.0"
+            },            
             'MPL20incompatible': {
                 'start':  r"Source Code Form [Ii]s subject to the terms of the Mozilla",
                 'match':  r"Incompatible With Secondary Licenses",
@@ -139,6 +145,12 @@ _license_parts = {
         'end':    r"the License\.?|licenses/LICENSE-2\.0",
         'maxlines': 12
     },
+    'Apache20fulltext': {
+        'start':  r"Apache License",
+        'match':  r"\"Legal Entity\" shall mean the union of the acting",
+        'end':    r"warranty or additional liability",
+        'maxlines': 12
+    },
     'Apache20fileref': {
         'start':  r"Use of this source code is governed by the Apache License, Version 2\.0",
         'match':  r"Use of this source code is governed by the Apache License, Version 2\.0",
@@ -146,11 +158,11 @@ _license_parts = {
     },
     # Permissive
     'HPND': {
-        'start':  r"Permission to use, copy, modify,?(?: and(/or)?)? distribute",
-        'match':  r"Permission to use, copy, modify,?(?: and(/or)?)? distribute",
+        'start':  r"[Pp]ermission to use, copy, modify,?(?: and(/or)?)? distribute",
+        'match':  r"[Pp]ermission to use, copy, modify,?(?: and(/or)?)? distribute",
         'end':    r"(OF|FOR) THIS SOFTWARE|express or implied warranty" + \
                   r"|written prior permission|supporting documentation" + \
-                  r"|OR MODIFICATIONS|prior written authorization",
+                  r"|MODIFICATIONS|prior written authorization",
         'subs': {
             'genericpermissive4': {
                 'start':  r"Permission to use, copy, modify,?(?: and(/or)?)? distribute",
@@ -176,6 +188,11 @@ _license_parts = {
             'mit_bsd_hybrid': {
                 'start': r"Permission is hereby granted, free of charge",
                 'match': r"Redistributions? in binary form",
+                'end':   r"SOFTWARE"
+            },
+            'mitboost': {
+                'start': r"Boost Software License",
+                'match': r"Boost Software License",
                 'end':   r"SOFTWARE"
             }
          }
@@ -205,10 +222,19 @@ _license_parts = {
                         'match':  r"advertising materials",
                         'end':    r"SUCH DAMAGE",
                         'subs': {
+                            # For all of these, the 4th clause is not a problem
+                            # because it has been waived, either permanently
+                            # or for our use of the code.
                             'BSD4ClauseUC': {
                                 'start':  r"Redistribution and use of this software" + \
                                           r"|Redistribution and use in source and",
                                 'match':  r"University of California",
+                                'end':    r"SUCH DAMAGE|PURPOSE"
+                            },
+                            'BSD4ClauseNetBSD': {
+                                'start':  r"Redistribution and use of this software" + \
+                                          r"|Redistribution and use in source and",
+                                'match':  r"The NetBSD Foundation",
                                 'end':    r"SUCH DAMAGE|PURPOSE"
                             },
                             'BSD4ClauseRTFM': {
@@ -216,7 +242,17 @@ _license_parts = {
                                           r"|Redistribution and use in source and",
                                 'match':  r"RTFM, Inc",
                                 'end':    r"SUCH DAMAGE|PURPOSE"
-                            }
+                            },
+                            # This one, there is no waiver but we aren't using
+                            # the code, even though the Android people have
+                            # copied the notice into a NOTICE file we read.
+                            # So we detect it separately so we can ignore it.
+                            'BSD4ClauseWinning': {
+                                'start':  r"Redistribution and use of this software" + \
+                                          r"|Redistribution and use in source and",
+                                'match':  r"Winning Strategies, Inc",
+                                'end':    r"SUCH DAMAGE|PURPOSE"
+                            },
                         }
                     }
                 }
@@ -225,6 +261,13 @@ _license_parts = {
                 'start':  r"Redistribution and use in source and binary",
                 'match':  r"in all such forms.*advertising materials",
                 'end':    r"A PARTICULAR PURPOSE",
+                'subs': {
+                    'BSD4ClauseCompactUC': {
+                        'start':  r"Redistribution and use in source and binary",
+                        'match':  r"University of California, Berkeley",
+                        'end':    r"A PARTICULAR PURPOSE",
+                    },
+                }
             },
             'BSD4ClauseSSLeay': {
                 'start':  r"Redistribution and use in source and binary",
@@ -338,10 +381,15 @@ _license_parts = {
         'match': r"NVIDIA Corporation\(\"NVIDIA\"\) supplies this software to you",
         'end':   r"OF SUCH DAMAGE"
     },
-    'freetypefileref': {
+    'freetyperef': {
         'start': r"This file is part of the FreeType project",
         'match': r"This file is part of the FreeType project",
         'end':   r"fully"
+    },
+    'freetypefulltext': {
+        'start': r"The FreeType Project LICENSE",
+        'match': r"The FreeType Project LICENSE",
+        'end':   r"http://www\.freetype\.org"
     },
     'W3Curlref': {
         'start': r"(program|work) is distributed under the W3C('s|\(r\)) Software" + \
@@ -355,7 +403,7 @@ _license_parts = {
         'match': r"use, reproduce and create derivative works of",
         'end':   r"this document"
     },
-    'Zlib': {
+    'zlibref': {
         'start': r"Licensed under the zlib/libpng license",
         'match': r"Licensed under the zlib/libpng license",
         'end':   r"Licensed under the zlib/libpng license"
@@ -400,7 +448,7 @@ _license_parts = {
         'match': r"part of the Independent JPEG Group's software",
         'end':   r"accompanying README file"
     },
-    'libjpegsimd': {
+    'zlib': {
         'start': r"This software is provided 'as-is'",
         'match': r"use this software for any purpose, including commercial applications",
         'end':   r"any source distribution"
@@ -410,6 +458,31 @@ _license_parts = {
         'match': r"Licensed under the Eclipse Public License, Version 1\.0",
         'end':   r"under the License"
     },  
+    'EPL10fulltext': {
+        'start': r"Eclipse Public License - v 1\.0",
+        'match': r"The Eclipse Foundation is the initial Agreement Steward",
+        'end':   r"any resulting litigation"
+    },  
+    'CPL10': {
+        'start': r"THE ACCOMPANYING PROGRAM|DEFINITIONS",
+        'match': r"COMMON PUBLIC LICENSE",
+        'end':   r"any resulting litigation"
+    },  
+    'miros': {
+        'start': r"Provided that these terms and disclaimer and all",
+        'match': r"immediate fault when using",
+        'end':   r"using the work as intended"
+    },  
+    'naist': {
+        'start': r"Use, reproduction, and distribution of this software",
+        'match': r"in no event shall NAIST be liable",
+        'end':   r"program is concerned"
+    },  
+    'mozillalookelsewhere': {
+        'start': r"Please see the file toolkit/content/license\.html",
+        'match': r"Please see the file toolkit/content/license\.html",
+        'end':   r"name or logo|licensing\.html"
+    },
     # PD
     'pd': {
         'start': r"[Pp]ublic [Dd]omain|PUBLIC DOMAIN",
@@ -427,6 +500,11 @@ _license_parts = {
         'start': r"This header was automatically generated from",
         'match': r"no copyrightable information",
         'end':   r"no copyrightable information"
+    },
+    'sqliteblessing': {
+        'start': r"The author disclaims copyright",
+        'match': r"In place of a legal notice, here is a blessing",
+        'end':   r"taking more than you give"
     }
 }
 
@@ -455,7 +533,7 @@ _preprocess(_license_parts)
 
 def id_license(comment):
     linear_comment = " ".join(comment)
-    linear_comment = collapse_whitespace(linear_comment)
+    linear_comment = ws.collapse(linear_comment)
 
     tag = _id_license_against(_license_parts, linear_comment)
 
@@ -491,7 +569,7 @@ def _id_license_against(parts, comment):
     return None
 
 
-# Things to ignore on a line
+# Things to ignore on a line - not a copyright line, and not the license
 cruft_re = re.compile("""Derived\ from
                          |Target\ configuration
                          |[Cc]ontributed\ by
@@ -501,6 +579,7 @@ cruft_re = re.compile("""Derived\ from
                          |[Vv]ersion
                          |Written\ by
                          |Linux\ for
+                         |You\ can\ look
                          """, re.VERBOSE)
 
 def extract_copyrights_and_license(text, tag):
@@ -595,15 +674,3 @@ def _remove_initial_rubbish(comment):
             comment[i] = re.sub("^" + re.escape(rubbish) + "?", "", comment[i])
 
     return comment
-
-    
-# XXX Currently in 2 places
-def collapse_whitespace(line):
-    # Collapse whitespace
-    line = re.sub("\s+", " ", line)
-
-    # Strip leading and trailing whitespace
-    line = re.sub("^\s", "", line)
-    line = re.sub("\s$", "", line)
-    
-    return line

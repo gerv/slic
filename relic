@@ -1495,15 +1495,15 @@ def _should_skip_file(path):
     if ext in get_config("skip_exts", treename):
         log.info("Skipping '%s' (according to 'skip_exts').", path)
         return 1
-    xpath = '/'.join(path.split(os.sep)) # use same sep as in skip_files
-    for sf in get_config("skip_files", treename):
-        if xpath.endswith(sf):
-            log.info("Skipping '%s' (according to 'skip_files').", path)
-            return 1
     if os.path.basename(path) in get_config("skip_file_basenames", treename):
         log.info(
                 "Skipping '%s' (according to 'skip_file_basenames').", path)
         return 1
+    for sf in get_config("skip_files", treename):
+        # Canonicalization hack to avoid having to use slow regexp
+        if path == sf or path == "./" + sf:
+            log.info("Skipping '%s' (according to 'skip_files').", path)
+            return 1
     if _should_skip_according_to_cvsignore(path):
         log.info("Skipping '%s' (according to .cvsignore).", path)
         return 1
@@ -1815,6 +1815,11 @@ def aggregate(paths, _errors=None):
     # Sort by tag
     licenses = sorted(results.values(), key=lambda k: k['tag'])
 
+    # Switch copyrights from de-deduplicating hash back to straight list
+    for license in licenses:
+        if 'copyrights' in license:
+            license['copyrights'] = license['copyrights'].keys()
+
     if _g_machine_readable:
        _print_structure(results) 
     else:
@@ -1826,7 +1831,7 @@ def aggregate(paths, _errors=None):
             print
             
             if 'copyrights' in license:
-                for copyright in license['copyrights'].values():
+                for copyright in license['copyrights']:
                     print copyright
                 print
 
