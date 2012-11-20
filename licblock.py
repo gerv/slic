@@ -157,7 +157,7 @@ def _get_licenses_for_file(filename):
         tag = "none"
         if re.search("copyright", content, re.IGNORECASE):
             tag = "suspicious"
-            if re.search("Copyright[\d\s,-]+The Android Open Source Proj",
+            if re.search("Copyright[\d\s,\(cC\)-]+The Android Open Source Proj",
                          content):
                 tag = "suspiciousAndroid"
         

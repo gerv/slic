@@ -2,10 +2,14 @@
 
 {# Licenses we can safely explicitly ignore #}
 {# We use MPL 1.1 code under MPL 2. We check filerefs elsewhere. #}
+{# CPL is excluded because the CPL code is in a directory we're not shipping,
+   but it still gets detected because the Android people copied the CPL into
+   a NOTICE file. Grr. #}
 {% set ignore_res = ['^none$', '^pd', '^CC0$', '^nocopyrightableinfo$',
-                     '^suspicious', 'permissive',  '^whatwg$', '^zlib',
+                     'permissive',  '^whatwg$', '^zlib',
                      'fileref', '^sqliteblessing$', 'MPL11',
-                     '^mozillalookelsewhere$', '^BSD4ClauseWinning$' ] %}
+                     'lookelsewhere$', '^BSD4ClauseWinning$',
+                     '^freetypefulltext$', '^CPL10$', '^unicodeurlref$'] %}
 
 {% set ignorables = pop_by_re(ignore_res, licenses) %}
 
@@ -14,8 +18,9 @@
                     '^libjpeg', '^W3C$', '^nvidia$', '^icu$',
                     '^bsdprotection$', '^Python20$', '^sgib$',
                     '^mit_bsd_hybrid$', '^bsd\d?urlref', '^W3Curlref$',
-                    '^webmurlref$', '^curlurlref$', '^naist$',
-                    '^freetype', '^miros$', '^GPL20BSD$'] %}
+                    '^webmurlref$', '^curlurlref$', '^naist$', 
+                    '^freetype', '^miros$', '^GPL20BSD$', '^mitboost$',
+                    '^EDLEPLurlref$', '^miturlrefcubiq$', 'suspicious'] %}
                     
 {% set reproducibles = pop_by_re(repro_res, licenses) %}
 
@@ -40,12 +45,11 @@
     }, {
         'tag':   'CDDL10',
         'title': 'Common Development and Distribution License 1.0',
+        'showfiles': 1
     }, {
         'tag':   'EPL10',
         'title': 'Eclipse Public License 1.0',
-    }, {
-        'tag':   'CPL10',
-        'title': 'Common Public License 1.0',
+        'showfiles': 1
     }
 ] %}
 
@@ -111,10 +115,11 @@ over the past 30 years, without whose efforts this product would not exist.
 
         {% if debug and 'showfiles' in special %}
             <ul>
-            {% set licenses = special.licenses[tag] %}
-            {% for license in licenses %}
-                {% for file in license.files %}
-                    <li>{{ file|e }}</li>
+            {% for subtag in special.licenses %}
+                {% for license in special.licenses[subtag] %}
+                    {% for file in license['files'] %}
+                        <li>{{ file|e }}</li>
+                    {% endfor %}
                 {% endfor %}
             {% endfor %}
             </ul>
@@ -132,6 +137,15 @@ over the past 30 years, without whose efforts this product would not exist.
 <p>Many free software licenses require reproduction of copyright ownership
 information and the license text in the distribution documentation. Those
 licenses are reproduced below.</p>
+
+{% if debug %}
+    <ul>
+    {% for tag in reproducibles %}
+        {% set licenses = reproducibles[tag] %}
+        <li>{{ tag }}: {{ reproducibles[tag]|length }}
+    {% endfor %}
+    </ul>
+{% endif %}
 
 {% for tag in reproducibles %}
     {% set licenses = reproducibles[tag] %}

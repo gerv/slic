@@ -178,6 +178,9 @@ _g_skip_dir_basenames = {
     "imptests",
     "testsuite",
     "examples",
+
+    "contrib",
+    "doc",
   ],
 }
 
@@ -330,6 +333,9 @@ _g_skip_files = {
 
     # Random LGPLed Symbian file
     "gecko/js/src/assembler/jit/ExecutableAllocatorSymbian.cpp",
+
+    # Solaris only
+    "gecko/media/libsydneyaudio/src/sydney_audio_sunaudio.c",
   ]
 }
 
@@ -621,7 +627,7 @@ _g_basename_to_comment = {
 
     "README": ([""], ["#"]),
     "copyright": ([""], ),
-    "LICENSE": ([""], ),
+    "LICENSE": ([""], ["%"]),
     "NOTICE": ([""], ),
     "COPYING": ([""], ),
     "COPYRIGHT": ([""], ),
@@ -695,7 +701,7 @@ _g_ext_to_comment = {
     ".cfg":    (["/*", "*", "*/"], ["#"]),
     ".cp":     (["/*", "*", "*/"], ),
     ".cs":     (["/*", "*", "*/"], ),
-    ".java":   (["/*", "*", "*/"], ),
+    ".java":   (["/*", "*", "*/"], ["//"]),
     ".jst":    (["/*", "*", "*/"], ),
     ".tbl":    (["/*", "*", "*/"], ),
     ".tab":    (["/*", "*", "*/"], ),
@@ -733,7 +739,7 @@ _g_ext_to_comment = {
     ".abs":    (["/*", "*", "*/"], ),
     ".hh":     (["/*", "*", "*/"], ),
     ".pig":    (["/*", "*", "*/"], ),
-    ".S":      (["/*", "*", "*/"], ),
+    ".S":      (["/*", "*", "*/"], ["@"]),
     ".aidl":   (["/*", "*", "*/"], ),
     ".webidl": (["/*", "*", "*/"], ),
     ".java-if":(["/*", "*", "*/"], ),
@@ -822,7 +828,7 @@ _g_ext_to_comment = {
     ".ldif":       (["#"], ),
     ".ex":         (["#"], ),
     ".reg":        (["#"], ),
-    ".py":         (["#"], ),
+    ".py":         (["#"], [""]),
     ".adb":        (["#"], ),
     ".dtksh":      (["#"], ),
     ".et":         (["#"], ),
@@ -862,7 +868,7 @@ _g_ext_to_comment = {
     ".prop":       (["#"], ),
     ".appcache":   (["#"], ),
     ".cmake":      (["#"], ),
-    ".rsh":        (["#"], ),
+    ".rsh":        (["#"], ["/*", "*", "*/"]),
     ".kl":         (["#"], ),
     ".msc":        (["#"], ),
     ".kcm":        (["#"], ),
@@ -886,7 +892,7 @@ _g_ext_to_comment = {
     ".texi": (["%"], ),
 
     ".m4":  (["dnl"], ["#"]),
-    ".ac":  (["dnl"], ),
+    ".ac":  (["dnl"], ["#"]),
 
     ".asm": ([";"], ),
     ".vbs": (["'"], ),

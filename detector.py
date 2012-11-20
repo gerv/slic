@@ -127,6 +127,11 @@ _license_parts = {
             }
         }
     },
+    'GPL20fileref': {
+        'start':  r"This program can be distributed under the terms of the GNU GPL",
+        'match':  r"This program can be distributed under the terms of the GNU GPL",
+        'end':    r"See the file COPYING"
+    },
     'Bisonexception': {
         'start':  r"As a special exception, you may",
         'match':  r"of the Bison parser skeleton",
@@ -202,6 +207,16 @@ _license_parts = {
         'match':  r"terms of the MIT/X [lL]icense",
         'end':    r"terms of the MIT/X [lL]icense|with this distribution",
     },
+    'miturlrefcubiq': {
+        'start':  r"Released under MIT license, http://cubiq\.org/license",
+        'match':  r"Released under MIT license, http://cubiq\.org/license",
+        'end':    r"Released under MIT license, http://cubiq\.org/license",
+    },
+    'boosturlref': {
+        'start':  r"Distributed under the Boost Software License, Version 1\.0",
+        'match':  r"Distributed under the Boost Software License, Version 1\.0",
+        'end':    r"http://www\.boost\.org/LICENSE_1_0\.txt",
+    },
     'BSD2Clause': {
         'start':  r"Redistribution and use of this software" + \
                   r"|Redistribution and use in source and binary forms",
@@ -213,7 +228,8 @@ _license_parts = {
                 'start':  r"Redistribution and use of this software" + \
                           r"|Redistribution and use in source and binary",
                 'match':  r"name.*(may|must) not be used to" + \
-                          r"|Neither the (author|name).*may be used to",
+                          r"|Neither the (author|name).*may be used to" + \
+                          r"|The name of the company nor the name of the author",
                 'end':    r"SUCH DAMAGE",
                 'subs': {
                     'BSD4Clause': {
@@ -286,6 +302,11 @@ _license_parts = {
         'match':  r"Use of this source code is governed by a BSD-style",
         'end':    r"LICENSE|source tree"
     },
+    'bsdfileref2': {
+        'start':  r"BSD, see LICENSE for details",
+        'match':  r"BSD, see LICENSE for details",
+        'end':    r"BSD, see LICENSE for details"
+    },
     'bsd2urlref': {
         'start': r"The program is distributed under terms of BSD",
         'match': r"The program is distributed under terms of BSD",
@@ -305,6 +326,11 @@ _license_parts = {
         'start': r"Code licensed under the BSD License",
         'match': r"http://developer\.yahoo\.com/yui/license\.html",
         'end':   r"http://developer\.yahoo\.com/yui/license\.html"
+    },
+    'bsdurlrefpaj': {
+        'start': r"Distributed under the BSD License",
+        'match': r"See http://pajhome\.org\.uk/crypt/md5 for details",
+        'end':   r"http://pajhome\.org\.uk/crypt/md5 for details"
     },
     'copyingfileref': {
         'start':  r"See the file COPYING for copying permission",
@@ -346,6 +372,16 @@ _license_parts = {
         'match':  r"I shall in no event be liable",
         'end':    r"using this software" 
     },
+    'genericpermissive4': {
+        'start':  r"You may use this program",
+        'match':  r"as desired without restriction",
+        'end':    r"as desired without restriction" 
+    },
+    'genericpermissive5': {
+        'start':  r"You may use, copy, modify and distribute this code",
+        'match':  r"use\) and without fee",
+        'end':    r"this code" 
+    },
     'icu': {
         'start':  r"ICU License - ICU",
         'match':  r"ICU License - ICU",
@@ -381,7 +417,7 @@ _license_parts = {
         'match': r"NVIDIA Corporation\(\"NVIDIA\"\) supplies this software to you",
         'end':   r"OF SUCH DAMAGE"
     },
-    'freetyperef': {
+    'freetypefileref': {
         'start': r"This file is part of the FreeType project",
         'match': r"This file is part of the FreeType project",
         'end':   r"fully"
@@ -418,6 +454,11 @@ _license_parts = {
         'match': r"This program is released under the terms of the license contained in the file LICENSE.",
         'end':   r"the file LICENSE"
     },
+    'jsimdextfileref': {
+        'start': r"For conditions of distribution and use, see copyright notice in jsimdext\.inc",
+        'match': r"For conditions of distribution and use, see copyright notice in jsimdext\.inc",
+        'end':   r"For conditions of distribution and use, see copyright notice in jsimdext\.inc"
+    },
     'Python20': {
         'start': r"This module is free software, and you",
         'match': r"same terms as Python itself",
@@ -443,10 +484,15 @@ _license_parts = {
         'match': r"http://curl\.haxx\.se/docs/copyright\.html",
         'end':   r"either express or implied"
     },
-    'libjpeg': {
+    'libjpegfileref': {
         'start': r"part of the Independent JPEG Group's software",
         'match': r"part of the Independent JPEG Group's software",
         'end':   r"accompanying README file"
+    },
+    'libjpeg': {
+        'start': r"The authors make NO WARRANTY or representation",
+        'match': r"for the use of any IJG author's name",
+        'end':   r"by the product vendor"
     },
     'zlib': {
         'start': r"This software is provided 'as-is'",
@@ -462,7 +508,12 @@ _license_parts = {
         'start': r"Eclipse Public License - v 1\.0",
         'match': r"The Eclipse Foundation is the initial Agreement Steward",
         'end':   r"any resulting litigation"
-    },  
+    },
+    'EDLEPLurlref': {
+        'start': r"This program and the accompanying materials",
+        'match': r"http://www\.eclipse\.org/org/documents/edl-v10\.html",
+        'end':   r"http://www\.eclipse\.org/org/documents/edl-v10\.html"
+    },
     'CPL10': {
         'start': r"THE ACCOMPANYING PROGRAM|DEFINITIONS",
         'match': r"COMMON PUBLIC LICENSE",
@@ -482,6 +533,12 @@ _license_parts = {
         'start': r"Please see the file toolkit/content/license\.html",
         'match': r"Please see the file toolkit/content/license\.html",
         'end':   r"name or logo|licensing\.html"
+    },
+    'gliblookelsewhere': {
+        # glib license is LGPL
+        'start': r"This file is distributed under the same license as the glib package",
+        'match': r"This file is distributed under the same license as the glib package",
+        'end':   r"This file is distributed under the same license as the glib package"
     },
     # PD
     'pd': {
@@ -505,6 +562,11 @@ _license_parts = {
         'start': r"The author disclaims copyright",
         'match': r"In place of a legal notice, here is a blessing",
         'end':   r"taking more than you give"
+    },
+    'unicodeurlref': {
+        'start': r"For terms of use, see http://www\.unicode\.org/terms_of_use\.html",
+        'match': r"For terms of use, see http://www\.unicode\.org/terms_of_use\.html",
+        'end':   r"For terms of use, see http://www\.unicode\.org/terms_of_use\.html"
     }
 }
 

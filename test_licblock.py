@@ -122,7 +122,7 @@ class TestGetLicenseBlock(unittest.TestCase):
         
         copyrights = license['copyrights']
         self.assertEqual(len(copyrights), 1)
-        copyright = copyrights.values()[0]
+        copyright = copyrights.keys()[0]
         self.assertEqual(copyright, u"Copyright \xa9 2007,2008,2009 Red Hat, Inc.")
 
     # Test we correctly identify every test file in the test_data/files

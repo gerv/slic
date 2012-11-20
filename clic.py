@@ -51,8 +51,11 @@ canonical_holders = {
                'Regents of the University of California. All rights reserved.',
     'Mozilla Foundation.': 'Mozilla Foundation',
     'Android Open Source Project': 'The Android Open Source Project',
+    'The Android Open Source Project All rights reserved.': 'The Android Open Source Project. All rights reserved.',
     'Student Information Processing Board of the Massachusetts Institute of Technology.':
         'by the Student Information Processing Board of the Massachusetts Institute of Technology',
+    'World Wide Web Consortium, (Massachusetts Institute of Technology, Institut National de Recherche en Informatique et en Automatique, Keio University). All':
+        'World Wide Web Consortium, (Massachusetts Institute of Technology, Institut National de Recherche en Informatique et en Automatique, Keio University). All Rights Reserved.',
 }
 
 def tidy_holder(holder):
@@ -193,7 +196,7 @@ def main():
     # For some licenses, we have a specific set text and so even if small
     # variants are found, we choose to ignore them and amalgamate all the
     # files and copyright holders into a single entry
-    single_entry_licenses = ['BSD4ClauseRTFM', 'bsdprotection', 'freetyperef',
+    single_entry_licenses = ['BSD4ClauseRTFM', 'bsdprotection', 'freetypefulltext',
                              'libjpeg', 'GPL20BSD', 'miros', 'bsd3urlref',
                              'W3Curlref']
     
@@ -335,11 +338,6 @@ def main():
     # Make a hash lookup table of all files found which match any of the special
     # filenames. It's always possible that the Android people will have renamed
     # the file to "NOTICE"...
-    license_files_re = re.compile("""^(LICENSE
-                                       |COPYRIGHT|COPYING
-                                       |MIT-LICENSE|NOTICE
-                                      )""", re.VERBOSE)
-    license_files = {}
     fileref_names = {
         'copyingfileref':    ['COPYING', 'NOTICE'],
         'copyrightfileref':  ['COPYRIGHT', 'NOTICE'],
@@ -348,10 +346,22 @@ def main():
         'bsdfileref':        ['LICENSE', 'NOTICE'],
         'mitfileref':        ['COPYING', 'NOTICE'],
         'mit_gpl20_fileref': ['MIT-LICENSE.txt', 'NOTICE'],
-        'freetypefileref':   ['LICENSE.txt', 'NOTICE'],
+        'freetypefileref':   ['LICENSE.txt', 'docs/FTL.TXT', 'NOTICE'],
         'ISCfileref':        ['LICENSE', 'NOTICE'],
+        'libjpegfileref':    ['README'],        
+        'bsdfileref2':       ['LICENSE.txt'], # sic
+        'jsimdextfileref':   ['jsimdext.inc'],
     }
-        
+
+    # Unique
+    unique_filenames = {}
+    for fileref in fileref_names:
+        map(unique_filenames.__setitem__, fileref_names[fileref], [])
+
+    license_files = {}
+    license_files_re = re.compile("^(" + "|".join(unique_filenames.keys()) + ")")
+
+    # Gather list of "LICENSE"-type files        
     for tag in bytag:
         for data in bytag[tag]:
             files = data['files']
@@ -368,7 +378,8 @@ def main():
             log.debug("Trying to find license file: %s" % license_file_name)
             dir = dirname(file)
             log.debug("Starting directory: %s" % dir)
-            while dir != ".":
+            while dir != "." and dir != "./gecko":
+                log.debug("Looking for %s" % join(dir, license_file_name))
                 if join(dir, license_file_name) in license_files:
                     log.debug("Found license %s in dir: %s" % (license_file_name, dir))
                     return True

@@ -330,6 +330,9 @@ def _get_license_info(filename, quick=0, contributors=0):
     # Get comment delimiter info for this file.
     comment_delim_sets = get_delims(filename)
 
+    if not comment_delim_sets:
+         return lic_info
+
     # - find first license line (and determine which set of comment
     #   delimiters are in use)
     lines = content.splitlines()
@@ -1889,10 +1892,10 @@ def main(argv):
             backup = 1
         elif opt in ("-q", "--quick"):
             quick = 1
-        elif opt in ("--slow-binary"):
+        elif opt in ("--slow-binary",):
             global _g_fast_binary
             _g_fast_binary = 0
-        elif opt in ("--incompatible"):
+        elif opt in ("--incompatible",):
             global _g_add_incompatible
             _g_add_incompatible = 1
         elif opt in ("-m", "--machine-readable"):
