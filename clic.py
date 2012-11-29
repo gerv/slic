@@ -238,7 +238,7 @@ def main():
                 # textwrap only wraps single paragraphs
                 for line in data['text']:
                     if not re.search("^\s*$", line):
-                        temptext = temptext + "\n" + line
+                        temptext = temptext + "\n" + ws.collapse(line)
                     else:
                         newtext.extend(textwrap.wrap(temptext, 78))
                         newtext.append(u"")
@@ -248,7 +248,6 @@ def main():
                         newtext.extend(textwrap.wrap(temptext, 78))
                     
                 data['text'] = newtext
-                log.info(data['text'])
                 
     # Post-process and amalgamate copyright lines
     # \xa9 is the copyright symbol

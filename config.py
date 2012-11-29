@@ -146,6 +146,10 @@ _g_skip_file_basenames = {
     "module.ver",  
   ],
 
+  'mcs': [
+    "jquery.domec.min-0.3.1.js",
+  ],
+
   'b2g': [
     "Android.mk", # Loads of them, seemingly none without a license header
   ],
@@ -325,6 +329,7 @@ _g_skip_files = {
     "media/js/less-1.2.1.min.js", # Apache
     "media/css/sandstone/mixins.less", # CC-BY
     "media/js/firefox/technology/beatdetektor.js", # LGPL 3.0
+    "media/js/firefox/technology/main.js", # minified
   ],
 
   'b2g': [
@@ -545,6 +550,10 @@ _g_skip_dirs = {
      "extension/content/flot",
    ],
 
+   'mcs': [
+     "wordpress/themes/mcs/css",
+   ],
+
   'b2g': [
     "gaia/profile/OfflineCache",
     "gaia/test_apps",
@@ -563,7 +572,7 @@ _g_skip_dirs = {
     "bionic/libm/i387",
 
     # NPOTB
-    "js/src/devtools",
+    "gecko/js/src/devtools",
   ]
 }
 
@@ -689,7 +698,8 @@ _g_ext_to_comment = {
     ".hxx":    (["/*", "*", "*/"], ["//"]),
     ".c":      (["/*", "*", "*/"], ["//"]),
     ".cc":     (["/*", "*", "*/"], ["//"]),
-    ".css":    (["/*", "*", "*/"], ['#']),
+    ".css":    (["%"], ["/*", "*", "*/"], ['#']), # *-aero.css files
+#    ".css":    (["/*", "*", "*/"], ['#']),
     ".js":     (["/*", "*", "*/"], ["//"], ['#']),
     ".idl":    (["/*", "*", "*/"], ),
     ".ut":     (["/*", "*", "*/"], ),
@@ -759,6 +769,7 @@ _g_ext_to_comment = {
     ".bpf":      (["//"], ),         
 
     ".html": (["<!--", "-", "-->"], ["#"]),
+# bedrock    ".html": (["{#", "#", "#}"],),
     ".xml":  (["<!--", "-", "-->"], ["#"]),
     ".xbl":  (["<!--", "-", "-->"], ["#"]),
     ".xsl":  (["<!--", "-", "-->"], ),

@@ -1213,6 +1213,8 @@ def _add_license_to_file(original_path,
     # - XML magic "number":  <?xml version="2.0" ... ?>
     #   where "..." might include newlines
     # - @echo off lines
+    # - DOCTYPE lines
+    # - Python "coding" lines
     startline = 0
     try:
         comment_delim_sets = get_delims(original_path)
@@ -1236,36 +1238,42 @@ def _add_license_to_file(original_path,
     if lines and lines[0].find("#filter") != -1:
         startline += 1
             
-    # If this is an XML file, advance past the magic number tag.
-    if lines and lines[startline].find("<?xml") != -1:
-        line = lines[startline]
-        if (line.find('encoding="utf-8"') != -1
-            and line.startswith("\xef\xbb\xbf")):
-            # remove UTF-8 BOM
-            # Note: this is hardly robust Unicode XML handling :)
-            line = line[3:]
-        if line.startswith("<?xml"):
-            while startline < len(lines):
-                end_index = lines[startline].find("?>")
-                startline += 1
-                if end_index != -1: # found end of tag
-                    break
-            # Note: this does not catch something like this:
-            #   <?xml version="2.0"?> <?stylesheet ...
-            #   ...?>
-            # but that is just crazy.
-    # else, advance past a possible shebang line.
-    else:
-        for comment_delims in comment_delim_sets:
-            if (len(comment_delims) == 1 and comment_delims[0] == "#"
-                and lines[startline].startswith("#!")):
-                startline += 1
-        # And advance past an @echo off line
-        if lines and lines[startline].startswith("@echo off"):
+    if lines:
+        # If this is an XML file, advance past the magic number tag.
+        if lines[startline].find("<?xml") != -1:
+            line = lines[startline]
+            if (line.find('encoding="utf-8"') != -1
+                and line.startswith("\xef\xbb\xbf")):
+                # remove UTF-8 BOM
+                # Note: this is hardly robust Unicode XML handling :)
+                line = line[3:]
+            if line.startswith("<?xml"):
+                while startline < len(lines):
+                    end_index = lines[startline].find("?>")
+                    startline += 1
+                    if end_index != -1: # found end of tag
+                        break
+                # Note: this does not catch something like this:
+                #   <?xml version="2.0"?> <?stylesheet ...
+                #   ...?>
+                # but that is just crazy.
+        # Or an @echo off line
+        elif lines[startline].startswith("@echo off"):
             startline += 1
         # Or a <?php marker
-        if lines and lines[startline].startswith("<?php"):
+        elif lines[startline].startswith("<?php"):
             startline += 1
+        # Or a DOCTYPE, as apparently IE can't cope if it's preceded by
+        # comments.
+        elif lines[startline].startswith("<!DOCTYPE"):
+            startline += 1
+        # Or a possible shebang line or Python "coding:" line or both
+        else:
+            for comment_delims in comment_delim_sets:
+                if (len(comment_delims) == 1 and comment_delims[0] == "#"):
+                    while (lines[startline].startswith("#!") or
+                           re.search("coding:", lines[startline])):
+                        startline += 1
 
     # Advance past an Emacs local variable line.
     comment_delims = None
