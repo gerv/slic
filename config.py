@@ -341,8 +341,19 @@ _g_skip_files = {
 
     # Solaris only
     "gecko/media/libsydneyaudio/src/sydney_audio_sunaudio.c",
-  ]
-}
+  ],
+
+  'webxray': [
+    'static-files/yepnope.1.0.2-min.js',
+  ],
+
+  'kuma': [
+    'apps/demos/__init__.py',
+    'media/js/jquery-1.9.1.js',
+    'media/js/html5.js',
+    "media/js/mdn/jquery.hoverIntent.minified.js",
+  ],
+} # _g_skip_files
 
 
 # Individual directories to skip
@@ -573,8 +584,26 @@ _g_skip_dirs = {
 
     # NPOTB
     "gecko/js/src/devtools",
-  ]
-}
+  ],
+
+  'webxray': [
+    "vendor",
+    "jquery",
+    "static-files/codemirror2",
+  ],
+
+  'kuma': [
+    "vendor",
+    "kumascript",
+    "media/ckeditor",
+    "media/syntaxhighlighter",
+    "media/prism",
+    "media/ace",
+    "media/js/libs",
+    "media/fonts",
+    "media/gaia/shared",
+  ],
+} # _g_skip_dirs
 
 
 # Directories to skip when adding files
@@ -698,8 +727,8 @@ _g_ext_to_comment = {
     ".hxx":    (["/*", "*", "*/"], ["//"]),
     ".c":      (["/*", "*", "*/"], ["//"]),
     ".cc":     (["/*", "*", "*/"], ["//"]),
-    ".css":    (["%"], ["/*", "*", "*/"], ['#']), # *-aero.css files
-#    ".css":    (["/*", "*", "*/"], ['#']),
+#    ".css":    (["%"], ["/*", "*", "*/"], ['#']), # *-aero.css files
+    ".css":    (["/*", "*", "*/"], ['#']),
     ".js":     (["/*", "*", "*/"], ["//"], ['#']),
     ".idl":    (["/*", "*", "*/"], ),
     ".ut":     (["/*", "*", "*/"], ),
@@ -768,8 +797,10 @@ _g_ext_to_comment = {
     ".pump":     (["//"], ),         
     ".bpf":      (["//"], ),         
 
+# Standard
     ".html": (["<!--", "-", "-->"], ["#"]),
-# bedrock    ".html": (["{#", "#", "#}"],),
+# bedrock/kuma (Jinja)
+#    ".html": (["{#", "#", "#}"],),
     ".xml":  (["<!--", "-", "-->"], ["#"]),
     ".xbl":  (["<!--", "-", "-->"], ["#"]),
     ".xsl":  (["<!--", "-", "-->"], ),

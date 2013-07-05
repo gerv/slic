@@ -1239,14 +1239,14 @@ def _add_license_to_file(original_path,
         startline += 1
             
     if lines:
+        # Remove BOM; we don't want to insert before it, as things break
+        if lines[startline].startswith("\xef\xbb\xbf"):
+            # remove UTF-8 BOM
+            # Note: this is hardly robust Unicode XML handling :)
+            lines[startline] = lines[startline][3:]
         # If this is an XML file, advance past the magic number tag.
         if lines[startline].find("<?xml") != -1:
             line = lines[startline]
-            if (line.find('encoding="utf-8"') != -1
-                and line.startswith("\xef\xbb\xbf")):
-                # remove UTF-8 BOM
-                # Note: this is hardly robust Unicode XML handling :)
-                line = line[3:]
             if line.startswith("<?xml"):
                 while startline < len(lines):
                     end_index = lines[startline].find("?>")
@@ -1272,7 +1272,7 @@ def _add_license_to_file(original_path,
             for comment_delims in comment_delim_sets:
                 if (len(comment_delims) == 1 and comment_delims[0] == "#"):
                     while (lines[startline].startswith("#!") or
-                           re.search("coding:", lines[startline])):
+                           re.search("coding[:=]", lines[startline])):
                         startline += 1
 
     # Advance past an Emacs local variable line.
