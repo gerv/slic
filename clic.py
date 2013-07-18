@@ -56,6 +56,7 @@ canonical_holders = {
         'by the Student Information Processing Board of the Massachusetts Institute of Technology',
     'World Wide Web Consortium, (Massachusetts Institute of Technology, Institut National de Recherche en Informatique et en Automatique, Keio University). All':
         'World Wide Web Consortium, (Massachusetts Institute of Technology, Institut National de Recherche en Informatique et en Automatique, Keio University). All Rights Reserved.',
+    'Renesas Technology.': 'Renesas Technology',
 }
 
 def tidy_holder(holder):
@@ -122,7 +123,15 @@ def _split_years(string):
         if re.search("-", piece):
             # Range
             rng = piece.split('-')
+
             if not rng[0] or not rng[1]:
+                continue
+                
+            if (re.search("^\s*$", rng[0])):
+                continue
+
+            if (re.search("^\s*$", rng[1])):
+                years.append(_canonicalize_year(rng[0]))
                 continue
             
             start = _canonicalize_year(rng[0])
@@ -253,7 +262,7 @@ def main():
     # \xa9 is the copyright symbol
     copy_re = re.compile("""Copyright\s*
                             (\(C\)|\xa9)?\s*
-                            (?P<years>[-\d,\s]*)
+                            (?P<years>[-\d,\s]*)\s
                             (?P<holder>.*)$""",
                          re.IGNORECASE | re.VERBOSE)
 

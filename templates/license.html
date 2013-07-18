@@ -20,8 +20,9 @@
                     '^mit_bsd_hybrid$', '^bsd\d?urlref', '^W3Curlref$',
                     '^webmurlref$', '^curlurlref$', '^naist$', 
                     '^freetype', '^miros$', '^GPL20BSD$', '^mitboost$',
-                    '^EDLEPLurlref$', '^miturlrefcubiq$', 'suspicious'] %}
-                    
+                    '^EDLEPLurlref$', '^miturlrefcubiq$'] %}
+{# Add "suspicious" to repro_res to see list of files with unknown licenses #}
+
 {% set reproducibles = pop_by_re(repro_res, licenses) %}
 
 {# Licenses which are called out by name at the top, in order #}

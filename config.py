@@ -584,6 +584,8 @@ _g_skip_dirs = {
 
     # NPOTB
     "gecko/js/src/devtools",
+
+    "objdir-gecko",
   ],
 
   'webxray': [
