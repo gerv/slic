@@ -14,6 +14,7 @@ from os.path import dirname, exists, join, basename, split
 from jinja2 import Environment, PackageLoader
 import ws
 import textwrap
+import cgi
 
 import logging
 logging.basicConfig(filename="clic.log", level=logging.DEBUG)
@@ -228,36 +229,30 @@ def main():
 
         bytag[tag] = [license]
 
-    # Wrap text if necessary
+    # Insert 2x<br> at para breaks for formatting on small screens
     for tag in bytag:
         for data in bytag[tag]:
-            wrap = False
             if not 'text' in data:
                 continue
 
-            for line in data['text']:
-                if len(line) > 85:
-                    log.info("Wrapping text for tag %s" % tag)
-                    wrap = True
-                    break
+            html = "\n".join(data['text'])
+            html = cgi.escape(html)
+            
+            # Empty line before bullets
+            html = re.sub(r"\n\s*([0-9]\.|\*|-)", r"\n\n \1", html)
 
-            if wrap:
-                newtext = []
-                temptext = ""
-                # textwrap only wraps single paragraphs
-                for line in data['text']:
-                    if not re.search("^\s*$", line):
-                        temptext = temptext + "\n" + ws.collapse(line)
-                    else:
-                        newtext.extend(textwrap.wrap(temptext, 78))
-                        newtext.append(u"")
-                        temptext = ""
+            # Empty line above acknowledgement text
+            html = re.sub(r"(acknowledge?ment:\n)", r"\1\n", html)
+ 
+            # While we're at it...
+            html = re.sub("``", '&#8220', html)
+            html = re.sub("''", '&#8221', html)
 
-                if temptext:
-                        newtext.extend(textwrap.wrap(temptext, 78))
-                    
-                data['text'] = newtext
-                
+            # Replace all empty lines by double <br>s
+            html = re.sub(r"(\n){2,}", '<br><br>', html)
+            
+            data['html'] = html
+
     # Post-process and amalgamate copyright lines
     # \xa9 is the copyright symbol
     copy_re = re.compile("""Copyright\s*

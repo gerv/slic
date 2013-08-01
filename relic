@@ -60,7 +60,7 @@ variables inside the script.
 # Logging
 ###############################################################################
 import logging
-logging.basicConfig(filename="relic.log", level=logging.INFO)
+logging.basicConfig(filename="relic.log", level=logging.DEBUG)
 log = logging.getLogger("relic")
 
 import os
@@ -439,6 +439,7 @@ def _get_license_info(filename, quick=0, contributors=0):
                                             "modified", re.I)
     non_lic_content_in_same_comment_block = 0
     if len(comment_delims) == 1:
+        log.debug("Comment delim length: 1 (%s)", comment_delims[0])
         # line-style comments: The comment block "end" is defined as the
         # last line before a line NOT using the block comment delimiter.
         #XXX:BUG: This is not good enough for:
@@ -478,6 +479,7 @@ def _get_license_info(filename, quick=0, contributors=0):
             raise RelicError("Could not find license comment block end "
                              "line in '%s'." % filename)
     elif len(comment_delims) >= 2:   # block-style comments
+        log.debug("Comment delim length: >= 2")
         for i in range(beginline["linenum"]+1, len(lines)):
             if lines[i].find(comment_delims[-1]) != -1:
                 endlinenum = i
@@ -519,6 +521,7 @@ def _get_license_info(filename, quick=0, contributors=0):
         # For files without a comment character to help out, we ONLY
         # successfully break one the full correct "END LICENSE BLOCK"
         # token.
+        log.debug("Comment delim length: 0")
         for i in range(beginline["linenum"]+1, len(lines)):
             if lines[i].find("END LICENSE BLOCK") != -1:
                 endlinenum = i
@@ -1527,11 +1530,13 @@ def _should_skip_file(path):
 def _should_skip_dir(path):
     log.debug("_should_skip_dir(path='%s')", path)
     basename = os.path.basename(path)
+    log.debug("Basename: %s", basename);
     if basename in get_config("skip_dir_basenames", treename):
         log.info("Skipping '%s' (according to skip_dir_basenames).", path)
         return 1
     
     if _g_check_all:
+        log.debug("Checking all");
         return 0
     
     if _g_mode == "add" and basename in get_config("skip_add_dir_basenames", treename):
@@ -1545,7 +1550,9 @@ def _should_skip_dir(path):
     if xpath[-1] == '/': xpath = xpath[:-1]
     # treat "./calendar" the same as "calendar"
     if xpath[0:2] == './': xpath = xpath[2:]
-    
+
+    log.debug("Xpath: %s", xpath);
+        
     if xpath in get_config("skip_dirs", treename):
         log.info("Skipping '%s' (according to skip_dirs).", path)
         return 1

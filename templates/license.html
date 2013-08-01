@@ -62,16 +62,30 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <style type="text/css">
-        dt {
-            font-weight: bold; 
-            font-size: 100%;
-		}
-
-        pre {
-            margin-left: 2em;
-        }     
-    </style>
+  <meta charset="UTF-8">
+  <title>Open Source Licensing Information</title>
+  <style type="text/css">
+    body > * {
+      /* some lines are too long, mostly because of email addresses */
+      max-width: 100%;
+      overflow: hidden;
+    }
+    dt {
+      font-weight: bold;
+      font-size: 100%;
+    }
+    pre {
+      margin-left: 2em;
+      white-space: normal;
+    }
+    /* EPL */
+    p.c2 {
+      font-weight: bold;
+    }
+    div.c1 {
+      text-align: right;
+    }
+  </style>
 </head>
 
 <body>
@@ -110,7 +124,7 @@ over the past 30 years, without whose efforts this product would not exist.
     {% set tag = special['tag'] %}
     {% if special['licenses'] %}
         <hr>
-        <a name="{{ tag }}"></a>
+        <a id="{{ tag }}"></a>
         <h2>{{ special['title'] }}</h2>
         {% include tag + '.html' %}
 
@@ -132,7 +146,7 @@ over the past 30 years, without whose efforts this product would not exist.
 
 <hr>
 
-<a name="Permissive"></a>
+<a id="Permissive"></a>
 <h2>Permissive Licenses</h2>
 
 <p>Many free software licenses require reproduction of copyright ownership
@@ -175,7 +189,7 @@ licenses are reproduced below.</p>
         {%- if template_exists(tag + '.html') %}
             {%- include tag + '.html' %}
         {%- else %}
-            {{- "\n".join(license.text) }}
+            {{- license.html }}
         {%- endif %}
         </pre>
     {% endfor %}

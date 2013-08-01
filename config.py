@@ -118,7 +118,7 @@ _g_skip_file_basenames = {
    
   'mozilla-central': [
     # license and readme files
-    "LICENSE",
+#    "LICENSE",
     "license",
     "LICENSE-MPL",
     "LEGAL",
@@ -289,7 +289,7 @@ _g_skip_files = {
     "intl/lwbrk/src/th_char.h", 
   ],
 
-  'comm_central': [
+  'comm-central': [
   ],
 
   'addon_sdk': [
@@ -368,7 +368,7 @@ _g_skip_dirs = {
     "media/fonts",
   ],
   
-  'mozilla_central': [
+  'mozilla-central': [
     "security/nss",
     "security/coreconf",
     "nsprpub",

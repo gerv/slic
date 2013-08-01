@@ -84,7 +84,9 @@ _license_parts = {
     },
     'GPL20': {
         'start':  r"is free software; you can redistribute it|This software is licensed under the terms of the GNU",
-        'match':  r"GNU General Public License.*version 2[ ,.]|version 2 .*GNU General Public License",
+        'match':  r"GNU General Public License.*version 2[ ,.]" + \
+                  r"|version 2 .*GNU General Public License" + \
+                  r"|Licensed under the GPL-2 or later",
         'end':    r"021(10|11|39).*USA|for more details|any later version|Free Software Foundation",
         'subs': {
             'GPL20withautoconfexception1': {
