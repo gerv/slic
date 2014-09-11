@@ -47,7 +47,7 @@ def get_license_block(filename, all_licenses):
 
     for license in licenses:
         lic_key = license['tag']
-        if 'text' in license:
+        if 'text' in license and len(license['text']) > 0:
             lic_key = make_hash(license['text'])
         
         if lic_key in all_licenses:

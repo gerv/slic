@@ -245,8 +245,8 @@ def main():
             html = re.sub(r"(acknowledge?ment:\n)", r"\1\n", html)
  
             # While we're at it...
-            html = re.sub("``", '&#8220', html)
-            html = re.sub("''", '&#8221', html)
+            html = re.sub("``", '&#8220;', html)
+            html = re.sub("''", '&#8221;', html)
 
             # Replace all empty lines by double <br>s
             html = re.sub(r"(\n){2,}", '<br><br>', html)

@@ -28,6 +28,8 @@ variables inside the script.
         -A, --add           Add a license to files that do not appear to
                             have one.
         -c, --contributors  List contributors
+        -g, --aggregate     Output data for "clic" program to list all
+                            licenses
 
     General Options:
         -h, --help          dump this help and exit
@@ -40,6 +42,7 @@ variables inside the script.
         -q, --quick         Quick scanning. Use only basic license checks
                             (only use in report mode).
         -a, --all           Check all files (only skip CVS directories).
+        -m, --machine-readable  Make output machine-readable (JSON)
         --dry-run           Go through motions but don't actually change
                             any files.
         --backup            Make backups of changes files with
@@ -60,7 +63,7 @@ variables inside the script.
 # Logging
 ###############################################################################
 import logging
-logging.basicConfig(filename="relic.log", level=logging.DEBUG)
+logging.basicConfig(filename="relic.log")
 log = logging.getLogger("relic")
 
 import os
@@ -211,27 +214,29 @@ def _get_license_info(filename, quick=0, contributors=0):
         match = parts_pattern.search(content, start)
         if match:
             parts = match.groupdict()
-            # Skip this block, if the last license block is more than 1024 
-            # chars away (file is probably used for autogeneration of files 
-            # and has multiple license blocks).
-            if start > 0 and lic_info["parts"][0] != "block_begin":
-                log.info("Found multiple matches but not tri-license; exit")
-                break
-            else:
-                for part in parts:
-                    if parts[part]:
+            start = match.end()
+            for part in parts:
+                if parts[part]:
+                    # Avoid duplicates when text occurs more than once
+                    if len(lic_info["parts"]) == 0 or lic_info["parts"][-1] != part:
                         lic_info["parts"].append(part)
                         log.info("%s license/delimiter found", part)
-                        start = match.end()
                         if part == "block_end":
                             blocks = blocks + 1
                         else:
                             blocks = 0
                         break
-                else:
-                    raise RelicError("unexpected license part: %r" % parts)
+                    else:
+                        log.info("%s license/delimiter found again", part)
         else:
             break
+
+    log.debug("Parts found: %r", lic_info["parts"])
+    
+    # Warn if we find multiple licenses
+    if len(lic_info["parts"]) > 1 and lic_info["parts"][0] != "block_begin":
+        log.info("Found multiple matches but not tri-license")
+        log.info("unexpected license parts: %r" % parts)
 
     # no license block at all
     if not parts:
@@ -287,6 +292,14 @@ def _get_license_info(filename, quick=0, contributors=0):
             
     elif (lic_info["parts"] == ["ofl"]):
         log.info("OFL found")
+        return lic_info
+            
+    elif (lic_info["parts"] == ["lgpl"]):
+        log.info("LGPL found")
+        return lic_info
+            
+    elif (lic_info["parts"] == ["gpl"]):
+        log.info("GPL found")
         return lic_info
             
     elif (lic_info["parts"] == ["bsdevil"]):
@@ -1837,6 +1850,8 @@ def aggregate(paths, _errors=None):
     for license in licenses:
         if 'copyrights' in license:
             license['copyrights'] = license['copyrights'].keys()
+        if 'files' in license:
+            license['files'] = license['files'].sort()
 
     if _g_machine_readable:
        _print_structure(results) 

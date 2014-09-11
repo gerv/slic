@@ -20,7 +20,7 @@
                     '^mit_bsd_hybrid$', '^bsd\d?urlref', '^W3Curlref$',
                     '^webmurlref$', '^curlurlref$', '^naist$', 
                     '^freetype', '^miros$', '^GPL20BSD$', '^mitboost$',
-                    '^EDLEPLurlref$', '^miturlrefcubiq$'] %}
+                    '^EDLEPLurlref$', '^miturlrefcubiq$', 'suspicious'] %}
 {# Add "suspicious" to repro_res to see list of files with unknown licenses #}
 
 {% set reproducibles = pop_by_re(repro_res, licenses) %}
@@ -39,6 +39,7 @@
     }, {
         'tag':   'GPL20',
         'title': 'GNU General Public License 2.0',
+        'showfiles': 1
     }, {
         'tag':   'GPL30',
         'title': 'GNU General Public License 3.0',
@@ -129,15 +130,17 @@ over the past 30 years, without whose efforts this product would not exist.
         {% include tag + '.html' %}
 
         {% if debug and 'showfiles' in special %}
-            <ul>
             {% for subtag in special.licenses %}
+                <h3>Tag: {{ subtag }}</h3>
+                <ul>
                 {% for license in special.licenses[subtag] %}
-                    {% for file in license['files'] %}
+                    {% set files = license['files'] %}
+                    {% for file in files|sort %}
                         <li>{{ file|e }}</li>
                     {% endfor %}
                 {% endfor %}
+                </ul>
             {% endfor %}
-            </ul>
         {% endif %}        
     {% endif %}
 {% endfor %}
