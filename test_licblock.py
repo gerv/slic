@@ -135,23 +135,37 @@ class TestIdentification(unittest.TestCase):
             if line == '':
                 continue
 
-            yield identify, line, dir
+            # Split "CSV" file into parts using naive parsing
+            filename, tag, textlength, copyrightlength, tmp = line.split(',')
 
-    def identify(line, dir):
-        # Split into parts
-        filename, tag, length = line.split(',')
-        
-        # Do identification
-        licenses = {}
-        licblock.get_license_block(os.path.join(dir, filename), licenses)
-        
-        # Check metadata matches
-        result = licenses[licenses.keys()[0]]
-        self.assertEqual(result['tag'], tag)
-        if 'text' in result:
-            self.assertEqual(len(result['text']), int(length))
-        else:
-            self.assertEqual(0, int(length))
+            # Do identification
+            licenses = {}
+            licblock.get_license_block(os.path.join(dir, filename), licenses)
+
+            self.assertTrue(len(licenses.keys()) > 0)
+            
+            # Check metadata matches
+            result = licenses[licenses.keys()[0]]
+            
+            self.assertEqual(result['tag'], tag)
+
+            if 'text' in result:
+                self.assertEqual(len(result['text']),
+                                 int(textlength),
+                                 msg="Text length correct for %s" % filename)
+            else:
+                self.assertEqual(0,
+                                 int(textlength),
+                                 msg="Text length zero for %s" % filename)
+
+            if 'copyrights' in result:
+                self.assertEqual(len(result['copyrights']),
+                                 int(copyrightlength),
+                                 msg="Copyright length correct for %s" % filename)
+            else:
+                self.assertEqual(0,
+                                 int(copyrightlength),
+                                 msg="Copyright length zero for %s" % filename)
                 
 if __name__ == '__main__':
     unittest.main()

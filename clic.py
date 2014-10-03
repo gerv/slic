@@ -190,7 +190,7 @@ def main():
     args = parser.parse_args()
 
     # Load occurrence data file
-    occurrences = json.loads(open("occurrences.json").read())
+    occurrences = json.load(open("occurrences.json"))
 
     # Rejig data structure so top-level key is the tag instead of the license
     # text hash, and value is a list of the corresponding license objects
