@@ -206,9 +206,9 @@ def main():
     # For some licenses, we have a specific set text and so even if small
     # variants are found, we choose to ignore them and amalgamate all the
     # files and copyright holders into a single entry
-    single_entry_licenses = ['BSD4ClauseRTFM', 'bsdprotection', 'freetypefulltext',
-                             'libjpeg', 'GPL20BSD', 'miros', 'bsd3urlref',
-                             'W3Curlref']
+    single_entry_licenses = ['BSD4Clause_RTFM', 'BSDProtection', 'FreeType_fulltext',
+                             'libjpeg', 'GPL20_BSD', 'MIROS', 'BSD3Clause_urlref',
+                             'W3C_urlref']
     
     for tag in bytag:
         if not tag in single_entry_licenses:
@@ -342,18 +342,22 @@ def main():
     # filenames. It's always possible that the Android people will have renamed
     # the file to "NOTICE"...
     fileref_names = {
-        'copyingfileref':    ['COPYING', 'NOTICE'],
-        'copyrightfileref':  ['COPYRIGHT', 'NOTICE'],
-        'bzip2fileref':      ['LICENSE', 'NOTICE'],
-        'bsdfilerefxiph':    ['COPYING', 'NOTICE'],
-        'bsdfileref':        ['LICENSE', 'NOTICE'],
-        'mitfileref':        ['COPYING', 'NOTICE'],
-        'mit_gpl20_fileref': ['MIT-LICENSE.txt', 'NOTICE'],
-        'freetypefileref':   ['LICENSE.txt', 'docs/FTL.TXT', 'NOTICE'],
-        'ISCfileref':        ['LICENSE', 'NOTICE'],
-        'libjpegfileref':    ['README'],        
-        'bsdfileref2':       ['LICENSE.txt'], # sic
-        'jsimdextfileref':   ['jsimdext.inc'],
+        'copying_fileref':    ['COPYING', 'NOTICE'],
+        'copyright_fileref':  ['COPYRIGHT', 'NOTICE'],
+        'license_fileref':    ['LICENSE', 'NOTICE'],
+        'bzip2_fileref':      ['LICENSE', 'NOTICE'],
+        'BSD_fileref_xiph':   ['COPYING', 'NOTICE'],
+        'BSD_fileref':        ['LICENSE', 'NOTICE', 'README'],
+        'BSD_fileref2':       ['LICENSE.txt'], # sic
+        'BSD_fileref3':       ['README'],
+        'MIT_fileref':        ['COPYING', 'NOTICE'],
+        'MIT_GPL20_fileref':  ['MIT-LICENSE.txt', 'NOTICE'],
+        'FreeType_fileref':   ['LICENSE.txt', 'docs/FTL.TXT', 'NOTICE'],
+        'ISC_fileref':        ['LICENSE', 'NOTICE'],
+        'libjpeg_fileref':    ['README'],        
+        'jsimdext_fileref':   ['jsimdext.inc'],
+        # Po files have some "same license as" boilerplate
+        'po_fileref':         ['COPYING', 'LICENSE', 'NOTICE']
     }
 
     # Unique
@@ -374,7 +378,9 @@ def main():
                     license_files[file] = data['tag']
 
     # For each file marked as having a "fileref" license, see if an appropriate
-    # file in a higher directory is present and has been included somewhere
+    # file in a higher directory is present and has been included somewhere.
+    # Assuming it has, we can ignore the fileref file itself because the
+    # license has been noted when we included the referred-to file.
     def find_license_file_for(file, license_file_names):
         log.debug("File path: %s" % file)
         for license_file_name in license_file_names:

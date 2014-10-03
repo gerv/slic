@@ -1,56 +1,85 @@
-{% set debug = 0 %}
+{% set debug = 1 %}
 
 {# Licenses we can safely explicitly ignore #}
-{# We use MPL 1.1 code under MPL 2. We check filerefs elsewhere. #}
+{# We use MPL 1.1 code under MPL 2. We check 'fileref's elsewhere. #}
 {# CPL is excluded because the CPL code is in a directory we're not shipping,
    but it still gets detected because the Android people copied the CPL into
    a NOTICE file. Grr. #}
-{% set ignore_res = ['^none$', '^pd', '^CC0$', '^nocopyrightableinfo$',
-                     'permissive',  '^whatwg$', '^zlib',
-                     'fileref', '^sqliteblessing$', 'MPL11',
-                     'lookelsewhere$', '^BSD4ClauseWinning$',
-                     '^freetypefulltext$', '^CPL10$', '^unicodeurlref$'] %}
+{% set ignore_res = ['^BSD4ClauseWinning$',
+                     '^CCBY$',
+                     '^CPL10$',
+                     'fileref',
+                     '^FreeType_fulltext$',
+                     'lookelsewhere$',
+                     '^MPL11',
+                     '^none$',
+                     '^OpenSSL_ref$',
+                     '^PD$',
+                     '^PD_', 
+                     '^Permissive',
+                     '^SunRPC$',
+                     '^WHATWG$',
+                     '^zlib',
+] %}
 
 {% set ignorables = pop_by_re(ignore_res, licenses) %}
 
 {# Permissive licenses for which we are required to reproduce the text #}
-{% set repro_res = ['^HPND', '^MIT', '^BSD', 'ICU', 'jpnic', '^OFL',
-                    '^libjpeg', '^W3C$', '^nvidia$', '^icu$',
-                    '^bsdprotection$', '^Python20$', '^sgib$',
-                    '^mit_bsd_hybrid$', '^bsd\d?urlref', '^W3Curlref$',
-                    '^webmurlref$', '^curlurlref$', '^naist$', 
-                    '^freetype', '^miros$', '^GPL20BSD$', '^mitboost$',
-                    '^EDLEPLurlref$', '^miturlrefcubiq$', 'suspicious'] %}
+{% set repro_res = ['^AFL',
+                    '^Boost',
+                    '^BSD',
+                    '^curl',
+                    '^EDLEPL',
+                    '^FreeType',
+                    '^GPL20_BSD$', 
+                    '^HPND',
+                    '^ICU$',
+                    '^JPNIC', 
+                    '^libjpeg',
+                    '^MIROS$', 
+                    '^MIT',
+                    '^NAIST$',
+                    '^NVidia$', 
+                    '^OFL',
+                    '^Python20$',
+                    '^SGIB$',
+                    '^Unicode',
+                    '^W3C', 
+                    '^WebM',   
+                    'suspicious',
+] %}
 {# Add "suspicious" to repro_res to see list of files with unknown licenses #}
 
 {% set reproducibles = pop_by_re(repro_res, licenses) %}
 
 {# Licenses which are called out by name at the top, in order #}
 {% set specials = [{
-        'tag':   'MPL20',
-        'title': 'Mozilla Public License 2.0',
+        'tag':       'MPL20',
+        'title':     'Mozilla Public License 2.0',
     }, {
-        'tag':   'Apache20',
-        'title': 'Apache License 2.0',
+        'tag':       'Apache20',
+        'title':     'Apache License 2.0',
     }, {
-        'tag':   'LGPL21',
-        'title': 'GNU Lesser General Public License 2.1',
+        'tag':       '(LGPLAny|LGPL21|LGPL_ref)',
+        'template':  'LGPL21',
+        'title':     'GNU Lesser General Public License 2.1',
         'showfiles': 1
     }, {
-        'tag':   'GPL20',
-        'title': 'GNU General Public License 2.0',
+        'tag':       '(GPLAny|GPL20)',
+        'template':  'GPL20',
+        'title':     'GNU General Public License 2.0',
         'showfiles': 1
     }, {
-        'tag':   'GPL30',
-        'title': 'GNU General Public License 3.0',
+        'tag':       'GPL30',
+        'title':     'GNU General Public License 3.0',
         'showfiles': 1
     }, {
-        'tag':   'CDDL10',
-        'title': 'Common Development and Distribution License 1.0',
+        'tag':       'CDDL10',
+        'title':     'Common Development and Distribution License 1.0',
         'showfiles': 1
     }, {
-        'tag':   'EPL10',
-        'title': 'Eclipse Public License 1.0',
+        'tag':       'EPL10',
+        'title':     'Eclipse Public License 1.0',
         'showfiles': 1
     }
 ] %}
@@ -123,11 +152,12 @@ over the past 30 years, without whose efforts this product would not exist.
 
 {% for special in specials %}
     {% set tag = special['tag'] %}
+    {% set template = special['template'] or special['tag'] %}
     {% if special['licenses'] %}
         <hr>
         <a id="{{ tag }}"></a>
         <h2>{{ special['title'] }}</h2>
-        {% include tag + '.html' %}
+        {% include template + '.html' %}
 
         {% if debug and 'showfiles' in special %}
             {% for subtag in special.licenses %}
@@ -201,6 +231,23 @@ licenses are reproduced below.</p>
 {% endif %}
 
 {% if debug %}
+    {% set proprietaries = pop_by_re('^proprietary', licenses) %}
+
+    {% for tag in proprietaries %}
+        <hr>
+
+        <h2>{{ tag }}</h2>
+        <ul>
+        {% set licenses = proprietaries[tag] %}
+        {% for license in licenses %}
+        
+            {% for file in license.files %}
+                <li>{{ file|e }}</li>
+            {% endfor %}
+        {% endfor %}      
+        </ul>
+    {% endfor %}
+    
     {% if licenses %}
         <h2>XXX Licenses Unaccounted-For XXX</h2>
         <ul>

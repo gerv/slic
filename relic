@@ -1851,7 +1851,7 @@ def aggregate(paths, _errors=None):
         if 'copyrights' in license:
             license['copyrights'] = license['copyrights'].keys()
         if 'files' in license:
-            license['files'] = license['files'].sort()
+            license['files'].sort()
 
     if _g_machine_readable:
        _print_structure(results) 

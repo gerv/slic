@@ -125,18 +125,33 @@ class TestGetLicenseBlock(unittest.TestCase):
         copyright = copyrights.keys()[0]
         self.assertEqual(copyright, u"Copyright \xa9 2007,2008,2009 Red Hat, Inc.")
 
-    # Test we correctly identify every test file in the test_data/files
-    # directory (using the filename to give us the right answer).
-    def test_get_license_block_2(self):
-        dir = "test_data/files"
-        for filename in os.listdir(dir):
-            match = re.search("^\w+", filename)
-            tag = match.group(0)
-            
-            licenses = {}
-            licblock.get_license_block(os.path.join(dir, filename), licenses)
-            self.assertEqual(licenses[licenses.keys()[0]]['tag'], tag)
 
+class TestIdentification(unittest.TestCase):
+    def test_identification(self):
+        dir = os.path.join("test_data", "identification")
+        # For each line
+        for line in open(os.path.join(dir, "index.csv")):
+            line = line.strip()
+            if line == '':
+                continue
 
+            yield identify, line, dir
+
+    def identify(line, dir):
+        # Split into parts
+        filename, tag, length = line.split(',')
+        
+        # Do identification
+        licenses = {}
+        licblock.get_license_block(os.path.join(dir, filename), licenses)
+        
+        # Check metadata matches
+        result = licenses[licenses.keys()[0]]
+        self.assertEqual(result['tag'], tag)
+        if 'text' in result:
+            self.assertEqual(len(result['text']), int(length))
+        else:
+            self.assertEqual(0, int(length))
+                
 if __name__ == '__main__':
     unittest.main()

@@ -1,0 +1,59 @@
+Running relic
+-------------
+
+Use relic --help for help.
+
+Report on what licenses are in use:
+  relic -s -f .
+
+Change tri-license to MPL 2:
+  relic -r -f .
+
+Add MPL 2 license to files which do not have boilerplate:
+  relic -A -f .
+
+Get license information to use in clic:
+
+  relic -f -g -m . > occurrences.json
+
+Running clic
+------------
+
+Requires the existence of a file called "occurrences.json", which is raw data
+about all the license occurrences in a tree. Current directory will usually be
+the top level of a tree, because that's where such a file is generated.
+
+python /usr/src/relic/clic.py --template license.html > out.html
+
+The template needs to be in the $RELIC_DIR/templates directory.
+
+The license.html template has a "debug" var at the top. Set it to 1 to get
+printouts of lists of matched filenames for those licenses which have
+showfiles: 1 defined just below in the template. (This file is much easier to
+read than occurrences.json.)
+
+Testing
+-------
+
+nosetests
+
+This runs all the *_test.py tests.
+
+Source Code Guide
+-----------------
+
+licblock.py pulls out comment blocks, up to MAX_SCAN_LINEs deep in the file,
+and searches them for licenses using detector.py.
+
+If we can't yet deal with a file, add it to "troublesome_files" in licblock.py
+and put a file with the true license in /* */ comments in the "substitutes"
+folder under the correct path. It will be used instead.
+
+detector.py takes a comment block and tries to find a license in it. It
+contains a load of license definitions; if your license is not being detected,
+update or add a definition. Be careful of changing common definitions.
+
+config.py has all of the data about which files and directories to process
+or ignore, and how to map file names or extensions to comment characters.
+
+ws.py has a whitespace-related shared function in it.

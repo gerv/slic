@@ -51,10 +51,12 @@ def get_license_block(filename, all_licenses):
             lic_key = make_hash(license['text'])
         
         if lic_key in all_licenses:
+            log.debug("Adding file %s to list" % real_filename)
             all_licenses[lic_key]['files'].append(real_filename)
             if 'copyrights' in license:
                 all_licenses[lic_key]['copyrights'].update(license['copyrights'])
         else:
+            log.debug("Starting new file list with file %s" % real_filename)
             license['files'] = [real_filename]
             all_licenses[lic_key] = license
     
@@ -156,10 +158,14 @@ def _get_licenses_for_file(filename):
         # here is to eliminate false positives for suspicion.
         tag = "none"
         if re.search("copyright", content, re.IGNORECASE):
-            tag = "suspicious"
+            tag = "suspiciousCopyright"
             if re.search("Copyright[\d\s,\(cC\)-]+The Android Open Source Proj",
                          content):
                 tag = "suspiciousAndroid"
+            # Things more likely to have an actual license text
+            if re.search("[Lli]cen[cs]e|[Pp]ermi(t|ssion)|[Rr]edistribution",
+                         content):
+                tag = "suspiciousLicensey"
         
         licenses.append({
             'tag': tag,
