@@ -28,8 +28,14 @@ DEFAULT_MAX_LINES_IN_LICENSE = 50
 # for a line matching 'end', and take all the text in between.
 #
 # License tags (the dict keys) must be unique throughout the structure.
+#
+# Regexps are matched against a single-line string version of the comment with
+# collapsed whitespace but no case-folding. The top-level ones are the most
+# performance-critical, so do not use expensive constructs.
 _license_parts = {
+    ##########################################################################
     # MPL
+    ##########################################################################
     'MPL11': {
         'start':  r"The contents of this file are subject to the",
         'match':  r"subject to the Mozilla Public License Version 1.1",
@@ -37,7 +43,7 @@ _license_parts = {
         'subs': {
             'MPL11_GPL20_LGPL21': { # Mozilla
                 'start':  r"The contents of this (file|package) are subject to the",
-                'match':  r"Alternatively, the .*either the GNU General",
+                'match':  r"either the GNU General",
                 'end':    r"terms of any one of the MPL, the GPL or the LGPL"
             },            
             'MPL11_GPL20': {
@@ -64,8 +70,9 @@ _license_parts = {
             },            
         }
     },
-    
+    ##########################################################################
     # GPL
+    ##########################################################################
     'GPLAny_1': {
         'start':  r"Licensed under the GPL",
         'match':  r"Licensed under the GPL$",
@@ -114,6 +121,11 @@ _license_parts = {
                         'start':  r"is free software; you can redistribute it",
                         'match':  r"GCC Runtime Library Exception",
                         'end':    r"along with this program|gnu\.org/licenses/|0211[01].*USA"
+                    },
+                    'GPL30_withlibtoolexception': {
+                        'start':  r"is free software; you can redistribute it",
+                        'match':  r"GNU Libtool",
+                        'end':    r"021(10|11|39).*USA|for more details|any later version"
                     },
                 }
             },
@@ -251,8 +263,9 @@ _license_parts = {
             },
         }
     },
-
+    ##########################################################################
     # LGPL
+    ##########################################################################
     # XXX Also catches LGPL 2.0 at the moment
     'LGPL21': {
         'start':  r"is free software; you can redistribute it",
@@ -299,8 +312,9 @@ _license_parts = {
         'match':  r"of the Bison parser skeleton",
         'end':    r"of Bison"
     },
-
+    ##########################################################################
     # Apache
+    ##########################################################################
     'Apache20': {
         'start':  r"Licensed under the Apache License,? Version 2\.0" + \
                   r"|Licensed to the Apache Software Foundation \(ASF\)",
@@ -323,9 +337,10 @@ _license_parts = {
         'start':  r"http://www.apache.org/licenses/LICENSE-2\.0",
         'match':  r"http://www.apache.org/licenses/LICENSE-2\.0",
         'end':    r"http://www.apache.org/licenses/LICENSE-2\.0"
-    },
-        
+    },        
+    ##########################################################################
     # HPND
+    ##########################################################################
     'HPND': {
         'start':  r"[Pp]ermission to use, copy, modify,?(?: and(/or)?)? distribute",
         'match':  r"[Pp]ermission to use, copy, modify,?(?: and(/or)?)? distribute",
@@ -355,8 +370,9 @@ _license_parts = {
         'match':  r"Permission to copy, use, modify, sell and distribute",
         'end':    r"suitability for any purpose",
     },
-
+    ##########################################################################
     # MIT
+    ##########################################################################
     'MIT': {
         'start':  r"Permission is hereby granted, " + \
                   r"(?:free of charge|without written agreement)" + \
@@ -368,7 +384,7 @@ _license_parts = {
         'subs': {
             'MIT_GPL20_urlref': { # jQuery
                 'start': r"Dual licensed under the MIT",
-                'match': r"Dual licensed under the MIT.*and GPL",
+                'match': r"Dual licensed under the MIT and GPL",
                 'end':   r"jquery\.com/License|licenses\."
             },
             'MIT_BSD_hybrid': {
@@ -409,15 +425,14 @@ _license_parts = {
         'match':  r"under (an|the )?MIT license",
         'end':    r"http://opensource.org/licenses/MIT|under (an|the )?MIT license",
     },
-
-    # Boost
     'Boost_urlref': {
         'start':  r"Distributed under the Boost Software License, Version 1\.0",
         'match':  r"Distributed under the Boost Software License, Version 1\.0",
         'end':    r"http://www\.boost\.org/LICENSE_1_0\.txt",
     },
-
+    ##########################################################################
     # BSD
+    ##########################################################################
     'BSD2Clause': {
         'start':  r"Redistribution and use of this software" + \
                   r"|Redistribution and use in source and binary forms",
@@ -548,8 +563,9 @@ _license_parts = {
         'match': r"BSD PROTECTION LICENSE",
         'end':   r"OF SUCH DAMAGES"
     },
-
-    # Generic filerefs
+    ##########################################################################
+    # Generic filerefs (i.e. filename does not define license)
+    ##########################################################################
     'copying_fileref': {
         'start':  r"See the file COPYING for copying permission",
         'match':  r"See the file COPYING for copying permission",
@@ -576,9 +592,12 @@ _license_parts = {
         'match':  r"This file is distributed under the same license as the .* package.",
         'end':    r"This file is distributed under the same license as the .* package."
     },
-
+    ##########################################################################
     # Permissive
-    # "Permissive" licenses do not have text reproduction requirements
+    #
+    # "Permissive" licenses are those which do not have text reproduction
+    # requirements
+    ##########################################################################
     'Permissive_GNU1': {
         'start':  r"Copying and distribution of this file, with or without",
         'match':  r"Copying and distribution of this file, with or without",
@@ -614,8 +633,9 @@ _license_parts = {
         'match':  r"use\) and without fee",
         'end':    r"this code" 
     },
-
-    # Other non-copyleft
+    ##########################################################################
+    # Other Non-Copyleft
+    ##########################################################################
     'AFL21': {
         'start':  r"Licensed under the Academic Free License version 2.1",
         'match':  r"Licensed under the Academic Free License version 2.1",
@@ -771,9 +791,10 @@ _license_parts = {
         'start': r"Sun RPC is a product of Sun Microsystems, Inc",
         'match': r"copy or modify Sun RPC without charge",
         'end':   r"possibility of such damages"
-    },
-    
+    },    
+    ##########################################################################
     # OFL
+    ##########################################################################
     'OFL10': {
         'start':  r"This Font Software is licensed",
         'match':  r"SIL Open Font License, Version 1\.0",
@@ -784,8 +805,9 @@ _license_parts = {
         'match':  r"SIL Open Font License, Version 1\.1",
         'end':    r"IN THE FONT SOFTWARE"
     },
-
+    ##########################################################################
     # EPL
+    ##########################################################################
     'EPL10': {
         'start': r"Licensed under the Eclipse Public License, Version 1\.0",
         'match': r"Licensed under the Eclipse Public License, Version 1\.0",
@@ -801,22 +823,25 @@ _license_parts = {
         'match': r"http://www\.eclipse\.org/org/documents/edl-v10\.html",
         'end':   r"http://www\.eclipse\.org/org/documents/edl-v10\.html"
     },
-
+    ##########################################################################
     # CPL
+    ##########################################################################
     'CPL10': {
         'start': r"THE ACCOMPANYING PROGRAM|DEFINITIONS",
         'match': r"COMMON PUBLIC LICENSE",
         'end':   r"any resulting litigation"
     },
-
+    ##########################################################################
     # CC
+    ##########################################################################
     'CCBY': {
         'start': r"Creative Commons Attribution \d\.\d",
         'match': r"Creative Commons Attribution \d\.\d",
         'end':   r"Creative Commons Attribution \d\.\d"
     },    
-
-    # PD
+    ##########################################################################
+    # Public Domain
+    ##########################################################################
     'PD': {
         'start': r"[Pp]ublic [Dd]omain|PUBLIC DOMAIN",
         'match': r"[Pp]ublic [Dd]omain|PUBLIC DOMAIN",
@@ -854,8 +879,9 @@ _license_parts = {
         'match': r"Explicitly no copyright.",
         'end':   r"Explicitly no copyright."
     },
-
+    ##########################################################################
     # Proprietary
+    ##########################################################################
     'proprietary_TCL': {
         'start': r"This material is company confidential",
         'match': r"permission of TCL Communication",
@@ -888,20 +914,23 @@ starts = {}
 ends = {}
 maxlines = {}
 
+# This does some sanity-checking, then caches compiled versions of all the
+# regexps, either in the _license_parts structure or the hashes just above.
 def _preprocess(struct, names={}):
     matches = []
     for (name, info) in struct.items():
         if not name:
-            continue
+            print "Missing tag in _license_parts struct"
+            exit(1)
 
         # Bad things happen if we use the same name twice; detect this
         # condition and bail so it can be fixed.
         if name in names:
             print "Duplicate name %s in _license_parts struct" % name
-            exit()
+            exit(1)
         else:
             names[name] = 1
-            
+
         matches.append("(?P<" + name + ">" + info['match'] + ")")
         starts[name] = re.compile(info['start'])
         ends[name]   = re.compile(info['end'])
@@ -1079,6 +1108,8 @@ def _remove_initial_rubbish(comment):
         for i in range(len(comment)):
             # Last char is made optional; it can be pre-text whitespace which
             # doesn't appear on blank lines
-            comment[i] = re.sub("^" + re.escape(rubbish) + "?", "", comment[i])
+            comment[i] = re.sub("^" + re.escape(rubbish) + "?",
+                                "",
+                                comment[i])
 
     return comment

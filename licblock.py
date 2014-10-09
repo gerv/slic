@@ -1,18 +1,18 @@
 # -*- coding: utf-8 -*-
-###############################################################################
+##############################################################################
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #
-# A relic module for traversing a tree of files, extracting the comments, and
-# using the license detector module to extract the copyright lines and license
-# block.
-###############################################################################
+# A module for taking a file, extracting the comments, stripping off the
+# comment characters, and using the license detector module to extract the
+# copyright lines and license block.
+##############################################################################
 import re
 import hashlib
 import sys
 import os.path
-from config import get_config, get_delims
+import config
 import detector
 import ws
 
@@ -21,29 +21,21 @@ log = logging.getLogger("relic")
 
 MAX_SCAN_LINE = 400
 
-troublesome_files = {
-    './gecko/extensions/spellcheck/locales/en-US/hunspell/README_en_US.txt': 1,
-    './gecko/media/mtransport/third_party/nrappkit/COPYRIGHT': 1,
-    './prebuilt/common/jython/LICENSE': 1,
-    './prebuilt/common/jython/LICENSE_CPython.txt': 1,
-    './bionic/libm/NOTICE': 1,
-    './libcore/NOTICE': 1,
-}
-
-# "licenses" is an accumulating result parameter
-def get_license_block(filename, all_licenses):
-    # This is a bit of a hack to deal with files we can't cope with yet.
-    # We instead smuggle in a file which we've prepared with the same
-    # data in which the script can cope with. We use a ".license" extension
-    # to tell the code that we are using /* * */ delimiters.
-    real_filename = filename
-    if filename in troublesome_files:
-        script = os.path.realpath(sys.argv[0])
-        filename = os.path.join(os.path.dirname(script),
-                                "substitutes",
-                                filename + ".license")
-
-    licenses = _get_licenses_for_file(filename)
+# "all_licenses" is an accumulating result parameter
+def get_license_info(filename, all_licenses):
+    # It's possible to configure slic to look in a different place for the
+    # license of a particular file (perhaps one it can't parse) 
+    substitute = config.get_option("substitutes", filename)
+    if substitute:
+        if not os.path.isabs(substitute):
+            script = os.path.realpath(sys.argv[0])
+            substitute = os.path.join(os.path.dirname(script),
+                                      "substitutes",
+                                      substitute)
+                                    
+        licenses = _get_licenses_for_file(substitute)
+    else:
+        licenses = _get_licenses_for_file(filename)
 
     for license in licenses:
         lic_key = license['tag']
@@ -51,13 +43,13 @@ def get_license_block(filename, all_licenses):
             lic_key = make_hash(license['text'])
         
         if lic_key in all_licenses:
-            log.debug("Adding file %s to list" % real_filename)
-            all_licenses[lic_key]['files'].append(real_filename)
+            log.debug("Adding file %s to list" % filename)
+            all_licenses[lic_key]['files'].append(filename)
             if 'copyrights' in license:
                 all_licenses[lic_key]['copyrights'].update(license['copyrights'])
         else:
-            log.debug("Starting new file list with file %s" % real_filename)
-            license['files'] = [real_filename]
+            log.debug("Starting new file list with file %s" % filename)
+            license['files'] = [filename]
             all_licenses[lic_key] = license
     
     return
@@ -83,22 +75,17 @@ def _get_licenses_for_file(filename):
     licenses = []
 
     # Get comment delimiter info for this file.
-    comment_delim_sets = get_delims(filename)
+    comment_delim_sets = config.get_delims(filename)
     
     if not comment_delim_sets:
         # We can't handle this type of file
         ext = os.path.splitext(filename)[1]
-        log.info("No comment delimiters found for ext %s on file %s" % (ext, filename))
+        log.warning("No comment delimiters for file %s" % filename)
         return licenses
 
     lines = content.splitlines()
             
-    for delims in comment_delim_sets:
-        # Hack to get around strange Python single member empty tuple behaviour
-        # XXX find the proper fix; test with rpm.spec files
-        if type(delims) == str:
-            delims = [delims]
-        
+    for delims in comment_delim_sets:        
         log.debug("Trying delims: %r", delims)
         start_line = 0
         end_line = 0
@@ -124,7 +111,7 @@ def _get_licenses_for_file(filename):
                 log.debug("License found: %s" % tag)
                 # Store away the info about the license for this file
                 (copyrights, license) = \
-                          detector.extract_copyrights_and_license(comment, tag)
+                         detector.extract_copyrights_and_license(comment, tag)
                 
                 # Store license info
                 copyrights = canonicalize_copyrights(copyrights)
@@ -144,7 +131,8 @@ def _get_licenses_for_file(filename):
                 break
 
         if licenses:
-            # Once we found at least one license, no point trying more delims
+            # Once we found at least one license, we assume all licenses use
+            # the same delim, so we stop
             break
 
     if not licenses:
@@ -157,13 +145,15 @@ def _get_licenses_for_file(filename):
         # else. Perhaps I should file a bug... The distinction made 
         # here is to eliminate false positives for suspicion.
         tag = "none"
+        
         if re.search("copyright", content, re.IGNORECASE):
             tag = "suspiciousCopyright"
-            if re.search("Copyright[\d\s,\(cC\)-]+The Android Open Source Proj",
+            
+            if re.search("Copyright[\d\s,\(cC\)-]+The Android Open Source Pr",
                          content):
                 tag = "suspiciousAndroid"
             # Things more likely to have an actual license text
-            if re.search("[Lli]cen[cs]e|[Pp]ermi(t|ssion)|[Rr]edistribution",
+            if re.search("[Ll]icen[cs]e|[Pp]ermi(t|ssion)|[Rr]edistribut",
                          content):
                 tag = "suspiciousLicensey"
         
@@ -268,7 +258,7 @@ def strip_comment_chars(comment, delims):
         cont   = delims[0]
         suffix = None
     else:
-        raise Error("Unknown delimiter length in delims: %s" % delims)
+        raise Error("Invalid delimiter length in delims: %s" % delims)
         
     # Strip prefix
     prefix_re = re.compile("^\s*%s\s?" % re.escape(prefix))

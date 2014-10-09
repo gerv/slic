@@ -1,0 +1,207 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+#
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+"""
+    slic - Speedy LIcense Checker.
+
+    Usage:
+        slic [options...] [files...]
+        slic [options...] < files...
+
+    Options:
+        -h, --help          dump this help and exit
+        -V, --version       dump this script's version and exit
+        -v, --verbose       verbose output
+        -d, --debug         more verbose output
+        -j, --json          Output data as JSON
+"""
+
+import logging
+logging.basicConfig(filename="slic.log")
+log = logging.getLogger("slic")
+
+import os
+import sys
+import re
+import getopt
+import pprint
+import shutil
+import subprocess
+import hashlib
+import json
+
+import licblock
+import config
+
+_version_ = (1, 0, 0)
+
+def _is_binary(filename):
+    """Return true iff the given filename is binary.
+    """
+    # http://stackoverflow.com/questions/898669/
+    # how-can-i-detect-if-a-file-is-binary-non-text-in-python
+    return (re.search(r':.* text',
+                       subprocess.Popen(["file", '-L', filename], 
+                                     stdout=subprocess.PIPE).stdout.read())
+            is None)
+
+# Only does .cvsignore at the moment; not very useful
+# Also should keep track of fact that ignore file X does not exist  
+ignore_cache = {} # optimization: keep a cache of ignore file content
+def _should_skip_according_to_ignore_file(root, basename):
+    cvsignore = os.path.join(root, ".cvsignore")
+    if not os.path.exists(cvsignore):
+        return 0
+    elif cvsignore not in ignore_cache:
+        fin = open(cvsignore, 'r')
+        to_ignore = []
+        try:
+            for f in fin:
+                if f[-1] == "\n": f = f[:-1] # chomp
+                if not f: continue # skip empty lines
+                to_ignore.append(f)
+        finally:
+            fin.close()
+        ignore_cache[cvsignore] = to_ignore
+
+    # At this point .cvsignore exists and its contents are in the cache.
+    to_ignore = ignore_cache[cvsignore]
+    if basename in to_ignore:
+        return 1
+    else:
+        return 0
+
+backup_pattern = re.compile("~\d+$")
+def _should_skip_file(root, basename):
+    log.debug("_should_skip_file(root='%s', basename='%s')", root, basename)
+    
+    path = os.path.normpath(os.path.join(root, basename))    
+    ext = os.path.splitext(basename)[1]
+    
+    if config.has_option("skip_exts", ext):
+        log.info("Skipping '%s' (according to 'skip_exts').", path)
+        return 1
+    if config.has_option("skip_filenames", basename):
+        log.info("Skipping '%s' (according to 'skip_file_basenames').", path)
+        return 1
+    if config.has_option("skip_files", path):
+        log.info("Skipping '%s' (according to 'skip_files').", path)
+        return 1
+    if backup_pattern.search(path):
+        log.info("Skipping '%s' (looks like backup file).", path)
+        return 1
+    if _should_skip_according_to_ignore_file(root, basename):
+        log.info("Skipping '%s' (according to ignore file).", path)
+        return 1
+    if _is_binary(path):
+        log.debug("Skipping '%s' (binary).", path)
+        return 1
+    
+    return 0
+
+def _should_skip_dir(root, basename):
+    log.debug("_should_skip_dir(root='%s', basename='%s')", root, basename)
+    
+    path = os.path.normpath(os.path.join(root, basename))
+    
+    if config.has_option("skip_dirnames", basename):
+        log.info("Skipping '%s' (according to skip_dir_basenames).", path)
+        return 1
+    if config.has_option("skip_dirs", path):
+        log.info("Skipping '%s' (according to skip_dirs).", path)
+        return 1    
+    if _should_skip_according_to_ignore_file(root, basename):
+        log.info("Skipping '%s' (according to ignore file).", path)
+        return 1
+    
+    return 0
+
+###############################################################################
+# Main function
+###############################################################################
+def main(argv):
+    try:
+        opts, args = getopt.getopt(argv[1:], "Vvhdj",
+            ["version", "verbose", "help", "debug", "json"])
+    except getopt.GetoptError, ex:
+        print str(ex)
+        print "Try `%s --help'." % argv[0]
+        log.error(str(ex))
+        log.error("Try `%s --help'.", argv[0])
+        return 2
+
+    output_json = 0
+    for opt, optarg in opts:
+        if opt in ("-h", "--help"):
+            sys.stdout.write(__doc__)
+            return
+        elif opt in ("-V", "--version"):
+            ver = '.'.join([str(part) for part in _version_])
+            print "slic %s" % ver
+            return
+        elif opt in ("-v", "--verbose"):
+            log.setLevel(logging.INFO)
+        elif opt in ("-d", "--debug"):
+            log.setLevel(logging.DEBUG)
+        elif opt in ("-j", "--json"):
+            output_json = 1
+
+    if not args:
+        print "No files given on command line"
+        print "Try `%s --help'." % argv[0]
+        log.error("No files given on command line")
+        return 3
+
+    results = {}
+
+    for path in args:
+        if os.path.isfile(path):
+            root, basename = os.path.split(path)
+            if not _should_skip_file(root, basename):
+                licblock.get_license_info(path, results)
+        else:
+            for root, dirs, files in os.walk(path):
+                for dir in dirs:
+                    if _should_skip_dir(root, dir):
+                        dirs.remove(dir)
+
+                for file in files:
+                    if not _should_skip_file(root, file):
+                        licblock.get_license_info(os.path.join(root, file),
+                                                  results)
+        
+    # Sort by tag
+    licenses = sorted(results.values(), key=lambda k: k['tag'])
+
+    # Switch copyrights from de-deduplicating hash back to straight list
+    for license in licenses:
+        if 'copyrights' in license:
+            license['copyrights'] = license['copyrights'].keys()
+        if 'files' in license:
+            license['files'].sort()
+
+    if output_json:
+        print json.dumps(licenses, indent=2)
+    else:
+        for license in licenses:
+            print "-" * 60
+            print license['tag']
+            for filename in license['files']:
+                print filename
+            print
+            
+            if 'copyrights' in license:
+                for copyright in license['copyrights']:
+                    print copyright
+                print
+
+            print "\n".join(license['text'])
+            print
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))

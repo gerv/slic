@@ -3,65 +3,89 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #
-# Configuration for relic
+# Configuration for slic
 ###############################################################################
 
 import re
 import os
+import sys
+import ConfigParser
 
-config_cache = {}
+config = ConfigParser.ConfigParser(allow_no_value=True)
 
-def get_config(structname, treename):
-    cache_key = treename + "|" + structname
-    
-    if cache_key not in config_cache:    
-        struct = globals()["_g_" + structname]
-        config = struct.get('_common')
-        config.extend(struct.get(treename, []))
-        config_cache[cache_key] = config
-    
-    return config_cache[cache_key]
+scriptpath = os.path.realpath(sys.argv[0])
+slicinipath = os.path.join(os.path.dirname(scriptpath), "slic.ini")
+                                      
+config.readfp(open(slicinipath))
+config.read(['./slic.ini'])
 
+def get_option(section, option):
+    retval = None
+    try:
+        retval = config.get(section, option)
+    except ConfigParser.NoOptionError:
+        pass
 
-# Returns comment delimiters for this filename, or None if we can't work it out
+    return retval
+
+def has_option(section, option):
+    return config.has_option(section, option)
+
+# Returns comment delimiters for this filename, or None if we can't work it
+# out
 def get_delims(filename):
     delims = None
-    xfilename = get_true_filename(filename)
     
     # special cases for some basenames
-    basename = os.path.basename(xfilename)
-    try:
-        delims = _g_basename_to_comment[basename]
-    except KeyError:
-        pass
-    if not delims: # use the file extension
-        ext = os.path.splitext(xfilename)[1]
-        try:
-            delims = _g_ext_to_comment[ext]
-        except KeyError:
-            pass
-    if not delims: # try to use the shebang line, if any
+    basename = os.path.basename(filename)
+    delims = get_option("filename_to_comment", basename)
+    
+    if not delims:
+        # use the file extension
+        ext = _get_ext(filename)
+        delims = get_option("ext_to_comment", ext)
+        
+    if not delims:
+        # try to use the shebang line, if any
         fin = open(filename, 'r')
         firstline = fin.readline()
         fin.close()
+        # Almost all #! file types use # as the comment character
         if firstline.startswith("#!"):
-            for pattern, cds in _g_shebang_pattern_to_comment:
-                if pattern.match(firstline):
-                    delims = cds
-                    break
-
+            if re.search("env node", firstline):
+                delims = '["/*", "*", "*/"]'
+            else:
+                delims = '["#"]'
+    
+    if delims:
+        # Convert from string to Python structure - split on "|", then on ","
+        # A delim is an array of exactly 1 or 3 members
+        delims = re.split(r'\s*\|\s*', delims)
+        for index, delim in enumerate(delims):
+            if re.search(',', delim):
+                delims[index] = re.split(r',\s*', delim)
+                if len(delims[index]) != 3:
+                    print "Error in delims for file %s" % basename
+                    sys.exit(2)
+            # "No delimiter" is encoded by special value ""
+            elif delim == '""':
+                delims[index] = ['']
+            else:
+                delims[index] = [delim]
+    
     return delims
 
 
-def get_true_filename(filename):
+def _get_ext(filename):
     splitname = os.path.splitext(filename)
-    if splitname[1] in _g_strip_exts:
-        # Strip extensions which hide the real extension. E.g. 
-        # "<foo>.in" is generally a precursor for a filetype
-        # identifiable without the ".in". Drop it.
-        return splitname[0]
-    else:
-        return filename
+    
+    # Strip extensions which hide the real extension. E.g. "foo.bar.in" is
+    # generally a precursor for file "foo.bar" and uses the same comment char.
+    # So we remove the .in and then look again.
+    if config.has_option("strip_exts", splitname[1]):
+        splitname = os.path.splitext(splitname[0])
+
+    return splitname[1]
 
 ###############################################################################
 # Configuration lists
@@ -972,3 +996,12 @@ _g_shebang_pattern_to_comment = [
     (re.compile(ur'\A#!.*expect.*$', re.IGNORECASE), (["#"], )),
     (re.compile(ur'\A#!.*env node.*$', re.IGNORECASE), (["/*", "*", "*/"], )),
 ]
+
+troublesome_files = {
+    './gecko/extensions/spellcheck/locales/en-US/hunspell/README_en_US.txt': 1,
+    './gecko/media/mtransport/third_party/nrappkit/COPYRIGHT': 1,
+    './prebuilt/common/jython/LICENSE': 1,
+    './prebuilt/common/jython/LICENSE_CPython.txt': 1,
+    './bionic/libm/NOTICE': 1,
+    './libcore/NOTICE': 1,
+}
