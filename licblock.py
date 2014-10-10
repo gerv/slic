@@ -17,12 +17,12 @@ import detector
 import ws
 
 import logging
-log = logging.getLogger("relic")
+log = logging.getLogger("slic")
 
 MAX_SCAN_LINE = 400
 
-# "all_licenses" is an accumulating result parameter
-def get_license_info(filename, all_licenses):
+# "results" is an accumulating result parameter
+def get_license_info(filename, results):
     # It's possible to configure slic to look in a different place for the
     # license of a particular file (perhaps one it can't parse) 
     substitute = config.get_option("substitutes", filename)
@@ -42,15 +42,15 @@ def get_license_info(filename, all_licenses):
         if 'text' in license and len(license['text']) > 0:
             lic_key = make_hash(license['text'])
         
-        if lic_key in all_licenses:
+        if lic_key in results:
             log.debug("Adding file %s to list" % filename)
-            all_licenses[lic_key]['files'].append(filename)
+            results[lic_key]['files'].append(filename)
             if 'copyrights' in license:
-                all_licenses[lic_key]['copyrights'].update(license['copyrights'])
+                results[lic_key]['copyrights'].update(license['copyrights'])
         else:
             log.debug("Starting new file list with file %s" % filename)
             license['files'] = [filename]
-            all_licenses[lic_key] = license
+            results[lic_key] = license
     
     return
 
@@ -79,7 +79,6 @@ def _get_licenses_for_file(filename):
     
     if not comment_delim_sets:
         # We can't handle this type of file
-        ext = os.path.splitext(filename)[1]
         log.warning("No comment delimiters for file %s" % filename)
         return licenses
 
@@ -105,26 +104,27 @@ def _get_licenses_for_file(filename):
                 comment = strip_comment_chars(comment, delims)
             
             # We have a comment - is it a license block?
-            tag = detector.id_license(comment)
-            if tag:
-                # It is.
-                log.debug("License found: %s" % tag)
-                # Store away the info about the license for this file
-                (copyrights, license) = \
-                         detector.extract_copyrights_and_license(comment, tag)
-                
-                # Store license info
-                copyrights = canonicalize_copyrights(copyrights)
+            tags = detector.id_license(comment)
 
-                copyrights_dict = {}
-                for c in copyrights:
-                    copyrights_dict[c] = 1
+            if tags is not None:
+                for tag in tags:
+                    # It is.
+                    # Store away the info about the license for this file
+                    (copyrights, license) = \
+                             detector.extract_copyrights_and_license(comment, tag)
+                    
+                    # Store license info
+                    copyrights = canonicalize_copyrights(copyrights)
 
-                licenses.append({
-                    'tag': tag,
-                    'copyrights': copyrights_dict,
-                    'text': license
-                })                
+                    copyrights_dict = {}
+                    for c in copyrights:
+                        copyrights_dict[c] = 1
+
+                    licenses.append({
+                        'tag': tag,
+                        'copyrights': copyrights_dict,
+                        'text': license
+                    })                
 
             if delims[0] == '':
                 # We did the whole file in one go; try next delim
@@ -146,10 +146,10 @@ def _get_licenses_for_file(filename):
         # here is to eliminate false positives for suspicion.
         tag = "none"
         
-        if re.search("copyright", content, re.IGNORECASE):
+        if re.search("[Cc]opyright", content):
             tag = "suspiciousCopyright"
             
-            if re.search("Copyright[\d\s,\(cC\)-]+The Android Open Source Pr",
+            if re.search("Copyright[\d\s,\(chC\)-]+The Android Open Source Pr",
                          content):
                 tag = "suspiciousAndroid"
             # Things more likely to have an actual license text

@@ -114,7 +114,7 @@
 /usr/src/relic/test_data/identification/thread.c,WebM_urlref,3,1,
 /usr/src/relic/test_data/identification/thread_db.h,suspiciousAndroid,0,0,
 /usr/src/relic/test_data/identification/thread_private.h,PD,1,0,
-/usr/src/relic/test_data/identification/tlb-v3.S,GPL20or30,8,1,XXX
+/usr/src/relic/test_data/identification/tlb-v3.S,GPL20,3,1,XXX
 /usr/src/relic/test_data/identification/Tokenizer.java,MIT,17,3,XXX multi
 /usr/src/relic/test_data/identification/u14-34f.c,Permissive_6,4,1,
 /usr/src/relic/test_data/identification/unzcrash.c,bzip2_fileref,2,1,

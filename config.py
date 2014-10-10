@@ -11,13 +11,16 @@ import os
 import sys
 import ConfigParser
 
+import logging
+log = logging.getLogger("slic")
+
 config = ConfigParser.ConfigParser(allow_no_value=True)
 
 scriptpath = os.path.realpath(sys.argv[0])
 slicinipath = os.path.join(os.path.dirname(scriptpath), "slic.ini")
-                                      
-config.readfp(open(slicinipath))
-config.read(['./slic.ini'])
+
+# The first of these is sadly necessary for nosetests to pass
+config.read(['/usr/src/relic/slic.ini', slicinipath, './slic.ini'])
 
 def get_option(section, option):
     retval = None
@@ -35,17 +38,26 @@ def has_option(section, option):
 # out
 def get_delims(filename):
     delims = None
+
+    # There are some extensions which need stripping off to show the 'real'
+    # extension
+    basename, ext = os.path.splitext(filename)
+    
+    # Strip extensions which hide the real extension. E.g. "foo.bar.in" is
+    # generally a precursor for file "foo.bar" and uses the same comment char.
+    # So we remove the .in and then look again.
+    if config.has_option("strip_exts", ext):
+        basename, ext = os.path.splitext(basename)
     
     # special cases for some basenames
-    basename = os.path.basename(filename)
+    basename = os.path.basename(basename)
     delims = get_option("filename_to_comment", basename)
     
-    if not delims:
+    if delims is None:
         # use the file extension
-        ext = _get_ext(filename)
         delims = get_option("ext_to_comment", ext)
         
-    if not delims:
+    if delims is None:
         # try to use the shebang line, if any
         fin = open(filename, 'r')
         firstline = fin.readline()
@@ -53,11 +65,11 @@ def get_delims(filename):
         # Almost all #! file types use # as the comment character
         if firstline.startswith("#!"):
             if re.search("env node", firstline):
-                delims = '["/*", "*", "*/"]'
+                delims = '/*, *, */'
             else:
-                delims = '["#"]'
+                delims = '#'
     
-    if delims:
+    if delims is not None:
         # Convert from string to Python structure - split on "|", then on ","
         # A delim is an array of exactly 1 or 3 members
         delims = re.split(r'\s*\|\s*', delims)

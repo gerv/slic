@@ -106,13 +106,13 @@ XXX
                 self.assertEqual(end_line, result2)
 
 
-class TestGetLicenseBlock(unittest.TestCase):
-    def test_get_license_block(self):
+class TestGetLicenseInfo(unittest.TestCase):
+    def test_get_license_info(self):
         licenses = {}
         lic_hash = "34eb9c77640f88975eff1c6ed92b6317"
         filename = "test_data/main.cc"
         
-        licblock.get_license_block(filename, licenses)
+        licblock.get_license_info(filename, licenses)
         self.assertEqual(len(licenses), 1)
         license = licenses.values()[0]
         self.assertIn('text', license)
@@ -140,9 +140,10 @@ class TestIdentification(unittest.TestCase):
 
             # Do identification
             licenses = {}
-            licblock.get_license_block(os.path.join(dir, filename), licenses)
+            licblock.get_license_info(os.path.join(dir, filename), licenses)
 
-            self.assertTrue(len(licenses.keys()) > 0)
+            self.assertTrue(len(licenses.keys()) > 0,
+                            msg="At least one license found")
             
             # Check metadata matches
             result = licenses[licenses.keys()[0]]

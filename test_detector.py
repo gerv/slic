@@ -58,7 +58,9 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
         
     def test_id_license(self):
-        self.assertEqual(detector.id_license(self.mpl2), 'MPL20')
+        tags = detector.id_license(self.mpl2)
+        self.assertEqual(tags[0], 'MPL20')
+        self.assertEqual(len(tags), 1)
         
 
 if __name__ == '__main__':
