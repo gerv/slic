@@ -43,7 +43,6 @@ exports.delay = delay;
  * From underscore's `_.debounce`
  * http://underscorejs.org
  * (c) 2009-2014 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
- * Underscore may be freely distributed under the MIT license.
  */
 const debounce = function debounce (fn, wait) {
   let timeout, args, context, timestamp, result;
@@ -76,7 +75,6 @@ exports.debounce = debounce;
  * From underscore's `_.throttle`
  * http://underscorejs.org
  * (c) 2009-2014 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
- * Underscore may be freely distributed under the MIT license.
  */
 const throttle = function throttle (func, wait, options) {
   let context, args, result;

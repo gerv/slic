@@ -142,27 +142,24 @@ class TestIdentification(unittest.TestCase):
             licenses = {}
             licblock.get_license_info(os.path.join(dir, filename), licenses)
 
-            self.assertTrue(len(licenses.keys()) > 0,
+            self.assertTrue(len(licenses) > 0,
                             msg="At least one license found")
             
-            # Check metadata matches
-            result = licenses[licenses.keys()[0]]
+            licenses = sorted(licenses.values(), key=lambda k: k['tag'])
             
+            # Check metadata matches for first license found (alphabetical)
+            result = licenses[0]
             self.assertEqual(result['tag'], tag)
 
             if 'text' in result:
-                self.assertEqual(len(result['text']),
-                                 int(textlength),
-                                 msg="Text length correct for %s" % filename)
+                self.assertEqual(len(result['text']), int(textlength))
             else:
                 self.assertEqual(0,
                                  int(textlength),
                                  msg="Text length zero for %s" % filename)
 
             if 'copyrights' in result:
-                self.assertEqual(len(result['copyrights']),
-                                 int(copyrightlength),
-                                 msg="Copyright length correct for %s" % filename)
+                self.assertEqual(len(result['copyrights']), int(copyrightlength))
             else:
                 self.assertEqual(0,
                                  int(copyrightlength),

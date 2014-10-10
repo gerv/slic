@@ -5,7 +5,7 @@
 /usr/src/relic/test_data/identification/4/NOTICE,EPL10_fulltext,222,0,
 /usr/src/relic/test_data/identification/aclocal.m4,GPL20_withlibtoolexception,20,2,
 /usr/src/relic/test_data/identification/activity-home.css,W3C_urlref,2,1,
-/usr/src/relic/test_data/identification/aec_rdft.c,Permissive_5,3,1,
+/usr/src/relic/test_data/identification/aec_rdft.c,BSD_fileref,5,1,
 /usr/src/relic/test_data/identification/aes-ia64.S,OpenSSL_ref,2,0,
 /usr/src/relic/test_data/identification/align.h,BSD2Clause_urlref,4,0,
 /usr/src/relic/test_data/identification/android.graphics.drawable.Drawable.html,CCBY,1,0,
@@ -22,7 +22,7 @@
 /usr/src/relic/test_data/identification/chemeris.h,BSD2Clause,23,1,
 /usr/src/relic/test_data/identification/codepage.c,copying_fileref,1,1,
 /usr/src/relic/test_data/identification/concurrent.js,MPL20,3,0,
-/usr/src/relic/test_data/identification/config.guess,GPL30_withautoconfexception3,19,0,
+/usr/src/relic/test_data/identification/config.guess,GPL30_withautoconfexception2,19,0,
 /usr/src/relic/test_data/identification/configure.in,license_fileref,1,2,
 /usr/src/relic/test_data/identification/constants.hpp,MIT_Boost,23,0,
 /usr/src/relic/test_data/identification/control.c,GPL20_fileref5,1,1,
@@ -87,8 +87,8 @@
 /usr/src/relic/test_data/identification/ore_raid.h,GPL20,7,1,
 /usr/src/relic/test_data/identification/pcap-pf.h,BSD4Clause_Compact_UC,12,1,
 /usr/src/relic/test_data/identification/pm.c,GPL20_ref4,1,1,
-/usr/src/relic/test_data/identification/png.h,libpng_fileref,1,0,XXX double
-/usr/src/relic/test_data/identification/policy_parse.h,GPL20,14,1,XXX bison exception
+/usr/src/relic/test_data/identification/png.h,libpng,25,5,XXX double
+/usr/src/relic/test_data/identification/policy_parse.h,Bisonexception,12,0,
 /usr/src/relic/test_data/identification/print-gre.c,BSD4Clause,25,1,
 /usr/src/relic/test_data/identification/pure_api.c,PD_explicitlynocopyright,1,0,
 /usr/src/relic/test_data/identification/race.c,JPNIC,33,1,
