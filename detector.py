@@ -11,6 +11,7 @@ import re
 import ws
 
 import logging
+logging.basicConfig(filename="slic.log")
 log = logging.getLogger("slic")
 
 DEFAULT_MAX_LINES_IN_LICENSE = 50
@@ -31,6 +32,10 @@ DEFAULT_MAX_LINES_IN_LICENSE = 50
 # Regexps are matched against a single-line string version of the comment with
 # collapsed whitespace but no case-folding. The top-level ones are the most
 # performance-critical, so do not use expensive constructs.
+#
+# A tag starting with "Cancel" will be removed from the matches; use this as
+# a last-ditch mechanism to eliminate false positives (which are occasionally
+# unavoidable).
 _license_parts = {
     ##########################################################################
     # MPL
@@ -47,10 +52,10 @@ _license_parts = {
             },            
             'MPL11_GPL20': {
                 'start':  r"The contents of this (file|package) are subject to the",
-                'match':  r"GNU Public License version 2 \(the \"GPL\"\), in",
+                'match':  r"GNU( General)? Public License version 2 \(the \"GPL\"\), in",
                 'end':    r"either the MPL or the GPL"
             },            
-            'Cancel_LDPL11_MPL20': {
+            'Cancel_LGPL11_MPL20': {
                 # False positive for Cairo license
                 'start':  "",
                 'match':  r"You should have received a copy of the LGPL",
@@ -122,6 +127,12 @@ _license_parts = {
                         'start':  r"",
                         'match':  r"Mozilla Public License",
                         'end':    r"",
+                    },
+                    'Cancel_LGPLfull': {
+                        # Falsi lositive for the full LGPL
+                        'start':  r"",
+                        'match':  r"This license, the Lesser General Public License",
+                        'end':    r"",
                     }
                 },
             },
@@ -151,6 +162,11 @@ _license_parts = {
                         'end':    r"021(10|11|39).*USA|for more details|any later version"
                     },
                 }
+            },
+            'GPL20_3': {
+                'start':  r"is free software; you can redistribute it",
+                'match':  r"License v2 as published by the Free",
+                'end':    r"021(10|11|39).*USA",
             },
             'GPLAny_3': {
                 'start':  r"This software may be used and distributed",
@@ -194,6 +210,12 @@ _license_parts = {
                     },
                 }
             },
+            # This is sometimes in a different comment
+            'GPLAny_withbisonexception': {
+                'start':  r"As a special exception, you may",
+                'match':  r"of the Bison parser skeleton",
+                'end':    r"of Bison"
+            },
         }
     },
     'GPLAny_1': {
@@ -218,11 +240,6 @@ _license_parts = {
         'start':  r"is free software; you can redistribute it|This software is licensed under the terms of the GNU",
         'match':  r"2 of the Licence",
         'end':    r"any later version",
-    },
-    'GPL20_3': {
-        'start':  r"is free software; you can redistribute it",
-        'match':  r"License v2 as published by the Free",
-        'end':    r"021(10|11|39).*USA",
     },
     'GPL20_reiser': {
         # a reference to reiserfs/README means "GPL"
@@ -330,12 +347,6 @@ _license_parts = {
         'end':   r"This file is distributed under the same license as the glib package"
     },
 
-    # Do we properly detect this and merge it now?    
-    'Bisonexception': {
-        'start':  r"As a special exception, you may",
-        'match':  r"of the Bison parser skeleton",
-        'end':    r"of Bison"
-    },
     ##########################################################################
     # Apache
     ##########################################################################
@@ -368,9 +379,9 @@ _license_parts = {
     # HPND
     ##########################################################################
     'HPND': {
-        'start':  r"[Pp]ermission to use, copy, modify,?(?: and(/or)?)? distribute",
+        'start':  r"[Pp]ermission to use, copy, modify",
         'match':  r"[Pp]ermission to use, copy, modify,?(?: and(/or)?)? distribute",
-        'end':    r"(OF|FOR) THIS SOFTWARE|express or implied" + \
+        'end':    r"SOFTWARE|express or implied|without fee|of any kind" + \
                   r"|written prior permission|supporting documentation" + \
                   r"|MODIFICATIONS|prior written authorization|DERIVATIVE WORK",
         'subs': {
@@ -379,12 +390,12 @@ _license_parts = {
                 'match':  r"freely granted",
                 'end':    r"is preserved",
             },
-            'SunRPCGSS': {
+            'HPND_SunRPCGSS': {
                 'start':  r"Export of this software",
                 'match':  r"WITHIN THAT CONSTRAINT, permission to use",
                 'end':    r"A PARTICULAR PURPOSE"
             },
-            'Coda': {
+            'HPND_Coda': {
                 'start':  r"Permission  to  use, copy, modify and distribute",
                 'match':  r"CODA IS AN EXPERIMENTAL SOFTWARE SYSTEM",
                 'end':    r"DERIVATIVE WORK"
@@ -413,6 +424,11 @@ _license_parts = {
                 'match': r"Dual licensed under the MIT and GPL",
                 'end':   r"jquery\.com/License|licenses\."
             },
+            'MIT_GPL20_fileref': { # jQuery
+                'start': r"Dual licensed under the MIT",
+                'match': r"Dual licensed under the MIT \(MIT-LICENSE.txt\) and GPL",
+                'end':   r"licenses"
+            },
             'MIT_BSD_hybrid': {
                 'start': r"Permission is hereby granted, free of charge",
                 'match': r"Redistributions? in binary form",
@@ -428,10 +444,15 @@ _license_parts = {
                 'match': r"The Software shall be used for Good, not Evil",
                 'end':   r"SOFTWARE"
             },
+            'MIT_UIllinois': {
+                'start': r"This file is dual licensed",
+                'match': r"University of Illinois Open",
+                'end':   r"for details"
+            },
             # OFL has MIT-like language, so is a false positive
-            'OFL11_2': {
+            'Cancel_OFL11_2': {
                 'start':  r"This Font Software is licensed",
-                'match':  r"SIL Open Font License, Version 1\.1",
+                'match':  r"SIL Open Font License, Version 1\.[1|0]",
                 'end':    r"IN THE FONT SOFTWARE"
             },
         }
@@ -450,6 +471,13 @@ _license_parts = {
         'start':  r"under (an|the )?MIT license",
         'match':  r"under (an|the )?MIT license",
         'end':    r"http://opensource.org/licenses/MIT|under (an|the )?MIT license",
+        'subs': {
+            'MIT_Lodash_urlref': {
+                'start': r"Available under MIT license",
+                'match': r"lodash.com/license",
+                'end':   r"Available under MIT license"
+            },
+        }
     },
     'Boost_urlref': {
         'start':  r"Distributed under the Boost Software License, Version 1\.0",
@@ -464,7 +492,7 @@ _license_parts = {
                   r"|Redistribution and use in source and binary forms",
         'match':  r"Redistribution and use of this software" + \
                   r"|Redistribution and use in source and binary forms",
-        'end':    r"SUCH DAMAGE",
+        'end':    r"SUCH DAMAGE|PURPOSE",
         'subs': {
             'BSD3Clause': {
                 'start':  r"Redistribution and use of this software" + \
@@ -472,7 +500,7 @@ _license_parts = {
                 'match':  r"name.*(may|must) not be used to" + \
                           r"|Neither the (author|name).*may be used to" + \
                           r"|The name of the company nor the name of the author",
-                'end':    r"SUCH DAMAGE",
+                'end':    r"DAMAGE",
                 'subs': {
                     'BSD4Clause': {
                         'start':  r"Redistribution and use of this software" + \
@@ -480,9 +508,9 @@ _license_parts = {
                         'match':  r"advertising materials",
                         'end':    r"SUCH DAMAGE",
                         'subs': {
-                            # For all of these, the 4th clause is not a problem
-                            # because it has been waived, either permanently
-                            # or for our use of the code.
+                            # For all of the following, the 4th clause is not 
+                            # a problem because it has been waived, either 
+                            # permanently or for our use of the code.
                             'BSD4Clause_UC': {
                                 'start':  r"Redistribution and use of this software" + \
                                           r"|Redistribution and use in source and",
@@ -512,6 +540,12 @@ _license_parts = {
                                 'end':    r"SUCH DAMAGE|PURPOSE"
                             },
                         }
+                    },
+                    'BSD_GPL_dual': {
+                        'start':  r"Redistribution and use of this software" + \
+                                  r"|Redistribution and use in source and",
+                        'match':  r"General Public License",
+                        'end':    r"DAMAGE|IN ANY WAY",
                     }
                 }
             },
@@ -670,9 +704,9 @@ _license_parts = {
     # ICU has this very irritating habit of putting each line in a separate
     # block comment char...
     'ICU': {
-        'start':  r"ICU License --? ICU",
+        'start':  r"This software is made|ICU License",
         'match':  r"ICU License --? ICU",
-        'end':    r"respective owners"
+        'end':    r"respective owners|and later"
     },
     'JPNIC': {
         'start':  r"The following License Terms and Conditions apply",
@@ -876,12 +910,17 @@ _license_parts = {
             'PD_CC0': {
                 'start': r"Any copyright is dedicated to the Public Domain",
                 'match': r"Any copyright is dedicated to the Public Domain",
-                'end':   r"http://creativecommons\.org/(publicdomain/zero/1\.0/|licenses/publicdomain/)"
+                'end':   r"http://creativecommons\.org/(publicdomain/zero/1\.0|licenses/publicdomain)"
             },
             'PD_CC0_2': {
-                'start': r"http://creativecommons\.org/(publicdomain/zero/1\.0/|licenses/publicdomain/)",
-                'match': r"http://creativecommons\.org/(publicdomain/zero/1\.0/|licenses/publicdomain/)",
-                'end':   r"http://creativecommons\.org/(publicdomain/zero/1\.0/|licenses/publicdomain/)"
+                'start': r"http://creativecommons\.org/(publicdomain/zero/1\.0|licenses/publicdomain)",
+                'match': r"http://creativecommons\.org/(publicdomain/zero/1\.0|licenses/publicdomain)",
+                'end':   r"http://creativecommons\.org/(publicdomain/zero/1\.0|licenses/publicdomain)"
+            },
+            'PD_Peslyak': {
+                'start': r"This software was written by Alexander",
+                'match': r"This software was written by Alexander Peslyak",
+                'end':   r"express or implied"
             }
         }
     },

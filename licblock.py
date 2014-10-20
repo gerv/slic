@@ -17,8 +17,10 @@ import detector
 import ws
 
 import logging
+logging.basicConfig(filename="slic.log")
 log = logging.getLogger("slic")
 
+# This number is fairly performance-sensitive
 MAX_SCAN_LINE = 400
 
 # "results" is an accumulating result parameter
@@ -39,6 +41,8 @@ def get_license_info(filename, results):
 
     for license in licenses:
         lic_key = license['tag']
+        # If this code mis-detects two licenses in exactly the same text, they
+        # will get smooshed together here
         if 'text' in license and len(license['text']) > 0:
             lic_key = make_hash(license['text'])
         
@@ -51,7 +55,7 @@ def get_license_info(filename, results):
             log.debug("Starting new file list with file %s" % filename)
             license['files'] = [filename]
             results[lic_key] = license
-    
+
     return
 
 
@@ -228,6 +232,14 @@ def find_next_comment(starting_from, lines, delims):
             found_end = True
             break
 
+    if start_line == end_line and len(delims) == 3:
+        # Single-line comment of /* */ type. There could be a set of them
+        # Fast forward and see
+        while len(lines) > end_line + 1 and \
+              start_re.search(lines[end_line + 1]) and \
+              end_re.search(lines[end_line + 1]):
+            end_line = end_line + 1
+
     if len(delims) == 3 or \
        (len(delims) == 1 and not found_end):
         # In these two cases, we are actually on the last comment line, so...
@@ -275,7 +287,9 @@ def strip_comment_chars(comment, delims):
         # Strip continuation char
         comment[i] = re.sub(cont_re, "", comment[i])
         # Strip trailing whitespace and cruft
-        comment[i] = re.sub("[\*#\s]*$", "", comment[i])
+        # (Also */ terminators from comments where each line is a single
+        # "multi-line" comment)
+        comment[i] = re.sub("[\*\/#\s]*$", "", comment[i])
 
     return comment
 

@@ -20,6 +20,7 @@
                      '^SunRPC$',
                      '^WHATWG$',
                      '^zlib',
+                     '^MIT_ref$',
 ] %}
 
 {% set ignorables = pop_by_re(ignore_res, licenses) %}
@@ -45,8 +46,7 @@
                     '^SGIB$',
                     '^Unicode',
                     '^W3C', 
-                    '^WebM',   
-                    'suspicious',
+                    '^WebM',
 ] %}
 {# Add "suspicious" to repro_res to see list of files with unknown licenses #}
 
@@ -70,7 +70,8 @@
         'title':     'GNU General Public License 2.0',
         'showfiles': 1
     }, {
-        'tag':       'GPL30',
+        'tag':       'GPL30$',
+        'template':  'GPL30',
         'title':     'GNU General Public License 3.0',
         'showfiles': 1
     }, {
@@ -139,8 +140,9 @@ over the past 30 years, without whose efforts this product would not exist.
 <ul>
 
 {% for special in specials %}
+    {% set anchor = special['template'] or special['tag'] %}
     {%- if special['licenses'] %}
-        <li><a href="#{{ special['tag'] }}">{{ special['title'] }}</a></li>
+        <li><a href="#{{ anchor }}">{{ special['title'] }}</a></li>
     {% endif %}
 {% endfor %}
 
@@ -197,11 +199,22 @@ licenses are reproduced below.</p>
 
 {% for tag in reproducibles %}
     {% set licenses = reproducibles[tag] %}
+    
+    {%- if template_exists(tag + '.html') %}
+        {# Combine copyright lines if we're only going to have one text #}
+        {% set combined = {'files': [], 'copyrights': []} %}
+        {% for license in licenses %}
+          {% do combined['files'].extend(license['files']) %}
+          {% do combined['copyrights'].extend(license['copyrights']) %}
+        {% endfor %}
+        {% set licenses = [combined] %}
+    {% endif %}
+     
     {% for license in licenses %}
         <hr>
 
         {% if debug %}
-            <h2>{{ tag }}</h2>
+            <h2>Tag: {{ tag }}</h2>
         
             <ul>
             {% for file in license.files %}

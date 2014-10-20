@@ -51,16 +51,16 @@ for filename in args.files:
             os.mkdir(os.path.dirname(destname))
 
     # Run relic on it and capture result
-    relic = os.path.join(get_script_path(), "relic")
-    output = subprocess.check_output([relic, "-f", "-g", "-m", sourcename])
+    slic = os.path.join(get_script_path(), "slic")
+    output = subprocess.check_output([slic, "-j", sourcename])
     result = json.loads(output)
 
-    if not result.keys():
+    if not result:
         print "No data from relic"
         continue
-    
-    # Strip out level of indirection with license hash
-    result = result[result.keys()[0]]
+
+    # We only put in the first result for testing
+    result = result[0]
     
     tag = result['tag']
     
@@ -78,6 +78,6 @@ for filename in args.files:
     # Add entry to index.csv
     indexname = os.path.join(id_dir, "index.csv") 
     with open(indexname, "a") as indexfh:
-        indexfh.write(",".join([destname, tag, textlength, copyrightlength]))
+        indexfh.write(",".join([destname, tag, textlength, copyrightlength, ""]))
         indexfh.write("\n")
 

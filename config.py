@@ -12,6 +12,7 @@ import sys
 import ConfigParser
 
 import logging
+logging.basicConfig(filename="slic.log")
 log = logging.getLogger("slic")
 
 config = ConfigParser.ConfigParser(allow_no_value=True)
@@ -57,6 +58,8 @@ def get_delims(filename):
         # use the file extension
         delims = get_option("ext_to_comment", ext)
         
+    log.debug("Delims: %r" % delims)
+    
     if delims is None:
         # try to use the shebang line, if any
         fin = open(filename, 'r')
@@ -84,6 +87,8 @@ def get_delims(filename):
                 delims[index] = ['']
             else:
                 delims[index] = [delim]
+
+    log.debug("Delims: %r" % delims)
     
     return delims
 

@@ -17,8 +17,8 @@ import textwrap
 import cgi
 
 import logging
-logging.basicConfig(filename="clic.log", level=logging.DEBUG)
-log = logging.getLogger("clic")
+logging.basicConfig(filename="flic.log", level=logging.DEBUG)
+log = logging.getLogger("flic")
 
 # A couple of functions used in the template
 #
@@ -186,17 +186,19 @@ def main():
                                     'Collate and process license information.')
     parser.add_argument('--template', metavar="<template>",
                        help='Render the given template name')
+    parser.add_argument('--input', metavar="<input file>",
+                       help='JSON output of "slic" program')
 
     args = parser.parse_args()
 
     # Load occurrence data file
-    occurrences = json.load(open("occurrences.json"))
+    occurrences = json.load(open(args.input))
 
     # Rejig data structure so top-level key is the tag instead of the license
     # text hash, and value is a list of the corresponding license objects
     bytag = {}
 
-    for hash, occurrence in occurrences.items():
+    for occurrence in occurrences:
         tag = occurrence['tag']
         if tag in bytag:
             bytag[tag].append(occurrence)
@@ -211,7 +213,7 @@ def main():
                              'W3C_urlref']
     
     for tag in bytag:
-        if not tag in single_entry_licenses:
+        if tag not in single_entry_licenses:
             continue
 
         log.info("Creating single entry for tag %s" % tag)
@@ -303,16 +305,18 @@ def main():
     def resolve_bison_exception(bisonfile):
         log.debug("Trying to resolve bisonexception for %s" % bisonfile)
         for tag in bytag:
-            if not re.search("^GPL30", tag):
+            if not re.search("^GPL", tag):
                 continue
-            
+            if re.search("^GPLAny_withbison", tag):
+                continue
+                
             for data in bytag[tag]:
                 gplfiles = data['files']
                 for gplfile in gplfiles:
                     if gplfile == bisonfile:
                         log.info("Resolved bisonexception for %s" % bisonfile)
                         gplfiles.remove(gplfile)
-
+                        
                         # Make sure GPL goes away if there are no GPLed files
                         # left
                         if not gplfiles:
@@ -326,12 +330,11 @@ def main():
         log.warning("Unable to resolve bisonexception for %s" % bisonfile)
         return False
 
-    if 'Bisonexception' in bytag:
-        for data in bytag['Bisonexception']:
+    if 'GPLAny_withbisonexception' in bytag:
+        for data in bytag['GPLAny_withbisonexception']:
             bisonfiles = data['files']
             for bisonfile in bisonfiles:
                 resolve_bison_exception(bisonfile)
-        del bytag['Bisonexception']
 
     # Sometimes a file header says "see file FOO for the license". If so, we tag
     # it with a tag including 'fileref'. We must now go through all files so
@@ -387,7 +390,7 @@ def main():
             log.debug("Trying to find license file: %s" % license_file_name)
             dir = dirname(file)
             log.debug("Starting directory: %s" % dir)
-            while dir != "." and dir != "./gecko":
+            while dir != "." and dir != "" and dir != "./gecko":
                 log.debug("Looking for %s" % join(dir, license_file_name))
                 if join(dir, license_file_name) in license_files:
                     log.debug("Found license %s in dir: %s" % (license_file_name, dir))

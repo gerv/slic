@@ -1,0 +1,26 @@
+#!/usr/bin/python
+
+import json
+import sys
+
+# Load occurrence data file
+occurrences = json.load(open(sys.argv[1]))
+
+# Rejig data structure so top-level key is the tag instead of the license
+# text hash, and value is a list of the corresponding license objects
+bytag = {}
+
+for occurrence in occurrences:
+    tag = occurrence['tag']
+    if tag in bytag:
+        bytag[tag].append(occurrence)
+    else:
+        bytag[tag] = [occurrence]
+
+count = 0
+for tag in bytag.keys():
+    licset = bytag[tag]
+    for lic in licset:
+        count = count + len(lic['files'])
+
+print "Files: %i" % count
