@@ -21,6 +21,11 @@
                      '^WHATWG$',
                      '^zlib',
                      '^MIT_ref$',
+                     'libtoolexception',
+                     'autoconfexception',
+                     '^libpng$',
+                     'suspicious',
+                     'proprietary',
 ] %}
 
 {% set ignorables = pop_by_re(ignore_res, licenses) %}
@@ -157,7 +162,7 @@ over the past 30 years, without whose efforts this product would not exist.
     {% set template = special['template'] or special['tag'] %}
     {% if special['licenses'] %}
         <hr>
-        <a id="{{ tag }}"></a>
+        <a id="{{ template }}"></a>
         <h2>{{ special['title'] }}</h2>
         {% include template + '.html' %}
 
@@ -223,7 +228,7 @@ licenses are reproduced below.</p>
             </ul>
         {% endif %}
 
-        {% if 'copyrights' in license %}
+        {% if 'copyrights' in license and license.copyrights|length > 0 %}
             <ul>
             {% for copyright in license.copyrights %}
                 <li>{{ copyright|e }}</li>

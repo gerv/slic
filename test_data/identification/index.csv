@@ -87,7 +87,7 @@
 /usr/src/relic/test_data/identification/ore_raid.h,GPL20,7,1,
 /usr/src/relic/test_data/identification/pcap-pf.h,BSD4Clause_Compact_UC,12,1,
 /usr/src/relic/test_data/identification/pm.c,GPL20_ref4,1,1,
-/usr/src/relic/test_data/identification/policy_parse.h,Bisonexception,12,0,
+/usr/src/relic/test_data/identification/policy_parse.h,GPL20,14,1,Bison exception
 /usr/src/relic/test_data/identification/print-gre.c,BSD4Clause,25,1,
 /usr/src/relic/test_data/identification/pure_api.c,PD_explicitlynocopyright,1,0,
 /usr/src/relic/test_data/identification/race.c,JPNIC,33,1,
@@ -144,3 +144,5 @@
 /usr/src/relic/test_data/identification/dwarf_helper.h,BSD3Clause,23,1,
 /usr/src/relic/test_data/identification/ipheth.c,BSD_GPL_dual,32,1,
 /usr/src/relic/test_data/identification/Gentium-license.txt,OFL10,93,1,
+/usr/src/relic/test_data/identification/COPYING.LIB,LGPL21,13,2,
+/usr/src/relic/test_data/identification/z2ram.c,HPND,6,1,

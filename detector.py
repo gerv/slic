@@ -129,7 +129,7 @@ _license_parts = {
                         'end':    r"",
                     },
                     'Cancel_LGPLfull': {
-                        # Falsi lositive for the full LGPL
+                        # False positive for the full LGPL
                         'start':  r"",
                         'match':  r"This license, the Lesser General Public License",
                         'end':    r"",
@@ -215,6 +215,12 @@ _license_parts = {
                 'start':  r"As a special exception, you may",
                 'match':  r"of the Bison parser skeleton",
                 'end':    r"of Bison"
+            },
+            'Cancel_MPL2full': {
+                # False positive for the full MPL 2 or tri-license
+                'start':  r"",
+                'match':  r"Mozilla Foundation is the license steward|Mozilla Public License Version",
+                'end':    r"",
             },
         }
     },
@@ -383,7 +389,8 @@ _license_parts = {
         'match':  r"[Pp]ermission to use, copy, modify,?(?: and(/or)?)? distribute",
         'end':    r"SOFTWARE|express or implied|without fee|of any kind" + \
                   r"|written prior permission|supporting documentation" + \
-                  r"|MODIFICATIONS|prior written authorization|DERIVATIVE WORK",
+                  r"|MODIFICATIONS|prior written authorization|DERIVATIVE WORK" + \
+                  r"|implied warranty",
         'subs': {
             'HPND_2': {
                 'start':  r"Permission to use, copy, modify,?(?: and(/or)?)? distribute",
@@ -421,8 +428,8 @@ _license_parts = {
         'subs': {
             'MIT_GPL20_urlref': { # jQuery
                 'start': r"Dual licensed under the MIT",
-                'match': r"Dual licensed under the MIT and GPL",
-                'end':   r"jquery\.com/License|licenses\."
+                'match': r"Dual licensed under the MIT (and|or) GPL",
+                'end':   r"jquery\.(com|org)/[Ll]icense|licenses\."
             },
             'MIT_GPL20_fileref': { # jQuery
                 'start': r"Dual licensed under the MIT",
@@ -545,7 +552,7 @@ _license_parts = {
                         'start':  r"Redistribution and use of this software" + \
                                   r"|Redistribution and use in source and",
                         'match':  r"General Public License",
-                        'end':    r"DAMAGE|IN ANY WAY",
+                        'end':    r"DAMAGE|damage|IN ANY WAY",
                     }
                 }
             },
@@ -570,6 +577,11 @@ _license_parts = {
                 'start':  r"Redistribution and use in source and binary",
                 'match':  r"provided that redistributions of source",
                 'end':    r"modification",
+            },
+            'Cancel_PD_Peslyak': {
+                'start':  r"",
+                'match':  r"Alexander Peslyak in 2001",
+                'end':    r"",
             }
         }
     },

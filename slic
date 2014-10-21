@@ -39,17 +39,17 @@ import config
 
 _version_ = (1, 0, 0)
 
+_textchars = bytearray([7,8,9,10,12,13,27]) + bytearray(range(0x20, 0x100))
 
+_is_binary_string = lambda bytes: bool(bytes.translate(None, _textchars))
+
+# Stack Overflow 898669
 def _is_binary(filename):
-    """Return true iff the given filename is binary.
-    """
-    # http://stackoverflow.com/questions/898669/
-    # how-can-i-detect-if-a-file-is-binary-non-text-in-python
-    return (re.search(r':.* text',
-                       subprocess.Popen(["file", '-L', filename], 
-                                     stdout=subprocess.PIPE).stdout.read())
-            is None)
-
+    try:
+        return _is_binary_string(open(filename, 'rb').read(1024))
+    except IOError:
+        log.warning("Can't open file '%s' to see if it's binary", filename)
+        return True
 
 # Only does .cvsignore at the moment; not very useful
 # Also should keep track of fact that ignore file X does not exist  
@@ -167,6 +167,11 @@ def main(argv):
     for path in paths:
         log.debug("Doing path: %s" % path)
         if path[-1] == "\n": path = path[:-1] # chomp if 'paths' is a stream
+
+        # Comments and blank lines if we use a streamed file
+        if not path or re.match("^\s*#", path):
+            continue
+            
         path = os.path.normpath(path)
         
         if os.path.isfile(path):
@@ -178,11 +183,11 @@ def main(argv):
             root, basename = os.path.split(path)
             if _should_skip_dir(root, basename):
                 continue
-                
+
             for root, dirs, files in os.walk(path):
-                for dir in dirs:
-                    if _should_skip_dir(root, dir):
-                        dirs.remove(dir)
+                # Avoid modify-in-place leading to off-by-one errors
+                # Stack Overflow 1207406
+                dirs[:] = [dir for dir in dirs if not _should_skip_dir(root, dir)]
 
                 for file in files:
                     if not _should_skip_file(root, file):
