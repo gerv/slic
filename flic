@@ -345,22 +345,22 @@ def main():
     # filenames. It's always possible that the Android people will have renamed
     # the file to "NOTICE"...
     fileref_names = {
-        'copying_fileref':    ['COPYING', 'NOTICE'],
-        'copyright_fileref':  ['COPYRIGHT', 'NOTICE'],
-        'license_fileref':    ['LICENSE', 'NOTICE'],
-        'bzip2_fileref':      ['LICENSE', 'NOTICE'],
-        'BSD_fileref_xiph':   ['COPYING', 'NOTICE'],
-        'BSD_fileref':        ['LICENSE', 'NOTICE', 'README'],
-        'BSD_fileref2':       ['LICENSE.txt'], # sic
-        'BSD_fileref3':       ['README'],
-        'MIT_fileref':        ['COPYING', 'NOTICE'],
-        'MIT_GPL20_fileref':  ['MIT-LICENSE.txt', 'NOTICE'],
-        'FreeType_fileref':   ['LICENSE.txt', 'docs/FTL.TXT', 'NOTICE'],
-        'ISC_fileref':        ['LICENSE', 'NOTICE'],
-        'libjpeg_fileref':    ['README'],        
-        'jsimdext_fileref':   ['jsimdext.inc'],
+        'copying_fileref':     ['COPYING', 'NOTICE'],
+        'copyright_fileref':   ['COPYRIGHT', 'NOTICE'],
+        'license_fileref':     ['LICENSE', 'NOTICE'],
+        'bzip2_fileref':       ['LICENSE', 'NOTICE'],
+        'BSD_fileref_xiph':    ['COPYING', 'NOTICE'],
+        'BSD_fileref':         ['LICENSE', 'NOTICE', 'README'],
+        'BSD_fileref_2':       ['LICENSE.txt'], # sic
+        'BSD_fileref_3':       ['README'],
+        'MIT_fileref':         ['COPYING', 'NOTICE'],
+        'MIT|GPL-2.0_fileref': ['MIT-LICENSE.txt', 'NOTICE'],
+        'FreeType_fileref':    ['LICENSE.txt', 'docs/FTL.TXT', 'NOTICE'],
+        'ISC_fileref':         ['LICENSE', 'NOTICE'],
+        'libjpeg_fileref':     ['README'],        
+        'jsimdext_fileref':    ['jsimdext.inc'],
         # Po files have some "same license as" boilerplate
-        'po_fileref':         ['COPYING', 'LICENSE', 'NOTICE']
+        'po_fileref':          ['COPYING', 'LICENSE', 'NOTICE']
     }
 
     # Unique

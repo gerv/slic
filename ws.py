@@ -7,10 +7,4 @@ import re
 
 def collapse(line):
     # Collapse whitespace
-    line = re.sub("\s+", " ", line)
-
-    # Strip leading and trailing whitespace
-    line = re.sub("^\s", "", line)
-    line = re.sub("\s$", "", line)
-    
-    return line
+    return re.sub("\s+", " ", line).strip()

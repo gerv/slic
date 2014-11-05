@@ -9,6 +9,8 @@ import config
 import unittest
 import os
 import re
+from detector import Detector
+from license_data import license_data
 
 class TestStringMunging(unittest.TestCase):
     def test_strip_comment_chars_1(self):
@@ -108,11 +110,12 @@ XXX
 
 class TestGetLicenseInfo(unittest.TestCase):
     def test_get_license_info(self):
+        detector = Detector(license_data)
         licenses = {}
         lic_hash = "34eb9c77640f88975eff1c6ed92b6317"
         filename = "test_data/main.cc"
         
-        licblock.get_license_info(filename, licenses)
+        licblock.get_license_info(filename, detector, licenses)
         self.assertEqual(len(licenses), 1)
         license = licenses.values()[0]
         self.assertIn('text', license)
@@ -128,6 +131,7 @@ class TestGetLicenseInfo(unittest.TestCase):
 
 class TestIdentification(unittest.TestCase):
     def test_identification(self):
+        detector = Detector(license_data)
         dir = os.path.join("test_data", "identification")
         # For each line
         for line in open(os.path.join(dir, "index.csv")):
@@ -140,7 +144,7 @@ class TestIdentification(unittest.TestCase):
 
             # Do identification
             licenses = {}
-            licblock.get_license_info(os.path.join(dir, filename), licenses)
+            licblock.get_license_info(os.path.join(dir, filename), detector, licenses)
 
             self.assertTrue(len(licenses) > 0,
                             msg="At least one license found")

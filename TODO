@@ -1,9 +1,8 @@
 Ideas:
 
-* Create test which checks license allocation for files
-* Create test corpus by pulling out two files with each license and checking by hand
-* Extract relic license allocator from rest of relic (mostly extracted already)
-* Use test suite to make sure I didn't break anything
+
+
+Issues:
 
 * Multiple BSD-like licenses in a file, e.g.
   How do we keep them separate?

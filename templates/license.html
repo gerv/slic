@@ -1,4 +1,4 @@
-{% set debug = 1 %}
+{% set debug = 0 %}
 
 {# Licenses we can safely explicitly ignore #}
 {# We use MPL 1.1 code under MPL 2. We check 'fileref's elsewhere. #}
@@ -15,7 +15,7 @@
                      '^none$',
                      '^OpenSSL_ref$',
                      '^PD$',
-                     '^PD_', 
+                     '^PD_',
                      '^Permissive',
                      '^SunRPC$',
                      '^WHATWG$',
@@ -37,20 +37,20 @@
                     '^curl',
                     '^EDLEPL',
                     '^FreeType',
-                    '^GPL20_BSD$', 
+                    '^GPL20_BSD$',
                     '^HPND',
                     '^ICU$',
-                    '^JPNIC', 
+                    '^JPNIC',
                     '^libjpeg',
-                    '^MIROS$', 
+                    '^MIROS$',
                     '^MIT',
                     '^NAIST$',
-                    '^NVidia$', 
+                    '^NVidia$',
                     '^OFL',
                     '^Python20$',
                     '^SGIB$',
                     '^Unicode',
-                    '^W3C', 
+                    '^W3C',
                     '^WebM',
 ] %}
 {# Add "suspicious" to repro_res to see list of files with unknown licenses #}
@@ -98,6 +98,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1">
   <meta charset="UTF-8">
   <title>Open Source Licensing Information</title>
   <style type="text/css">
@@ -178,7 +179,7 @@ over the past 30 years, without whose efforts this product would not exist.
                 {% endfor %}
                 </ul>
             {% endfor %}
-        {% endif %}        
+        {% endif %}
     {% endif %}
 {% endfor %}
 
@@ -204,7 +205,7 @@ licenses are reproduced below.</p>
 
 {% for tag in reproducibles %}
     {% set licenses = reproducibles[tag] %}
-    
+
     {%- if template_exists(tag + '.html') %}
         {# Combine copyright lines if we're only going to have one text #}
         {% set combined = {'files': [], 'copyrights': []} %}
@@ -214,13 +215,13 @@ licenses are reproduced below.</p>
         {% endfor %}
         {% set licenses = [combined] %}
     {% endif %}
-     
+
     {% for license in licenses %}
         <hr>
 
         {% if debug %}
             <h2>Tag: {{ tag }}</h2>
-        
+
             <ul>
             {% for file in license.files %}
                 <li>{{ file|e }}</li>
@@ -235,7 +236,7 @@ licenses are reproduced below.</p>
             {% endfor %}
             </ul>
         {% endif %}
-        
+
         <pre>
         {%- if template_exists(tag + '.html') %}
             {%- include tag + '.html' %}
@@ -258,14 +259,14 @@ licenses are reproduced below.</p>
         <ul>
         {% set licenses = proprietaries[tag] %}
         {% for license in licenses %}
-        
+
             {% for file in license.files %}
                 <li>{{ file|e }}</li>
             {% endfor %}
-        {% endfor %}      
+        {% endfor %}
         </ul>
     {% endfor %}
-    
+
     {% if licenses %}
         <h2>XXX Licenses Unaccounted-For XXX</h2>
         <ul>

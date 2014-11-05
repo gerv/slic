@@ -9,8 +9,8 @@
     slic - Speedy LIcense Checker.
 
     Usage:
-        slic [options...] [files...]
-        slic [options...] < files...
+        slic [options...] [filenames...]
+        slic [options...] < filenames...
 
     Options:
         -h, --help          dump this help and exit
@@ -18,6 +18,7 @@
         -v, --verbose       verbose output
         -d, --debug         more verbose output
         -j, --json          Output data as JSON
+        -c, --codebase=<cb> Name of codebase (gives .ini file to include)
 """
 
 import logging
@@ -36,10 +37,16 @@ import json
 
 import licblock
 import config
+import detector
+from license_data import license_data
 
 _version_ = (1, 0, 0)
 
-_textchars = bytearray([7,8,9,10,12,13,27]) + bytearray(range(0x20, 0x100))
+# Bytes which can be a part of valid text chars in 4-byte UTF-8.
+# http://en.wikipedia.org/wiki/UTF-8#Codepage_layout
+_textchars = bytearray([7,8,9,10,12,13,27]) + \
+             bytearray(range(0x20, 0xBF)) + \
+             bytearray(range(0xC2, 0xF4))
 
 _is_binary_string = lambda bytes: bool(bytes.translate(None, _textchars))
 
@@ -50,33 +57,6 @@ def _is_binary(filename):
     except IOError:
         log.warning("Can't open file '%s' to see if it's binary", filename)
         return True
-
-# Only does .cvsignore at the moment; not very useful
-# Also should keep track of fact that ignore file X does not exist  
-ignore_cache = {} # optimization: keep a cache of ignore file content
-def _should_skip_according_to_ignore_file(root, basename):
-    cvsignore = os.path.join(root, ".cvsignore")
-    if not os.path.exists(cvsignore):
-        return 0
-    elif cvsignore not in ignore_cache:
-        fin = open(cvsignore, 'r')
-        to_ignore = []
-        try:
-            for f in fin:
-                if f[-1] == "\n": f = f[:-1] # chomp
-                if not f: continue # skip empty lines
-                to_ignore.append(f)
-        finally:
-            fin.close()
-        ignore_cache[cvsignore] = to_ignore
-
-    # At this point .cvsignore exists and its contents are in the cache.
-    to_ignore = ignore_cache[cvsignore]
-    if basename in to_ignore:
-        return 1
-    else:
-        return 0
-
 
 backup_pattern = re.compile("~\d+$")
 def _should_skip_file(root, basename):
@@ -97,9 +77,6 @@ def _should_skip_file(root, basename):
     if backup_pattern.search(path):
         log.info("Skipping '%s' (looks like backup file).", path)
         return 1
-    if _should_skip_according_to_ignore_file(root, basename):
-        log.info("Skipping '%s' (according to ignore file).", path)
-        return 1
     if _is_binary(path):
         log.debug("Skipping '%s' (binary).", path)
         return 1
@@ -118,9 +95,6 @@ def _should_skip_dir(root, basename):
     if config.has_option("skip_dirs", path):
         log.info("Skipping '%s' (according to skip_dirs).", path)
         return 1    
-    if _should_skip_according_to_ignore_file(root, basename):
-        log.info("Skipping '%s' (according to ignore file).", path)
-        return 1
     
     return 0
 
@@ -130,8 +104,8 @@ def _should_skip_dir(root, basename):
 ###############################################################################
 def main(argv):
     try:
-        opts, args = getopt.getopt(argv[1:], "Vvhdj",
-            ["version", "verbose", "help", "debug", "json"])
+        opts, args = getopt.getopt(argv[1:], "Vvhdjc:",
+            ["version", "verbose", "help", "debug", "json", "codebase="])
     except getopt.GetoptError, ex:
         print str(ex)
         print "Try `%s --help'." % argv[0]
@@ -140,6 +114,7 @@ def main(argv):
         return 2
 
     output_json = 0
+    codebase = None
     for opt, optarg in opts:
         if opt in ("-h", "--help"):
             sys.stdout.write(__doc__)
@@ -154,7 +129,21 @@ def main(argv):
             log.setLevel(logging.DEBUG)
         elif opt in ("-j", "--json"):
             output_json = 1
+        elif opt in ("-c", "--codebase"):
+            codebase = optarg
 
+    # The base config file is slic.ini in the script's directory
+    scriptpath = os.path.realpath(sys.argv[0])
+    slicinipath = os.path.join(os.path.dirname(scriptpath), "slic.ini")
+    config.read([slicinipath])
+
+    # But you can also have a codebase-specific .ini file in the script's
+    # directory, specified using the --codebase/-c option.
+    if codebase:
+        cbininame = "%s.ini" % codebase
+        cbinipath = os.path.join(os.path.dirname(scriptpath), cbininame)
+        config.read([cbinipath])
+        
     # Prepare the input.
     if not args:
         log.debug("no given files, trying stdin")
@@ -163,6 +152,7 @@ def main(argv):
         paths = args
             
     results = {}
+    dtr = detector.Detector(license_data)
 
     for path in paths:
         log.debug("Doing path: %s" % path)
@@ -178,7 +168,7 @@ def main(argv):
             root, basename = os.path.split(path)
             if not _should_skip_file(root, basename):
                 log.debug("Top-level file given")
-                licblock.get_license_info(path, results)
+                licblock.get_license_info(path, dtr, results)
         else:
             root, basename = os.path.split(path)
             if _should_skip_dir(root, basename):
@@ -192,6 +182,7 @@ def main(argv):
                 for file in files:
                     if not _should_skip_file(root, file):
                         licblock.get_license_info(os.path.join(root, file),
+                                                  dtr,
                                                   results)
     
     # Switch from dict (keyed by text hash) back to straight list

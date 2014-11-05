@@ -24,7 +24,7 @@ log = logging.getLogger("slic")
 MAX_SCAN_LINE = 400
 
 # "results" is an accumulating result parameter
-def get_license_info(filename, results):
+def get_license_info(filename, detector, results):
     # It's possible to configure slic to look in a different place for the
     # license of a particular file (perhaps one it can't parse) 
     substitute = config.get_option("substitutes", filename)
@@ -35,9 +35,9 @@ def get_license_info(filename, results):
                                       "substitutes",
                                       substitute)
                                     
-        licenses = _get_licenses_for_file(substitute)
+        licenses = _get_licenses_for_file(substitute, detector)
     else:
-        licenses = _get_licenses_for_file(filename)
+        licenses = _get_licenses_for_file(filename, detector)
 
     for license in licenses:
         lic_key = license['tag']
@@ -62,7 +62,7 @@ def get_license_info(filename, results):
 # Find the license or licenses in a file. Returns a list of license objects.
 # The only guaranteed value in a license object is the 'tag', which may be
 # 'none'.
-def _get_licenses_for_file(filename):    
+def _get_licenses_for_file(filename, detector):    
     fin = open(filename, 'r')
     try:
         content = fin.read(MAX_SCAN_LINE * 80)

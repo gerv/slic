@@ -17,11 +17,11 @@ log = logging.getLogger("slic")
 
 config = ConfigParser.ConfigParser(allow_no_value=True)
 
-scriptpath = os.path.realpath(sys.argv[0])
-slicinipath = os.path.join(os.path.dirname(scriptpath), "slic.ini")
+# This is sadly necessary for nosetests to pass; an ini file is required
+config.read(['/usr/src/relic/slic.ini'])
 
-# The first of these is sadly necessary for nosetests to pass
-config.read(['/usr/src/relic/slic.ini', slicinipath, './slic.ini'])
+def read(files):
+    config.read(files)
 
 def get_option(section, option):
     retval = None
