@@ -62,7 +62,8 @@ class Detector(object):
             else:
                 self._flat_license_data[tag] = info
 
-            info['_parent'] = parent
+            if parent is not None:
+                info['_parent'] = parent
                 
             # Python regexp group names have to be identifiers, but we want
             # the freedom to use more characters than this in tags. So we
@@ -87,10 +88,6 @@ class Detector(object):
             if 'maxlines' not in info:
                 info['maxlines'] = DEFAULT_MAX_LINES_IN_LICENSE
 
-            # Recurse if necessary
-            if 'subs' in info:
-                self._preprocess(info['subs'], info)
-
         # Python "only supports 100 named capturing groups", although it seems
         # to have problems at 94... As our structure has more than this many
         # entries at the top level, we create a set of regexps and apply them
@@ -106,18 +103,32 @@ class Detector(object):
 
         license_data['_match_res'].append(re.compile("|".join(matches)))
 
+        for (tag, info) in license_data.iteritems():            
+            # Recurse if necessary
+            if 'subs' in info:
+                self._preprocess(info['subs'], info)
+
     def _fill_in_from_parent(self, info, key):
         """If a member is not present, find the nearest present value from
-        the parents.
+        the parents, or default to the 'match' member at the top level.
         """
+        retval = None
         pointer = info
-        while pointer and key not in pointer:
-            pointer = pointer['_parent']
+        
+        while pointer and retval is None:
+            if key in pointer:
+                retval = pointer[key]
+            else:
+                if '_parent' in pointer:
+                    pointer = pointer['_parent']
+                else:
+                    # Top level
+                    retval = re.compile(info['match'])
 
-        if pointer:
-            info[key] = pointer[key]
-        else:
-            info[key] = None
+        if retval is None:
+            log.warning("_fill_in_from_parent found None; info: %r" % info)
+            
+        info[key] = retval
 
     def id_license(self, comment):
         """Find all matching licenses in a particular comment. Entry function
