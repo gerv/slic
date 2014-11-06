@@ -214,6 +214,7 @@ def main():
 
     for occurrence in occurrences:
         tag = occurrence['tag']
+        log.debug("Tag: %s" % tag)
         if tag in bytag:
             bytag[tag].append(occurrence)
         else:
@@ -222,14 +223,12 @@ def main():
     # For some licenses, we have a specific set text and so even if small
     # variants are found, we choose to ignore them and amalgamate all the
     # files and copyright holders into a single entry
-    single_entry_licenses = ['BSD4Clause_RTFM', 'BSDProtection', 'FreeType_fulltext',
-                             'libjpeg', 'GPL20_BSD', 'MIROS', 'BSD3Clause_urlref',
-                             'W3C_urlref']
-    
-    for tag in bytag:
-        if tag not in single_entry_licenses:
-            continue
+    single_entry_licenses = ['BSD-4-Clause_RTFM', 'BSDProtection', 'FTL_fulltext',
+                             'IJG_urlref', 'BSD|GPL-2.0', 'MirOS', 'BSD-3-Clause_urlref',
+                             'W3C_urlref', 'MIT_urlref', 'BSL-1.0_urlref', ]
 
+    s_e_ls = pop_by_re(single_entry_licenses, bytag)
+    for tag, datalist in s_e_ls.iteritems():        
         log.info("Creating single entry for tag %s" % tag)
         license = {
             'tag': tag,
@@ -238,7 +237,7 @@ def main():
             'text': None,
         }
 
-        for data in bytag[tag]:
+        for data in datalist:
             license['copyrights'].extend(data['copyrights'])
             license['files'].extend(data['files'])
             license['text'] = data['text']
@@ -321,7 +320,7 @@ def main():
         for tag in bytag:
             if not re.search("^GPL", tag):
                 continue
-            if re.search("^GPLAny_withbison", tag):
+            if re.search("^GPL-1\.0\+-with-bison-exception", tag):
                 continue
                 
             for data in bytag[tag]:
@@ -344,8 +343,8 @@ def main():
         log.warning("Unable to resolve bisonexception for %s" % bisonfile)
         return False
 
-    if 'GPLAny_withbisonexception' in bytag:
-        for data in bytag['GPLAny_withbisonexception']:
+    if 'GPL-1.0+-with-bison-exception' in bytag:
+        for data in bytag['GPL-1.0+-with-bison-exception']:
             bisonfiles = data['files']
             for bisonfile in bisonfiles:
                 resolve_bison_exception(bisonfile)
@@ -359,22 +358,25 @@ def main():
     # filenames. It's always possible that the Android people will have renamed
     # the file to "NOTICE"...
     fileref_names = {
-        'copying_fileref':     ['COPYING', 'NOTICE'],
-        'copyright_fileref':   ['COPYRIGHT', 'NOTICE'],
-        'license_fileref':     ['LICENSE', 'NOTICE'],
-        'bzip2_fileref':       ['LICENSE', 'NOTICE'],
-        'BSD_fileref_xiph':    ['COPYING', 'NOTICE'],
+        'COPYING_fileref':     ['COPYING', 'NOTICE'],
+        'COPYING_fileref2':    ['COPYING', 'NOTICE'],
+        'COPYRIGHT_fileref':   ['COPYRIGHT', 'NOTICE'],
+        'LICENSE_fileref':     ['LICENSE', 'NOTICE'],
+        'bzip2-1.0.6_fileref': ['LICENSE', 'NOTICE'],
+        'BSD-3-Clause_fileref_xiph': ['COPYING', 'NOTICE'],
         'BSD_fileref':         ['LICENSE', 'NOTICE', 'README'],
         'BSD_fileref_2':       ['LICENSE.txt'], # sic
         'BSD_fileref_3':       ['README'],
         'MIT_fileref':         ['COPYING', 'NOTICE'],
         'MIT|GPL-2.0_fileref': ['MIT-LICENSE.txt', 'NOTICE'],
-        'FreeType_fileref':    ['LICENSE.txt', 'docs/FTL.TXT', 'NOTICE'],
+        'FTL_fileref':         ['LICENSE.txt', 'docs/FTL.TXT', 'NOTICE'],
         'ISC_fileref':         ['LICENSE', 'NOTICE'],
-        'libjpeg_fileref':     ['README'],        
+        'IJG_fileref':         ['README'],        
         'jsimdext_fileref':    ['jsimdext.inc'],
-        # Po files have some "same license as" boilerplate
-        'po_fileref':          ['COPYING', 'LICENSE', 'NOTICE']
+        # .po files have some "same license as" boilerplate
+        'po_fileref':          ['COPYING', 'LICENSE', 'NOTICE'],
+        'Zlib_fileref':        ['zlib.h'],
+        'Libpng_fileref':      ['png.h'],
     }
 
     # Unique
@@ -421,6 +423,7 @@ def main():
     fileref_problem_dirs = {}
 
     for tag in bytag:
+        log.debug("Still got tag %s" % tag)
         if not re.search("fileref", tag):
             continue
 

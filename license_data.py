@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
-##############################################################################
+###############################################################################
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
-##############################################################################
+###############################################################################
 
-##############################################################################
+###############################################################################
 # Data format
 #
 # Blocks are identified by tags, which are equal to or begin with SPDX license
@@ -45,13 +45,13 @@
 # occasionally unavoidable).
 #
 # The above algorithms are implemented by detector.py.
-##############################################################################
+###############################################################################
 
 license_data = {
 
-##############################################################################
+###############################################################################
 # MPL
-##############################################################################
+###############################################################################
 'MPL-1.1': {
     'start':  r"The contents of this (file|package) are subject to the",
     'match':  r"subject to the Mozilla Public License Version 1.1",
@@ -87,9 +87,9 @@ license_data = {
         },            
     }
 },
-##############################################################################
+###############################################################################
 # GPL
-##############################################################################
+###############################################################################
 'GPL-1.0+': {
     'start':  r"is free software" + \
               r"|This software is licensed under the terms of the GNU" + \
@@ -123,10 +123,16 @@ license_data = {
                     'match':  r"when this file is read by TeX",
                     'end':    r"Texinfo was invented"
                 },
+                # Version of BSD license not specified
                 'BSD|GPL-2.0': {
                     'start':  r"is free software; you can redistribute it",
                     'match':  r"BSD license",
                     'end':    r"See README and COPYING for more details"
+                },
+                'MIT|GPL-2.0': {
+                    'start':  r"is free software; you can redistribute it",
+                    'match':  r"Permission is hereby granted, free of charge",
+                    'end':    r"SOFTWARE"
                 },
                 'Ignore_MPL-1.1_3': {
                     # False positive for dual license
@@ -277,9 +283,9 @@ license_data = {
 'GPL-2.0_urlref': {
     'match':  r"Licensed under the GPL \(http://www\.gnu\.org/licenses/gpl.html\) license",
 },
-##############################################################################
+###############################################################################
 # LGPL
-##############################################################################
+###############################################################################
 'LGPL-1.0+': {
     'start':  r"This file (may|can)|is free software; you can redistribute it",
     'match':  r"(Lesser|Library) General Public License|LESSER GENERAL PUBLIC",
@@ -313,16 +319,16 @@ license_data = {
         }
     }
 },
-'LGPL_ref': {
+'LGPL-1.0+_ref': {
     'match':  r"This file is released under the LGPL\.?$",
 },
 'LGPL_glib_lookelsewhere': {
     # glib license is LGPL
     'match': r"This file is distributed under the same license as the glib package",
 },
-##############################################################################
+###############################################################################
 # Apache
-##############################################################################
+###############################################################################
 'Apache-2.0_urlref': {
     'match':  r"http://www.apache.org/licenses/LICENSE-2\.0",
     'subs': {
@@ -345,9 +351,9 @@ license_data = {
     'match':  r"Use of this source code is governed by the Apache License, Version 2\.0",
     'end':    r"See the COPYING file for details"
 },
-##############################################################################
+###############################################################################
 # HPND
-##############################################################################
+###############################################################################
 'HPND': {
     'start':  r"[Pp]ermission to use, copy, modify",
     'match':  r"[Pp]ermission to use, copy, modify,?(?: and(/or)?)? distribute",
@@ -375,9 +381,9 @@ license_data = {
     'match':  r"Permission to copy, use, modify, sell and distribute",
     'end':    r"suitability for any purpose",
 },
-##############################################################################
+###############################################################################
 # MIT
-##############################################################################
+###############################################################################
 'MIT': {
     'start':  r"Permission is hereby granted, " + \
               r"(?:free of charge|without written agreement)" + \
@@ -387,12 +393,12 @@ license_data = {
               r"|licensed under the MIT",
     'end':    r"SOFTWARE|copyright holder|OR MODIFICATIONS|MATERIALS",
     'subs': {
-        'MIT_GPL-2.0_urlref': { # jQuery
+        'MIT|GPL-2.0_urlref': { # jQuery
             'start': r"Dual licensed under the MIT",
             'match': r"Dual licensed under the MIT (and|or) GPL",
             'end':   r"jquery\.(com|org)/[Ll]icense|licenses\."
         },
-        'MIT_GPL-2.0_fileref': { # jQuery
+        'MIT|GPL-2.0_fileref': { # jQuery
             'start': r"Dual licensed under the MIT",
             'match': r"Dual licensed under the MIT \(MIT-LICENSE.txt\) and GPL",
             'end':   r"licenses"
@@ -400,7 +406,7 @@ license_data = {
         'MIT_BSD_hybrid': {
             'match': r"Redistributions? in binary form",
         },
-        'MIT_Boost': {
+        'BSL-1.0': {
             'start': r"Boost Software License",
             'match': r"Boost Software License",
         },
@@ -437,13 +443,13 @@ license_data = {
         },
     }
 },
-'Boost_urlref': {
+'BSL-1.0_urlref': {
     'match':  r"Distributed under the Boost Software License, Version 1\.0",
     'end':    r"http://www\.boost\.org/LICENSE_1_0\.txt",
 },
-##############################################################################
+###############################################################################
 # BSD
-##############################################################################
+###############################################################################
 'BSD-2-Clause': {
     'match':  r"Redistribution and use of this software" + \
               r"|Redistribution and use in source and",
@@ -457,15 +463,15 @@ license_data = {
                 'BSD-4-Clause': {
                     'match':  r"advertising materials",
                     'subs': {
-                        # For all of the following, the 4th clause is not 
-                        # a problem because it has been waived, either 
-                        # permanently or for our use of the code.
+                        # The 4th clause is not a problem because it has been
+                        # waived permanently
                         'BSD-4-Clause_UC': {
                             'match':  r"University of California",
                         },
                         'BSD-4-Clause_NetBSD': {
                             'match':  r"The NetBSD Foundation",
                         },
+                        # Waived for Mozilla code
                         'BSD-4-Clause_RTFM': {
                             'match':  r"RTFM, Inc",
                         },
@@ -478,7 +484,7 @@ license_data = {
                         },
                     }
                 },
-                'BSD_GPL': {
+                'BSD|GPL-1.0+': {
                     'match':  r"General Public License",
                     'end':    r"DAMAGE|damage|IN ANY WAY",
                 }
@@ -515,7 +521,7 @@ license_data = {
     'match': r"This software may be distributed under the terms of the BSD license",
     'end':   r"See README for more details"
 },
-'BSD_fileref_xiph': {
+'BSD-3-Clause_fileref_xiph': {
     'start': r"USE, DISTRIBUTION AND REPRODUCTION",
     'match': r"BSD-STYLE SOURCE LICENSE INCLUDED WITH",
     'end':   r"TERMS BEFORE DISTRIBUTING"
@@ -528,51 +534,55 @@ license_data = {
     'match': r"Licensed under the New BSD license",
     'end':   r"licenses/BSD-3-Clause"
 },
-'BSD_urlref_yui': {
+'BSD-3-Clause_urlref_yui': {
     'start': r"Code licensed under the BSD License",
     'match': r"http://developer\.yahoo\.com/yui/license\.html",
 },
-'BSD_urlref_paj': {
+'BSD-3-Clause_urlref_paj': {
     'start': r"Distributed under the BSD License",
     'match': r"See http://pajhome\.org\.uk/crypt/md5 for details",
     'end':   r"http://pajhome\.org\.uk/crypt/md5 for details"
 },
-'BSD_urlref_voidspace': {
+'BSD-3-Clause_urlref_voidspace': {
     'start': r"This software is licensed under the terms of the BSD license",
     'match': r"http://www\.voidspace\.org\.uk/python/license.shtml",
 },  
+'BSD-3-Clause_EDL_urlref': {
+    'start': r"This program and the accompanying materials",
+    'match': r"http://www\.eclipse\.org/org/documents/edl-v10\.html",
+},
 'BSD-Protection': {
     'match': r"BSD PROTECTION LICENSE",
     'end':   r"OF SUCH DAMAGES"
 },
-##############################################################################
+###############################################################################
 # Generic filerefs (i.e. filename does not define license)
-##############################################################################
-'copying_fileref': {
+###############################################################################
+'COPYING_fileref': {
     'match':  r"See the file COPYING for copying permission",
 },
-'copying_fileref2': {
+'COPYING_fileref2': {
     'start':  r"COPYING for licensing terms",
     'match':  r"See (\.\./)*COPYING for licensing terms",
     'end':    r"COPYING for licensing terms"
 
 },
-'copyright_fileref': {
+'COPYRIGHT_fileref': {
     'match':  r"See the accompanying file \"COPYRIGHT\" for",
     'end':    r"NO WARRANTY FOR THIS SOFTWARE"
 },
-'license_fileref': {
+'LICENSE_fileref': {
     'match':  r"See LICENSE for copying information",
 },
 'po_fileref': {
     'match':  r"This file is distributed under the same license as the .{0,20} package.",
 },
-##############################################################################
+###############################################################################
 # Permissive
 #
 # "Permissive" licenses are those which do not have text reproduction
 # requirements
-##############################################################################
+###############################################################################
 'Permissive_GNU1': {
     'match':  r"Copying and distribution of this file, with or without",
     'end':    r"notice are preserved"
@@ -604,20 +614,18 @@ license_data = {
     'match':  r"use\) and without fee",
     'end':    r"this code" 
 },
-##############################################################################
+###############################################################################
 # Other Non-Copyleft
-##############################################################################
+###############################################################################
 'AFL-2.1': {
     'match':  r"Licensed under the Academic Free License version 2.1",
 },
-# ICU has this very irritating habit of putting each line in a separate
-# block comment char...
 'ICU': {
     'start':  r"This software is made|ICU License",
     'match':  r"ICU License --? ICU",
     'end':    r"respective owners|and later"
 },
-'JPNIC': {
+'BSD-3-Clause_JPNIC': {
     'start':  r"The following License Terms and Conditions apply",
     'match':  r"The name of JPNIC may not be used",
     'end':    r"POSSIBILITY OF SUCH DAMAGES"
@@ -670,7 +678,7 @@ license_data = {
     'match': r"distribution and use, see copyright notice in zlib.h",
     'end':   r"notice in zlib.h"
 },
-'bzip2_fileref': {
+'bzip2-1.0.6_fileref': {
     'start': r"This program is released under the terms",
     'match': r"This program is released under the terms of the license contained in the file LICENSE.",
     'end':   r"the file LICENSE"
@@ -743,9 +751,9 @@ license_data = {
     'match': r"copy or modify Sun RPC without charge",
     'end':   r"possibility of such damages"
 },    
-##############################################################################
+###############################################################################
 # OFL
-##############################################################################
+###############################################################################
 'OFL-1.0': {
     'start':  r"This Font Software is licensed",
     'match':  r"SIL Open Font License, Version 1\.0",
@@ -756,9 +764,9 @@ license_data = {
     'match':  r"SIL Open Font License, Version 1\.1",
     'end':    r"IN THE FONT SOFTWARE"
 },
-##############################################################################
+###############################################################################
 # EPL
-##############################################################################
+###############################################################################
 'EPL-1.0': {
     'match': r"Licensed under the Eclipse Public License, Version 1\.0",
     'end':   r"under the License"
@@ -768,36 +776,32 @@ license_data = {
     'match': r"The Eclipse Foundation is the initial Agreement Steward",
     'end':   r"any resulting litigation"
 },
-'EDLEPL_urlref': {
-    'start': r"This program and the accompanying materials",
-    'match': r"http://www\.eclipse\.org/org/documents/edl-v10\.html",
-},
-##############################################################################
+###############################################################################
 # CPL
-##############################################################################
+###############################################################################
 'CPL-1.0': {
     'start': r"THE ACCOMPANYING PROGRAM|DEFINITIONS",
     'match': r"COMMON PUBLIC LICENSE",
     'end':   r"any resulting litigation"
 },
-##############################################################################
-# CC
-##############################################################################
+###############################################################################
+# CC (could expand this to capture version)
+###############################################################################
 'CC-BY': {
     'match': r"Creative Commons Attribution \d\.\d",
 },    
-##############################################################################
+###############################################################################
 # Public Domain
-##############################################################################
+###############################################################################
 'PD': {
     'match': r"[Pp]ublic [Dd]omain|PUBLIC DOMAIN",
     'end':   r"[Pp]ublic [Dd]omain|PUBLIC DOMAIN|conceived",
     'subs': {
-        'PD_CC0': {
+        'CC0-1.0': {
             'match': r"Any copyright is dedicated to the Public Domain",
             'end':   r"http://creativecommons\.org/(publicdomain/zero/1\.0|licenses/publicdomain)"
         },
-        'PD_CC0_2': {
+        'CC0-1.0_2': {
             'match': r"http://creativecommons\.org/(publicdomain/zero/1\.0|licenses/publicdomain)",
         },
         'PD_Peslyak': {
@@ -807,24 +811,24 @@ license_data = {
         }
     }
 },
-'PD_nocopyrightableinfo': {
+'PD_no-copyrightable-info': {
     'start': r"This header was automatically generated from",
     'match': r"no copyrightable information",
 },
-'PD_notcopyrightable': {
+'PD_not-copyrightable': {
     'match': r"Not copyrightable",
 },
-'PD_sqlite_blessing': {
+'PD_sqlite-blessing': {
     'start': r"The author disclaims copyright",
     'match': r"In place of a legal notice, here is a blessing",
     'end':   r"taking more than you give"
 },
-'PD_explicitlynocopyright': {
+'PD_explicitly-no-copyright': {
     'match': r"Explicitly no copyright\.",
 },
-##############################################################################
+###############################################################################
 # Proprietary
-##############################################################################
+###############################################################################
 'proprietary_TCL': {
     'start': r"This material is company confidential",
     'match': r"permission of TCL Communication",

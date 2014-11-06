@@ -1,17 +1,22 @@
-{% set debug = 0 %}
+{% set debug = 1 %}
 
 {# Licenses we can safely explicitly ignore #}
 {# We use MPL 1.1 code under MPL 2. We check 'fileref's elsewhere. #}
 {# CPL is excluded because the CPL code is in a directory we're not shipping,
    but it still gets detected because the Android people copied the CPL into
    a NOTICE file. Grr. #}
-{% set ignore_res = ['^BSD4ClauseWinning$',
-                     '^CCBY$',
-                     '^CPL10$',
+{% set ignore_res = ['autoconf-exception',
+                     '^BSD-4-Clause_Winning$',
+                     '^CC-BY$',
+                     '^CPL-1.0$',
                      'fileref',
-                     '^FreeType_fulltext$',
+                     '^FTL_fulltext$',
+                     '^IJG$',
+                     '^Libpng$',
+                     'libtool-exception',
                      'lookelsewhere$',
-                     '^MPL11',
+                     '^MIT_ref$',
+                     '^MPL-1.1',
                      '^none$',
                      '^OpenSSL_ref$',
                      '^PD$',
@@ -19,11 +24,7 @@
                      '^Permissive',
                      '^SunRPC$',
                      '^WHATWG$',
-                     '^zlib',
-                     '^MIT_ref$',
-                     'libtoolexception',
-                     'autoconfexception',
-                     '^libpng$',
+                     '^Zlib',
                      'suspicious',
                      'proprietary',
 ] %}
@@ -36,19 +37,17 @@
                     '^BSD',
                     '^curl',
                     '^EDLEPL',
-                    '^FreeType',
-                    '^GPL20_BSD$',
+                    '^FTL',
                     '^HPND',
                     '^ICU$',
-                    '^JPNIC',
                     '^libjpeg',
-                    '^MIROS$',
+                    '^MirOS$',
                     '^MIT',
                     '^NAIST$',
                     '^NVidia$',
                     '^OFL',
-                    '^Python20$',
-                    '^SGIB$',
+                    '^Python-2.0$',
+                    '^SGI-B-2.0$',
                     '^Unicode',
                     '^W3C',
                     '^WebM',
@@ -59,32 +58,32 @@
 
 {# Licenses which are called out by name at the top, in order #}
 {% set specials = [{
-        'tag':       'MPL20',
+        'tag':       'MPL-2.0',
         'title':     'Mozilla Public License 2.0',
     }, {
-        'tag':       'Apache20',
+        'tag':       'Apache-2.0',
         'title':     'Apache License 2.0',
     }, {
-        'tag':       '(LGPLAny|LGPL21|LGPL_ref)',
-        'template':  'LGPL21',
+        'tag':       '(LGPL-1.0+|LGPL-2.1|LGPL-1.0+_ref)',
+        'template':  'LGPL-2.1',
         'title':     'GNU Lesser General Public License 2.1',
         'showfiles': 1
     }, {
-        'tag':       '(GPLAny|GPL20)',
-        'template':  'GPL20',
+        'tag':       '(GPL-1.0+|GPL-2.0)',
+        'template':  'GPL-2.0',
         'title':     'GNU General Public License 2.0',
         'showfiles': 1
     }, {
-        'tag':       'GPL30$',
-        'template':  'GPL30',
+        'tag':       'GPL-3.0$',
+        'template':  'GPL-3.0',
         'title':     'GNU General Public License 3.0',
         'showfiles': 1
     }, {
-        'tag':       'CDDL10',
+        'tag':       'CDDL-1.0',
         'title':     'Common Development and Distribution License 1.0',
         'showfiles': 1
     }, {
-        'tag':       'EPL10',
+        'tag':       'EPL-1.0',
         'title':     'Eclipse Public License 1.0',
         'showfiles': 1
     }

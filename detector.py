@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-##############################################################################
+###############################################################################
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -10,7 +10,7 @@
 # The key API is "get_license_info", which takes a filename and returns
 # information about its license(s). Pass "details=True" in the params to get
 # details on the copyright lines and the license text itself.
-##############################################################################
+###############################################################################
 import re
 import ws
 import logging
