@@ -83,7 +83,7 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
         
         data1 = {
             'MPL-1.1': {
-                'start':  r"The contents of this file are subject to the",
+                'start':  r"The contents of this (file|package) are subject to the",
                 'match':  r"subject to the Mozilla Public License Version 1.1",
                 'end':    r"Contributor|All Rights Reserved|Initial Developer",
                 'subs': {
@@ -98,7 +98,7 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
         
         dtr = detector.Detector(license_data)        
         self.assertEqual(dtr._license_data['MPL-1.1']['start'], \
-                         r"The contents of this file are subject to the")
+                         r"The contents of this (file|package) are subject to the")
 
 
 if __name__ == '__main__':

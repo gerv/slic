@@ -28,7 +28,14 @@
 # Once a block has been identified as containing a particular license, you
 # search from the start for a line matching 'start', and from the end
 # for a line matching 'end', and take all the text in between. These are
-# matched against individual *unmodified* license lines.
+# matched against individual *unmodified* license lines. 'start' and 'end'
+# are both inherited; if a license definition doesn't have them, the ones from
+# the parent are used.
+#
+# A 'maxlines' entry allows you to give the maximum length for the license
+# text; this tries to avoid encompassing two much text when the end-detection
+# line could be matched more than once (e.g. in files which have multiple
+# license blocks in).
 #
 # A tag starting with "Cancel" will be removed from the matches; use this as
 # a last-ditch mechanism to grab and then eliminate false positives (which are
@@ -43,25 +50,21 @@ license_data = {
 # MPL
 ##############################################################################
 'MPL-1.1': {
-    'start':  r"The contents of this file are subject to the",
+    'start':  r"The contents of this (file|package) are subject to the",
     'match':  r"subject to the Mozilla Public License Version 1.1",
     'end':    r"Contributor|All Rights Reserved|Initial Developer",
     'subs': {
         'MPL-1.1|GPL-2.0|LGPL-2.1': { # Mozilla
-            'start':  r"The contents of this (file|package) are subject to the",
             'match':  r"either the GNU General",
             'end':    r"terms of any one of the MPL, the GPL or the LGPL"
         },            
         'MPL-1.1|GPL-2.0': {
-            'start':  r"The contents of this (file|package) are subject to the",
             'match':  r"GNU( General)? Public License version 2 \(the \"GPL\"\), in",
             'end':    r"either the MPL or the GPL"
         },            
         'Ignore_LGPL-2.1|MPL-2.0': {
             # False positive for Cairo license, detected elsewhere
-            'start':  "",
             'match':  r"You should have received a copy of the LGPL",
-            'end':    ""
         },            
     }
 },
@@ -76,7 +79,6 @@ license_data = {
             'end':    r"by the Mozilla Public License, v\. 2\.0"
         },            
         'MPL-2.0-no-copyleft-exception': {
-            'start':  r"Source Code Form [Ii]s subject to the terms of the Mozilla",
             'match':  r"Incompatible With Secondary Licenses",
             'end':    r"by the Mozilla Public License, v\. 2\.0"
         },            

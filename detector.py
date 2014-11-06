@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
-###############################################################################
+##############################################################################
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #
 # A module to detect licenses in blocks of text, and split them into their
 # component parts.
-###############################################################################
+##############################################################################
 import re
 import ws
 import logging
@@ -19,41 +19,61 @@ DEFAULT_MAX_LINES_IN_LICENSE = 50
 
 class Detector(object):    
     def __init__(self, license_data):
+        """Set up the class's internal data"""
         self._group_names_to_tags = {}
+        self._flat_license_data = {}
+        
         self._license_data = copy.deepcopy(license_data)
         self._preprocess(self._license_data, None)
+        
+        # Things to ignore on a line - not a copyright line, and not the
+        # license
+        self._cruft_re = re.compile("""Derived\ from
+                                       |Target\ configuration
+                                       |[Cc]ontributed\ by
+                                       |File:
+                                       |File\ speex
+                                       |Author:
+                                       |[Vv]ersion
+                                       |Written\ by
+                                       |Linux\ for
+                                       |You\ can\ look
+                                       """, re.VERBOSE)
 
-    # This does some sanity-checking, then caches compiled versions of all the
-    # regexps, either in the license data structure or the hashes just above.
     def _preprocess(self, license_data, parent):
+        """This function, called recursively, prepares the data structure the
+        detector will use. It does some sanity-checking, then caches compiled
+        versions of all the necessary regexps at the right point in the
+        structure.
+        """
         matches = []
+        
         for (tag, info) in license_data.iteritems():            
             if not tag:
-                raise Exception("Missing tag in license data struct")
+                raise Exception("Missing tag in license data")
 
             if re.match("_", tag):
-                from pprint import pformat
-                dta = pformat(license_data)
-                prnt = pformat(parent)
-                raise Exception("Hit tag %s starting with underscore; data: %s; parent: %s" % (tag, dta, prnt))
+                raise Exception("Hit tag %s starting with underscore" % tag)
+
+            # Bad things happen if we use the same name twice; detect this
+            # condition and bail so it can be fixed.
+            if tag in self._flat_license_data:
+                raise Exception("Duplicate tag %s in license data" % tag)
+            else:
+                self._flat_license_data[tag] = info
 
             info['_parent'] = parent
                 
-            # Python group names have to be identifiers, but we want the freedom
-            # to use more characters than this in tags. So we make a compatible
-            # group name, and have a hash to map back.
+            # Python regexp group names have to be identifiers, but we want
+            # the freedom to use more characters than this in tags. So we
+            # make a compatible group name, and have a hash to map back.
             groupname = re.sub("[^a-zA-Z0-9_]", "_", tag)
+            self._group_names_to_tags[groupname] = tag
             
-            # Bad things happen if we use the same name twice; detect this
-            # condition and bail so it can be fixed.
-            if groupname in self._group_names_to_tags:
-                print "%r" % self._group_names_to_tags
-                raise Exception("Duplicate groupname %s (from tag %s)" % (groupname, tag))
-            else:
-                self._group_names_to_tags[groupname] = tag
-
             matches.append("(?P<" + groupname + ">" + info['match'] + ")")
-        
+
+            # Compile or find the appropriate bits of data for determining
+            # the extent of the license block
             if 'start' in info:
                 info['_start_re'] = re.compile(info['start'])
             else:
@@ -66,18 +86,19 @@ class Detector(object):
                 
             if 'maxlines' not in info:
                 info['maxlines'] = DEFAULT_MAX_LINES_IN_LICENSE
-                
+
+            # Recurse if necessary
             if 'subs' in info:
-                print("Preprocessing subs of %s" % tag) 
                 self._preprocess(info['subs'], info)
-                print("Returning from preprocessing tag %s" % tag)
 
         # Python "only supports 100 named capturing groups", although it seems
-        # to have problems at 94...
+        # to have problems at 94... As our structure has more than this many
+        # entries at the top level, we create a set of regexps and apply them
+        # sequentially.
         grouplimit = 90
 
-        print "Setting _match_res on tag %s" % tag
         license_data['_match_res'] = []
+        
         while len(matches) > grouplimit:
             section = matches[:grouplimit]
             matches = matches[grouplimit:]
@@ -87,7 +108,8 @@ class Detector(object):
 
     def _fill_in_from_parent(self, info, key):
         """If a member is not present, find the nearest present value from
-           the parents"""
+        the parents.
+        """
         pointer = info
         while pointer and key not in pointer:
             pointer = pointer['_parent']
@@ -98,6 +120,9 @@ class Detector(object):
             info[key] = None
 
     def id_license(self, comment):
+        """Find all matching licenses in a particular comment. Entry function
+        for the recursively-called function below.
+        """
         retval = None
         
         linear_comment = " ".join(comment)
@@ -106,7 +131,8 @@ class Detector(object):
         tags = self._id_license_against(self._license_data, linear_comment)
 
         if len(tags):
-            retval = [tag for tag in tags.keys() if not tag.startswith("Ignore_")]
+            retval = [tag for tag in tags.keys()
+                                             if not tag.startswith("Ignore_")]
             retval.sort()
             log.warning("Found license(s): %s" % "/".join(retval))
         else:
@@ -115,11 +141,14 @@ class Detector(object):
         return retval
 
 
-    def _id_license_against(self, parts, comment):
+    def _id_license_against(self, license_data, comment):
+        """Recursive function to precisely identify all matching licenses in
+        a particular comment. Recurses to get more specific.
+        """
         tags = {}
         retval = None
 
-        for match_re in parts['_match_res']:
+        for match_re in license_data['_match_res']:
             match = match_re.search(comment)
             
             if match:
@@ -130,11 +159,12 @@ class Detector(object):
 
         for tag in tags.keys():
             log.debug("Found license %s" % tag)
-            if 'subs' in parts[tag]:
+            if 'subs' in license_data[tag]:
                 log.debug("Checking for sub-types")
-                newtags = self._id_license_against(parts[tag]['subs'], comment)
+                newtags = self._id_license_against(license_data[tag]['subs'],
+                                                   comment)
                 if len(newtags):
-                    log.debug("Overriding license %s with %r" % (tag, newtags))
+                    log.debug("Replacing license %s with %r" % (tag, newtags))
                     del tags[tag]
                     tags.update(newtags)
                 else:
@@ -142,26 +172,19 @@ class Detector(object):
             
         return tags
 
-
-    # Things to ignore on a line - not a copyright line, and not the license
-    cruft_re = re.compile("""Derived\ from
-                             |Target\ configuration
-                             |[Cc]ontributed\ by
-                             |File:
-                             |File\ speex
-                             |Author:
-                             |[Vv]ersion
-                             |Written\ by
-                             |Linux\ for
-                             |You\ can\ look
-                             """, re.VERBOSE)
-
     def extract_copyrights_and_license(self, text, tag):
+        """Given a comment (array of lines) and a license tag, find the
+        license text block corresponding to that license in the comment.
+        Also extract any copyright lines. The incoming comment text should
+        have already been stripped of comment markers.
+
+        Heuristics galore.
+        """
         license = []
         copyrights = []
         in_copyrights = False
         
-        info = self._license_data[tag]
+        info = self._flat_license_data[tag]
         
         start_line = -1
         end_line = -1    
@@ -176,11 +199,16 @@ class Detector(object):
                 in_copyrights = False
                 # If we break here, we only find copyrights written above the
                 # license. If we don't, we end up combining copyrights when
-                # there are multiple licenses in a file :-|
+                # there are multiple licenses in a file :-| No good option.
                 break
 
             log.debug("Line: %s" % line)
+            # This check is in two parts because the first check is a lot
+            # cheaper than the second
             if re.search("[Cc]opyright", line):
+                # The second half of the conditional attempts to catch the
+                # (erroneous) form where the person puts their name before
+                # the date or copyright symbol
                 if re.search("[Cc]opyright ?[\d\(©]", line) or \
                    re.search("[Cc]opyright.{0,50}?\d{4}", line):
                     log.debug("Copyright line: %s" % line)
@@ -194,18 +222,18 @@ class Detector(object):
                     # Blank line
                     in_copyrights = False
                 elif re.search("^\s*(\d{4}|©|\([Cc]\))", line): 
-                    log.debug("Another copyright line starting with year or symbol")
+                    log.debug("Another (C) line starting with year or symbol")
                     copyrights.append("Copyright " + line)
-                elif cruft_re.search(line): 
+                elif self._cruft_re.search(line): 
                     log.debug("Line with ignorable cruft")
                     in_copyrights = False
                 else:
-                    # Continuation line
+                    # Continuation line of previous copyright line
                     log.debug("CopyConti line: %s" % line)
                     copyrights[-1] = copyrights[-1] + " " + line
 
         if start_line == -1:
-            log.warning("Can't find start line for requested license '%s'!" % tag)
+            log.warning("Can't find start line for license '%s'!" % tag)
             return [], []
             
         # Find license end, starting from text end
@@ -218,17 +246,17 @@ class Detector(object):
                 end_line = i
                     
                 if (end_line - start_line < info['maxlines']):
-                    # If the license seems too long, keep looking in case there's
-                    # a nearer end line, otherwise break. This deals with files
-                    # where there's multiple copies of the license text, e.g.
-                    # concatenated files
+                    # If the license seems too long, keep looking in case
+                    # there's a nearer end line, otherwise break. This deals
+                    # with files where there's multiple copies of the license
+                    # text, e.g. concatenated files
                     break
         else:
             if end_line == -1:
-                log.warning("Can't find end line for requested license '%s'!" % tag)
+                log.warning("Can't find end line for license '%s'!" % tag)
                 end_line = len(text)
 
-        log.debug("License extends from line %i to %i" % (start_line, end_line))
+        log.debug("License extent: line %i to %i" % (start_line, end_line))
         license = text[start_line:end_line + 1]
 
         license    = self._remove_initial_rubbish(license)
@@ -236,22 +264,27 @@ class Detector(object):
         
         return copyrights, license
 
-
     def _remove_initial_rubbish(self, comment):
-        # Can't just remove all leading whitespace line-by-line as that can mess 
-        # up formatting. However, we can remove any common prefix of whitespace or
-        # random rubbish. For the moment, take off whatever's on the first line.
+        """While comment chars have been removed, some license blocks still
+        have repeated cruft at the start of the line (often a different
+        type of comment char. Or they have leading whitespace.
+        
+        We can't just remove all leading whitespace line-by-line as that can
+        mess up formatting. However, we can remove any common prefix of
+        whitespace or random rubbish. For the moment, take whatever's on
+        the first line off every line.
+        """
         if not comment:
             return comment
         
         match = re.search("^([\s\*#\-/]+)", comment[0])
         if match:
             rubbish = match.group(0)
+            # Last char is made optional; it can be pre-text whitespace which
+            # doesn't appear on blank lines
+            rubbish_re = re.compile("^" + re.escape(rubbish) + "?")
+
             for i in range(len(comment)):
-                # Last char is made optional; it can be pre-text whitespace which
-                # doesn't appear on blank lines
-                comment[i] = re.sub("^" + re.escape(rubbish) + "?",
-                                    "",
-                                    comment[i])
+                comment[i] = re.sub(rubbish_re, "", comment[i])
 
         return comment
