@@ -20,6 +20,10 @@
         -d, --debug         more verbose output
         -j, --json          Output data as JSON
         -c, --codebase=<cb> Name of codebase (gives .ini file to include)
+
+    slic is configured by slic.ini, but you can also add additional codebase-
+    specific config files by calling them e.g. foo.ini and using
+    --codebase=foo.
 """
 
 import logging
@@ -41,7 +45,7 @@ import config
 import detector
 from license_data import license_data
 
-_version_ = (1, 0, 0)
+_version_ = (1, 1, 0)
 
 # Bytes which can be a part of valid text chars in 4-byte UTF-8.
 # http://en.wikipedia.org/wiki/UTF-8#Codepage_layout
@@ -54,7 +58,12 @@ _is_binary_string = lambda bytes: bool(bytes.translate(None, _textchars))
 # Stack Overflow 898669
 def _is_binary(filename):
     try:
-        return _is_binary_string(open(filename, 'rb').read(1024))
+        data = open(filename, 'rb').read(1024)
+        if not data:
+            # 0-byte file: ignore
+            return True
+        else:
+            return _is_binary_string(data)
     except IOError:
         log.warning("Can't open file '%s' to see if it's binary", filename)
         return True
@@ -101,125 +110,6 @@ def _should_skip_dir(root, basename):
     return 0
 
 
-###############################################################################
-# Main function
-###############################################################################
-def main(argv):
-    try:
-        opts, args = getopt.getopt(argv[1:], "Vvhdjc:",
-                  ["version", "verbose", "help", "debug", "json", "codebase="])
-    except getopt.GetoptError, ex:
-        print str(ex)
-        print "Try `%s --help'." % argv[0]
-        log.error(str(ex))
-        log.error("Try `%s --help'." % argv[0])
-        return 2
-
-    output_json = 0
-    codebase = None
-    for opt, optarg in opts:
-        if opt in ("-h", "--help"):
-            sys.stdout.write(__doc__)
-            return
-        elif opt in ("-V", "--version"):
-            ver = '.'.join([str(part) for part in _version_])
-            print "slic %s" % ver
-            return
-        elif opt in ("-v", "--verbose"):
-            log.setLevel(logging.INFO)
-        elif opt in ("-d", "--debug"):
-            log.setLevel(logging.DEBUG)
-        elif opt in ("-j", "--json"):
-            output_json = 1
-        elif opt in ("-c", "--codebase"):
-            codebase = optarg
-
-    # The base config file is slic.ini in the script's directory
-    scriptpath = os.path.realpath(sys.argv[0])
-    slicinipath = os.path.join(os.path.dirname(scriptpath), "slic.ini")
-    config.read([slicinipath])
-
-    # But you can also have a codebase-specific .ini file in the script's
-    # directory, specified using the --codebase/-c option.
-    if codebase:
-        cbininame = "%s.ini" % codebase
-        cbinipath = os.path.join(os.path.dirname(scriptpath), cbininame)
-        config.read([cbinipath])
-        
-    # Prepare the input.
-    if not args:
-        log.debug("no given files, trying stdin")
-        paths = sys.stdin
-    else:
-        paths = args
-            
-    results = {}
-    dtr = detector.Detector(license_data, {'details': True})
-
-    for path in paths:
-        log.debug("Doing path: %s" % path)
-        if path[-1] == "\n": path = path[:-1] # chomp if 'paths' is a stream
-
-        # Comments and blank lines if we use a streamed file
-        if not path or re.match("^\s*#", path):
-            continue
-            
-        path = os.path.normpath(path)
-        
-        if os.path.isfile(path):
-            root, basename = os.path.split(path)
-            if not _should_skip_file(root, basename):
-                log.debug("Top-level file given")
-                get_license_info(path, dtr, results)
-        else:
-            root, basename = os.path.split(path)
-            if _should_skip_dir(root, basename):
-                continue
-
-            for root, dirs, files in os.walk(path):
-                # Avoid modify-in-place leading to off-by-one errors
-                # Stack Overflow 1207406
-                dirs[:] = [dir for dir in dirs if not _should_skip_dir(root, dir)]
-
-                for file in files:
-                    if not _should_skip_file(root, file):
-                        get_license_info(os.path.join(root, file),
-                                         dtr,
-                                         results)
-    
-    # Switch from dict (keyed by text hash) back to straight list
-    licenses = results.values()
-        
-    # Switch copyrights from de-deduplicating hash back to straight list
-    for license in licenses:
-        if 'copyrights' in license:
-            license['copyrights'] = license['copyrights'].keys()
-
-    if output_json:
-        print json.dumps(licenses, indent=2)
-    else:
-        # Sort by tag
-        licenses = sorted(licenses, key=lambda k: k['tag'])
-
-        for license in licenses:
-            print "-" * 60
-            print license['tag']
-            
-            if 'files' in license:
-                license['files'].sort()
-                for filename in license['files']:
-                    print filename
-                print
-                
-            if 'copyrights' in license:
-                for copyright in license['copyrights']:
-                    print copyright
-                print
-
-            print "\n".join(license['text'])
-            print
-
-
 # "results" is an accumulating result parameter
 def get_license_info(filename, dtr, results):
     # It's possible to configure slic to look in a different place for the
@@ -256,8 +146,8 @@ def get_license_info(filename, dtr, results):
     return
 
 
-# Function to remove false positive differences from a thing or array and
-# then return a unique identifier for it
+# Function to remove false positive differences from a string or array of
+# strings and then return a unique identifier for it
 def make_hash(thing):
     if type(thing) == str:
         thing = [thing]
@@ -272,6 +162,132 @@ def make_hash(thing):
 
     return hash
 
+
+###############################################################################
+# Main function
+###############################################################################
+def main(argv):
+    try:
+        opts, args = getopt.getopt(argv[1:], "VvhdDjc:", ["version", "verbose",
+                                                          "help", "debug",
+                                                          "details", "json",
+                                                          "codebase="])
+    except getopt.GetoptError, ex:
+        print str(ex)
+        print "Try `%s --help'." % argv[0]
+        log.error(str(ex))
+        log.error("Try `%s --help'." % argv[0])
+        return 2
+
+    output_json = False
+    details = False
+    codebase = None
+    for opt, optarg in opts:
+        if   opt in ("-h", "--help"):
+            sys.stdout.write(__doc__)
+            return
+        elif opt in ("-V", "--version"):
+            ver = '.'.join([str(part) for part in _version_])
+            print "slic %s" % ver
+            return
+        elif opt in ("-v", "--verbose"):
+            log.setLevel(logging.INFO)
+        elif opt in ("-d", "--debug"):
+            log.setLevel(logging.DEBUG)
+        elif opt in ("-j", "--json"):
+            output_json = True
+        elif opt in ("-D", "--details"):
+            details = True
+        elif opt in ("-c", "--codebase"):
+            codebase = optarg
+
+    # The base config file is slic.ini in the script's directory
+    scriptpath = os.path.realpath(sys.argv[0])
+    slicinipath = os.path.join(os.path.dirname(scriptpath), "slic.ini")
+    config.read([slicinipath])
+
+    # But you can also have a codebase-specific .ini file in the script's
+    # directory, specified using the --codebase/-c option.
+    if codebase:
+        cbininame = "%s.ini" % codebase
+        cbinipath = os.path.join(os.path.dirname(scriptpath), cbininame)
+        config.read([cbinipath])
+        
+    # Prepare the input.
+    if not args:
+        log.debug("no given files, trying stdin")
+        paths = sys.stdin
+    else:
+        paths = args
+            
+    results = {}
+    dtr = detector.Detector(license_data, {'details': details})
+
+    for path in paths:
+        log.debug("Doing path: %s" % path)
+        if path[-1] == "\n": path = path[:-1] # chomp if 'paths' is a stream
+
+        # Comments and blank lines if we use a streamed file
+        if not path or re.match("^\s*#", path):
+            continue
+            
+        path = os.path.normpath(path)
+        
+        if os.path.isfile(path):
+            root, basename = os.path.split(path)
+            if not _should_skip_file(root, basename):
+                log.debug("Top-level file given")
+                get_license_info(path, dtr, results)
+        else:
+            root, basename = os.path.split(path)
+            if _should_skip_dir(root, basename):
+                continue
+
+            for root, dirs, files in os.walk(path):
+                # Avoid modify-in-place leading to off-by-one errors
+                # Stack Overflow 1207406
+                dirs[:] = [dir for dir in dirs \
+                                            if not _should_skip_dir(root, dir)]
+
+                for file in files:
+                    if not _should_skip_file(root, file):
+                        get_license_info(os.path.join(root, file),
+                                         dtr,
+                                         results)
+    
+    # Switch from dict (keyed by text hash) back to straight list
+    licenses = results.values()
+        
+    # Switch copyrights from de-deduplicating hash back to straight list
+    for license in licenses:
+        if 'copyrights' in license:
+            license['copyrights'] = license['copyrights'].keys()
+
+    if output_json:
+        print json.dumps(licenses, indent=2)
+    else:
+        # Sort by tag
+        licenses = sorted(licenses, key=lambda k: k['tag'])
+
+        for license in licenses:
+            print "-" * 60
+            print license['tag']
+            
+            if 'files' in license:
+                license['files'].sort()
+                for filename in license['files']:
+                    print filename
+                print
+                
+            if 'copyrights' in license:
+                for copyright in license['copyrights']:
+                    print copyright
+                print
+
+            if 'text' in license:
+                print "\n".join(license['text'])
+                print
+            
 
 if __name__ == "__main__":
     sys.exit(main(sys.argv))

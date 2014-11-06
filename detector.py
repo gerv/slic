@@ -381,7 +381,7 @@ class Detector(object):
             retval = [tag for tag in tags.keys()
                                              if not tag.startswith("Ignore_")]
             retval.sort()
-            log.warning("Found license(s): %s" % "/".join(retval))
+            log.info("Found license(s): %s" % "/".join(retval))
         else:
             log.debug("No license found in comment")
             
