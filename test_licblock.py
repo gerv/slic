@@ -4,34 +4,37 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 ###############################################################################
-import licblock
 import config
-import unittest
 import os
 import re
+
+import nose
+from nose.tools import *
+
+import licblock
 from detector import Detector
 from license_data import license_data
 
-class TestStringMunging(unittest.TestCase):
+class TestStringMunging():
     def test_strip_comment_chars_1(self):
         result = licblock.strip_comment_chars(["# Foo", "# Bar"], ['#'])
-        self.assertEqual(result, ["Foo", "Bar"])
+        assert_equal(result, ["Foo", "Bar"])
 
         result = licblock.strip_comment_chars(["# Foo", "  #  Bar"], ['#'])
-        self.assertEqual(result, ["Foo", " Bar"])
+        assert_equal(result, ["Foo", " Bar"])
         
     def test_strip_comment_chars_3(self):
         result = licblock.strip_comment_chars(["/* Foo", "* Bar", "* Baz */"], ['/*', '*', '*/'])
-        self.assertEqual(result, ["Foo", "Bar", "Baz"])
+        assert_equal(result, ["Foo", "Bar", "Baz"])
          
         result = licblock.strip_comment_chars(["/* Foo", "* Bar", "*/"], ['/*', '*', '*/'])
-        self.assertEqual(result, ["Foo", "Bar", ""])
+        assert_equal(result, ["Foo", "Bar", ""])
 
         result = licblock.strip_comment_chars(["/* **** Foo ****", "* Bar", "*/"], ['/*', '*', '*/'])
-        self.assertEqual(result, ["**** Foo ****", "Bar", ""])
+        assert_equal(result, ["**** Foo ****", "Bar", ""])
 
 
-class TestCommentFinding(unittest.TestCase):
+class TestCommentFinding():
     def setUp(self):
         self.blocks = [{
             'delims':  ['#'],
@@ -104,11 +107,11 @@ XXX
             for result1, result2 in results:
                 (start_line, end_line) = \
                       licblock.find_next_comment(end_line, string, delims)
-                self.assertEqual(start_line, result1)
-                self.assertEqual(end_line, result2)
+                assert_equal(start_line, result1)
+                assert_equal(end_line, result2)
 
 
-class TestGetLicenseInfo(unittest.TestCase):
+class TestGetLicenseInfo():
     def test_get_license_info(self):
         detector = Detector(license_data)
         licenses = {}
@@ -116,58 +119,18 @@ class TestGetLicenseInfo(unittest.TestCase):
         filename = "test_data/main.cc"
         
         licblock.get_license_info(filename, detector, licenses)
-        self.assertEqual(len(licenses), 1)
+        assert_equal(len(licenses), 1)
         license = licenses.values()[0]
-        self.assertIn('text', license)
+        assert_in('text', license)
         text = license['text']
-        self.assertRegexpMatches(text[0], '^Permission is hereby granted')
-        self.assertIn('copyrights', license)
+        assert_regexp_matches(text[0], '^Permission is hereby granted')
+        assert_in('copyrights', license)
         
         copyrights = license['copyrights']
-        self.assertEqual(len(copyrights), 1)
+        assert_equal(len(copyrights), 1)
         copyright = copyrights.keys()[0]
-        self.assertEqual(copyright, u"Copyright \xa9 2007,2008,2009 Red Hat, Inc.")
+        assert_equal(copyright, u"Copyright \xa9 2007,2008,2009 Red Hat, Inc.")
 
 
-class TestIdentification(unittest.TestCase):
-    def test_identification(self):
-        detector = Detector(license_data)
-        dir = os.path.join("test_data", "identification")
-        # For each line
-        for line in open(os.path.join(dir, "index.csv")):
-            line = line.strip()
-            if line == '':
-                continue
-
-            # Split "CSV" file into parts using naive parsing
-            filename, tag, textlength, copyrightlength, tmp = line.split(',')
-
-            # Do identification
-            licenses = {}
-            licblock.get_license_info(os.path.join(dir, filename), detector, licenses)
-
-            self.assertTrue(len(licenses) > 0,
-                            msg="At least one license found")
-            
-            licenses = sorted(licenses.values(), key=lambda k: k['tag'])
-            
-            # Check metadata matches for first license found (alphabetical)
-            result = licenses[0]
-            self.assertEqual(result['tag'], tag)
-
-            if 'text' in result:
-                self.assertEqual(len(result['text']), int(textlength))
-            else:
-                self.assertEqual(0,
-                                 int(textlength),
-                                 msg="Text length zero for %s" % filename)
-
-            if 'copyrights' in result:
-                self.assertEqual(len(result['copyrights']), int(copyrightlength))
-            else:
-                self.assertEqual(0,
-                                 int(copyrightlength),
-                                 msg="Copyright length zero for %s" % filename)
-                
 if __name__ == '__main__':
     unittest.main()

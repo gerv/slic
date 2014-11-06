@@ -4,26 +4,28 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 ###############################################################################
-import ws
-import unittest
+import nose
+from nose.tools import *
 
-class TestCollapse(unittest.TestCase):
+import ws
+
+class TestCollapse():
     def test_collapse(self):
         result = ws.collapse("   ")
-        self.assertEqual(result, "")
+        assert_equal(result, "")
 
         result = ws.collapse("  foo")
-        self.assertEqual(result, "foo")
+        assert_equal(result, "foo")
 
         result = ws.collapse("foo   ")
-        self.assertEqual(result, "foo")
+        assert_equal(result, "foo")
 
         result = ws.collapse("  foo    bar  ")
-        self.assertEqual(result, "foo bar")
+        assert_equal(result, "foo bar")
 
         result = ws.collapse("foo\t\nbar\r")
-        self.assertEqual(result, "foo bar")
+        assert_equal(result, "foo bar")
 
 
 if __name__ == '__main__':
-    unittest.main()
+    nose.main()
