@@ -12,19 +12,26 @@ import ws
 import logging
 import copy
 
+import ws
+import config
+
 logging.basicConfig(filename="slic.log")
 log = logging.getLogger("slic")
 
 DEFAULT_MAX_LINES_IN_LICENSE = 50
+# This number is fairly performance-sensitive
+MAX_SCAN_LINE = 400
 
 class Detector(object):    
-    def __init__(self, license_data):
+    def __init__(self, license_data, params={}):
         """Set up the class's internal data"""
         self._group_names_to_tags = {}
         self._flat_license_data = {}
         
         self._license_data = copy.deepcopy(license_data)
         self._preprocess(self._license_data, None)
+
+        self._details = params.get('details', False)
         
         # Things to ignore on a line - not a copyright line, and not the
         # license
@@ -130,7 +137,227 @@ class Detector(object):
             
         info[key] = retval
 
-    def id_license(self, comment):
+    # Find the license or licenses in a file. Returns a list of license 
+    # objects. The only guaranteed value in a license object is the 'tag', 
+    # which may be 'none'.
+    def get_license_info(self, filename):    
+        fin = open(filename, 'r')
+        try:
+            content = fin.read(MAX_SCAN_LINE * 80)
+        finally:
+            fin.close()
+
+        try:
+            content = content.decode('utf-8')
+        except UnicodeDecodeError:
+            content = content.decode('iso-8859-1')
+
+        log.info("Processing: %s", filename)
+        
+        licenses = []
+
+        # Get comment delimiter info for this file.
+        comment_delim_sets = config.get_delims(filename)
+        
+        if not comment_delim_sets:
+            # We can't handle this type of file
+            log.warning("No comment delimiters for file %s" % filename)
+            return []
+
+        lines = content.splitlines()
+                
+        for delims in comment_delim_sets:        
+            log.debug("Trying delims: %r", delims)
+            start_line = 0
+            end_line = 0
+            
+            while start_line < MAX_SCAN_LINE:
+                if delims[0] == '':
+                    comment = lines
+                else:
+                    (start_line, end_line) = self._find_next_comment(end_line,
+                                                                     lines,
+                                                                     delims)
+                    if start_line == -1:
+                        # No more comments; try next delim
+                        break
+
+                    comment = lines[start_line:end_line]
+                    comment = self._strip_comment_chars(comment, delims)
+                
+                # We have a comment - is it a license block?
+                tags = self._find_license(comment)
+
+                if tags is not None:
+                    # It is.
+                    for tag in tags:
+                        license = {
+                            'tag': tag
+                        }
+                        
+                        if self._details:
+                            # Store away the info about the license for this
+                            # file
+                            (copyrights, text) = \
+                                 self._find_details(comment, tag)
+                            copyrights = \
+                                      self._canonicalize_copyrights(copyrights)
+
+                            copyrights_dict = {}
+                            for c in copyrights:
+                                copyrights_dict[c] = 1
+
+                            license['copyrights'] = copyrights_dict
+                            license['text'] = text
+                        
+                        licenses.append(license)                
+
+                if delims[0] == '':
+                    # We did the whole file in one go; try next delim
+                    break
+
+            if licenses:
+                # Once we found at least one license, we assume all licenses
+                # use the same delim, so we stop
+                break
+
+        if not licenses:
+            # We also note if a comment is "suspicious" - in other words,
+            # if we don't detect a license but there is a suspicious
+            # comment, it suggests we should check the file by hand to 
+            # see if our script needs improving.
+            #
+            # There are a lot of files which are Copyright AOSP and nothing
+            # else. The distinction made here is so we can eliminate false
+            # positives for suspicion.
+            tag = "none"
+            
+            if re.search("[Cc]opyright", content):
+                tag = "suspiciousCopyright"
+                
+                if re.search("Copyright[\d\s,\(chC\)-]+The Android Open Sourc",
+                             content):
+                    tag = "suspiciousAndroid"
+                # Things more likely to have an actual license text
+                elif re.search("[Ll]icen[cs]e|[Pp]ermi(t|ssion)|[Rr]edistribu",
+                             content):
+                    tag = "suspiciousLicensey"
+            
+            licenses.append({
+                'tag': tag,
+            })                
+                    
+        return licenses
+
+    # Returns the first line which is part of the next comment in the block,
+    # and the first line which is not (which can therefore be fed straight back
+    # in as the new starting_from value). Returns start_line of -1 if no
+    # further comment found.
+    def _find_next_comment(self, starting_from, lines, delims):
+        end_line   = starting_from
+        start_line = -1
+        
+        start_re = re.compile("^\s*%s" % re.escape(delims[0]))
+        invert_end = False
+        
+        if len(delims) == 3:
+            end_re = re.compile(re.escape(delims[2]))             
+        elif len(delims) == 1:
+            # This regexp actually looks for lines which _are_ in the comment,
+            # because negative lookahead assertions are 2x slower. Hence the
+            # need for result inversion.
+            end_re = re.compile("^\s*(%s|$)" % re.escape(delims[0]))
+            invert_end = True
+
+        # Find start
+        for i in range(starting_from, len(lines)):
+            match = start_re.search(lines[i])
+            if match:
+                start_line = i
+                log.debug("Found start line: %i", i)
+                break
+
+        # No more comments
+        if start_line == -1:
+            log.debug("No start line found - EOF")
+            return -1, None
+
+        # Find end
+        found_end = False
+        # Begin on the same line to account for single-line /* */
+        for i in range(start_line, len(lines)):
+            match = end_re.search(lines[i])
+            end_line = i
+            
+            if invert_end:
+                match = not match
+            
+            if match:
+                log.debug("Found end line: %i", end_line)
+                found_end = True
+                break
+
+        if start_line == end_line and len(delims) == 3:
+            # Single-line comment of /* */ type. There could be a set of them
+            # Fast forward and see
+            while len(lines) > end_line + 1 and \
+                  start_re.search(lines[end_line + 1]) and \
+                  end_re.search(lines[end_line + 1]):
+                end_line = end_line + 1
+
+        if len(delims) == 3 or \
+           (len(delims) == 1 and not found_end):
+            # In these two cases, we are actually on the last comment line
+            # so...
+            log.debug("Adding 1 to end_line")
+            end_line += 1
+
+        assert start_line != end_line
+        
+        return start_line, end_line
+
+    def _canonicalize_copyrights(self, copyrights):
+        # Clean up individual lines
+        for i in range(len(copyrights)):
+            copyrights[i] = ws.collapse(copyrights[i])
+            # Remove end cruft
+            copyrights[i] = re.sub("[\*#\s/]+$", "", copyrights[i])
+        
+        return copyrights
+
+    def _strip_comment_chars(self, comment, delims):
+        prefix = delims[0]
+        if len(delims) == 3:
+            cont   = delims[1]
+            suffix = delims[2]
+        elif len(delims) == 1:
+            cont   = delims[0]
+            suffix = None
+        else:
+            raise Error("Invalid delimiter length in delims: %s" % delims)
+            
+        # Strip prefix
+        prefix_re = re.compile("^\s*%s\s?" % re.escape(prefix))
+        comment[0] = re.sub(prefix_re, "", comment[0])
+
+        # Strip suffix
+        if suffix:
+            suffix_re = re.compile("\s*%s" % re.escape(suffix))
+            comment[-1] = re.sub(suffix_re, "", comment[-1])
+
+        # Allow multiple occurrences of cont char or last cont char
+        cont_re = re.compile("^\s*%s+\s?" % re.escape(cont))
+        for i in range(1, len(comment)):
+            # Strip continuation char
+            comment[i] = re.sub(cont_re, "", comment[i])
+            # Strip trailing whitespace and cruft
+            # (Also */ terminators from comments where each line is a single
+            # "multi-line" comment)
+            comment[i] = re.sub("[\*\/#\s]*$", "", comment[i])
+
+        return comment
+
+    def _find_license(self, comment):
         """Find all matching licenses in a particular comment. Entry function
         for the recursively-called function below.
         """
@@ -139,7 +366,7 @@ class Detector(object):
         linear_comment = " ".join(comment)
         linear_comment = ws.collapse(linear_comment)
 
-        tags = self._id_license_against(self._license_data, linear_comment)
+        tags = self._find_license_against(self._license_data, linear_comment)
 
         if len(tags):
             retval = [tag for tag in tags.keys()
@@ -152,7 +379,7 @@ class Detector(object):
         return retval
 
 
-    def _id_license_against(self, license_data, comment):
+    def _find_license_against(self, license_data, comment):
         """Recursive function to precisely identify all matching licenses in
         a particular comment. Recurses to get more specific.
         """
@@ -172,7 +399,7 @@ class Detector(object):
             log.debug("Found license %s" % tag)
             if 'subs' in license_data[tag]:
                 log.debug("Checking for sub-types")
-                newtags = self._id_license_against(license_data[tag]['subs'],
+                newtags = self._find_license_against(license_data[tag]['subs'],
                                                    comment)
                 if len(newtags):
                     log.debug("Replacing license %s with %r" % (tag, newtags))
@@ -183,7 +410,7 @@ class Detector(object):
             
         return tags
 
-    def extract_copyrights_and_license(self, text, tag):
+    def _find_details(self, text, tag):
         """Given a comment (array of lines) and a license tag, find the
         license text block corresponding to that license in the comment.
         Also extract any copyright lines. The incoming comment text should

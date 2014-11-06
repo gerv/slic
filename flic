@@ -6,6 +6,20 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 ###############################################################################
 
+"""
+     flic - Format LICences.
+
+    Usage:
+        flic --input [input file] --template [template file] > [output file]
+
+    Options:
+        --template  Name the template to use (in templates/ directory)
+        --input     Give the input JSON file (output of slic)
+
+    This script is very specific to the needs of generating the license info
+    from the B2G codebase for Firefox OS.
+"""
+
 import sys
 import re
 import json
