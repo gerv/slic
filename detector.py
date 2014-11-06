@@ -6,6 +6,10 @@
 #
 # A module to detect licenses in blocks of text, and split them into their
 # component parts.
+#
+# The key API is "get_license_info", which takes a filename and returns
+# information about its license(s). Pass "details=True" in the params to get
+# details on the copyright lines and the license text itself.
 ##############################################################################
 import re
 import ws
@@ -137,10 +141,11 @@ class Detector(object):
             
         info[key] = retval
 
-    # Find the license or licenses in a file. Returns a list of license 
-    # objects. The only guaranteed value in a license object is the 'tag', 
-    # which may be 'none'.
     def get_license_info(self, filename):    
+        """Find the license or licenses in a file. Returns a list of license 
+        objects. The only guaranteed value in a license object is the 'tag', 
+        which may be 'none'.
+        """
         fin = open(filename, 'r')
         try:
             content = fin.read(MAX_SCAN_LINE * 80)
@@ -249,11 +254,12 @@ class Detector(object):
                     
         return licenses
 
-    # Returns the first line which is part of the next comment in the block,
-    # and the first line which is not (which can therefore be fed straight back
-    # in as the new starting_from value). Returns start_line of -1 if no
-    # further comment found.
     def _find_next_comment(self, starting_from, lines, delims):
+        """Returns the first line which is part of the next comment in the 
+        block, and the first line which is not (which can therefore be fed 
+        straight back in as the new starting_from value). Returns start_line of
+        -1 if no further comment found.
+        """
         end_line   = starting_from
         start_line = -1
         
@@ -317,7 +323,7 @@ class Detector(object):
         return start_line, end_line
 
     def _canonicalize_copyrights(self, copyrights):
-        # Clean up individual lines
+        """Clean up individual copyright lines"""
         for i in range(len(copyrights)):
             copyrights[i] = ws.collapse(copyrights[i])
             # Remove end cruft
@@ -326,6 +332,9 @@ class Detector(object):
         return copyrights
 
     def _strip_comment_chars(self, comment, delims):
+        """Remove all the starting (and ending, if appropriate) comment chars
+        from a block comment, to leave just the text.
+        """
         prefix = delims[0]
         if len(delims) == 3:
             cont   = delims[1]
