@@ -127,7 +127,7 @@ license_data = {
                 'BSD|GPL-2.0': {
                     'start':  r"is free software; you can redistribute it",
                     'match':  r"BSD license",
-                    'end':    r"See README and COPYING for more details"
+                    'end':    r"See README and COPYING for more details|DAMAGE"
                 },
                 'MIT|GPL-2.0': {
                     'start':  r"is free software; you can redistribute it",
@@ -354,7 +354,7 @@ license_data = {
 ###############################################################################
 # HPND
 ###############################################################################
-'HPND': {
+'HPND_no-repro-required': {
     'start':  r"[Pp]ermission to use, copy, modify",
     'match':  r"[Pp]ermission to use, copy, modify,?(?: and(/or)?)? distribute",
     'end':    r"SOFTWARE|express or implied|without fee|of any kind" + \
@@ -362,6 +362,9 @@ license_data = {
               r"|MODIFICATIONS|prior written authorization|DERIVATIVE WORK" + \
               r"|implied warranty",
     'subs': {
+        'HPND': {
+            'match':  r"all copies|notice is preserved",
+        },
         'HPND_2': {
             'match':  r"freely granted",
             'end':    r"is preserved",

@@ -128,11 +128,10 @@ def get_license_info(filename, dtr, results):
 
     for license in licenses:
         lic_key = license['tag']
-        # If this code mis-detects two licenses in exactly the same text, they
-        # will get smooshed together here
         if 'text' in license and len(license['text']) > 0:
-            lic_key = make_hash(license['text'])
-        
+            lic_key = license['tag'] + "__" + make_hash(license['text'])
+
+        log.debug("lic key: %s" % lic_key)
         if lic_key in results:
             log.debug("Adding file %s to list" % filename)
             results[lic_key]['files'].append(filename)
@@ -224,6 +223,7 @@ def main(argv):
     dtr = detector.Detector(license_data, {'details': details})
 
     for path in paths:
+        path = path.strip()
         log.debug("Doing path: %s" % path)
         if path[-1] == "\n": path = path[:-1] # chomp if 'paths' is a stream
 

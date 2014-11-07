@@ -45,21 +45,24 @@ for filename in args.files:
         i = i + 1
         destname = os.path.join(id_dir, str(i), basename)
 
-    if i >= 2:
+    if i > 1:
         print "   (As %s)" % destname
+        basename = os.path.join(str(i), basename)
         if not os.path.isdir(os.path.dirname(destname)):
             os.mkdir(os.path.dirname(destname))
 
-    # Run relic on it and capture result
+    # Run slic on it and capture result
     slic = os.path.join(get_script_path(), "slic")
-    output = subprocess.check_output([slic, "-j", sourcename])
+    output = subprocess.check_output([slic, "-j -D", sourcename])
     result = json.loads(output)
 
     if not result:
         print "No data from relic"
         continue
 
-    # We only put in the first result for testing
+    resultcount = len(result)
+    
+    # The rest of the fields pertain to the first result
     result = result[0]
     
     tag = result['tag']
@@ -78,6 +81,6 @@ for filename in args.files:
     # Add entry to index.csv
     indexname = os.path.join(id_dir, "index.csv") 
     with open(indexname, "a") as indexfh:
-        indexfh.write(",".join([destname, tag, textlength, copyrightlength, ""]))
+        indexfh.write(",".join([basename, resultcount, tag, textlength, copyrightlength, ""]))
         indexfh.write("\n")
 

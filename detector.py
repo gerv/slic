@@ -44,7 +44,7 @@ class Detector(object):
                                        |[Cc]ontributed\ by
                                        |File:
                                        |File\ speex
-                                       |Author:
+                                       |Authors?:
                                        |[Vv]ersion
                                        |Written\ by
                                        |Linux\ for
@@ -535,3 +535,24 @@ class Detector(object):
                 comment[i] = re.sub(rubbish_re, "", comment[i])
 
         return comment
+
+class Results(dict):
+    def load_json(json):
+        # Populates the Results from a JSON file
+        pass
+
+    def pop_by_re(res):
+        # Returns another Results and modifies this one
+        pass
+
+    def unify():
+        # Changes all the contained tags to have one-item lists
+        pass
+
+    def iterdata(re):
+        # Returns all members of all lists
+        # Takes optional re to match tags against
+        pass
+
+    
+    

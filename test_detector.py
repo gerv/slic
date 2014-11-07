@@ -6,6 +6,7 @@
 ###############################################################################
 import config
 import os
+import re
 
 from nose.tools import *
 from license_data import license_data
@@ -109,20 +110,20 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
         # For each line
         for line in open(os.path.join(dir, "index.csv")):
             line = line.strip()
-            if line == '':
+            if line == '' or re.match("Header", line):
                 continue
 
-            yield self.check_identification, dtr, line
+            yield self.check_identification, dtr, line, dir
 
-    def check_identification(self, dtr, line):
+    def check_identification(self, dtr, line, dir):
             # Split "CSV" file into parts using naive parsing
-            filename, tag, textlength, copyrightlength, tmp = line.split(',')
+            filename, resultcount, tag, textlength, copyrightlength, tmp \
+                                                              = line.split(',')
 
             # Do identification
             licenses = dtr.get_license_info(os.path.join(dir, filename))
 
-            assert_true(len(licenses) > 0,
-                        msg="At least one license found")
+            assert_equal(len(licenses), int(resultcount))
             
             licenses = sorted(licenses, key=lambda k: k['tag'])
             

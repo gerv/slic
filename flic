@@ -224,7 +224,7 @@ def main():
     # variants are found, we choose to ignore them and amalgamate all the
     # files and copyright holders into a single entry
     single_entry_licenses = ['BSD-4-Clause_RTFM', 'BSDProtection', 'FTL_fulltext',
-                             'IJG_urlref', 'BSD|GPL-2.0', 'MirOS', 'BSD-3-Clause_urlref',
+                             'IJG_urlref', 'BSD\|GPL-2.0', 'MirOS', 'BSD-3-Clause_urlref',
                              'W3C_urlref', 'MIT_urlref', 'BSL-1.0_urlref', ]
 
     s_e_ls = pop_by_re(single_entry_licenses, bytag)
