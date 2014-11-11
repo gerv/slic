@@ -247,4 +247,4 @@ XXX
 
 
 if __name__ == '__main__':
-    unittest.main()
+    nose.main()
