@@ -5,6 +5,9 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 ##############################################################################
+#
+# Throwaway script to randomly choose one file from each tag in a slic output
+# file and print it out. These can then be used as testcases in the test suite.
 
 import os
 import sys
