@@ -69,10 +69,12 @@ class TestSlicResults():
         assert_equal(len(res), 1)
         assert_equal(len(res['GPL-2.0']), 1)
 
-    def test_iterflatvalues(self):
+    def test_itervalues(self):
         res = self.make_example()
-        values = [item for item in res.iterflatvalues()]
+        values = [item for item in res.itervalues()]
         assert_equal(len(values), 3)
+        values = [item for item in res.itervalues("^BSD")]
+        assert_equal(len(values), 2)
         
 if __name__ == '__main__':
     nose.main()

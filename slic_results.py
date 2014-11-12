@@ -59,11 +59,13 @@ class SlicResults(dict):
 
             self[tag] = [license]
 
-    def iterflatvalues(self, regexp=""):
-        """Returns an iterator which iterates over all items in the lists"""
+    def itervalues(self, regexp=""):
+        """Returns an iterator which iterates over all items in the value lists
+        """
         tag_re = re.compile(regexp)
         # Returns all members of all lists
         # Takes optional regexp to match tags against
-        return itertools.chain(data for tag, data in self.iteritems()
-                                                         if tag_re.search(tag))
+        return itertools.chain.from_iterable(data for tag, data
+                                                  in self.iteritems()
+                                                  if tag_re.search(tag))
  
