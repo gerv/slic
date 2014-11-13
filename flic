@@ -36,25 +36,7 @@ import logging
 logging.basicConfig(filename="flic.log", level=logging.DEBUG)
 log = logging.getLogger("flic")
 
-# A couple of functions used in the template
-#
-# Pop all keys from a dict which match a regexp or list of regexps, and return
-# the dict of the popped items
-def pop_by_re(regexps, dic):
-    result = {}
-    
-    if type(regexps) == str:
-        regexps = [regexps]
-
-    for regexp in regexps:
-        key_re = re.compile(regexp)
-        for k in dic.keys():
-          if key_re.search(k):
-            result[k] = dic.pop(k)
-
-    return result
-
-
+# A function used in the template
 def template_exists(template):
      path = join(dirname(sys.argv[0]), "templates", template)
      return exists(path)
@@ -427,7 +409,6 @@ def main():
         log.info("Rendering")
         print template.render({
             'licenses': bytag,
-            'pop_by_re': pop_by_re,
             'template_exists': template_exists,
             'fileref_problem_files': fileref_problem_files,
             'fileref_problem_dirs': fileref_problem_dirs,

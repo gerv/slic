@@ -30,7 +30,7 @@
                      'proprietary',
 ] %}
 
-{% set ignorables = pop_by_re(ignore_res, licenses) %}
+{% set ignorables = licenses.pop_by_re(ignore_res) %}
 
 {# Permissive licenses for which we are required to reproduce the text #}
 {% set repro_res = ['^AFL',
@@ -55,7 +55,7 @@
 ] %}
 {# Add "suspicious" to repro_res to see list of files with unknown licenses #}
 
-{% set reproducibles = pop_by_re(repro_res, licenses) %}
+{% set reproducibles = licenses.pop_by_re(repro_res) %}
 
 {# Licenses which are called out by name at the top, in order #}
 {% set specials = [{
@@ -92,7 +92,7 @@
 
 {% for special in specials %}
     {%- set tag = special['tag'] %}
-    {%- do special.update({'licenses': pop_by_re("^" + tag, licenses)}) %}
+    {%- do special.update({'licenses': licenses.pop_by_re("^" + tag)}) %}
 {% endfor %}
 
 <!DOCTYPE html>
@@ -250,7 +250,7 @@ licenses are reproduced below.</p>
 {% endif %}
 
 {% if debug %}
-    {% set proprietaries = pop_by_re('^proprietary', licenses) %}
+    {% set proprietaries = licenses.pop_by_re('^proprietary') %}
 
     {% for tag in proprietaries %}
         <hr>

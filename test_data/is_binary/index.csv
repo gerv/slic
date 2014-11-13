@@ -1,0 +1,4 @@
+Header: Filename,is_binary
+0_byte_file,1
+bug638318_text.html,1
+race.c,0
