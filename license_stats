@@ -6,29 +6,32 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 ###############################################################################
 #
-# Throwaway script to count number of files in a slic output file.
+# Produce various stats about a slic output file.
 
 import json
 import sys
+import re
+from slic_results import SlicResults
 
 # Load occurrence data file
-occurrences = json.load(open(sys.argv[1]))
+occurrences = SlicResults()
+occurrences.load_json(sys.argv[1])
 
-# Rejig data structure so top-level key is the tag instead of the license
-# text hash, and value is a list of the corresponding license objects
-bytag = {}
+file_count = 0
+boilerplate_count = 0
+licenses = {}
 
-for occurrence in occurrences:
-    tag = occurrence['tag']
-    if tag in bytag:
-        bytag[tag].append(occurrence)
-    else:
-        bytag[tag] = [occurrence]
+for data in occurrences.itervalues():
+    boilerplate_count = boilerplate_count + 1
+    file_count = file_count + len(data['files'])
+    tag = data['tag']
+    tag = re.sub("_.*", "", tag)
+    licenses[tag] = 1
+    
+print "Unique license boilerplate instances: %i" % boilerplate_count
+print "Unique license tags: %i" % len(occurrences)
+print "Unique licenses: %i" % len(licenses)
+print "Files: %i" % file_count
 
-count = 0
-for tag in bytag.keys():
-    licset = bytag[tag]
-    for lic in licset:
-        count = count + len(lic['files'])
-
-print "Files: %i" % count
+for tag in sorted(licenses.keys()):
+    print tag
