@@ -15,8 +15,7 @@ from slic_results import SlicResults
 
 class TestSlicResults():
     def make_example(self):
-        data = """{
-    "BSD-4-Clause": [
+        data = """[
     {
         "files": [ "foo.html" ], 
         "text": [
@@ -34,14 +33,14 @@ class TestSlicResults():
           "are met:" ], 
         "tag": "BSD-4-Clause", 
         "copyrights": ["Copyright (C) 2014 Fred Bloggs"]
-    }],
-      "GPL-2.0": [{
+    },
+    {
         "files": [ "bar.html" ], 
         "text": [ "" ], 
         "tag": "GPL-2.0", 
         "copyrights": []
-      }]
-}"""
+    }
+]"""
         res = SlicResults()
         res.load_json(data)
         return res

@@ -30,6 +30,8 @@ import ws
 import textwrap
 import cgi
 
+from slic_results import SlicResults
+
 import logging
 logging.basicConfig(filename="flic.log", level=logging.DEBUG)
 log = logging.getLogger("flic")
@@ -205,19 +207,8 @@ def main():
     args = parser.parse_args()
 
     # Load occurrence data file
-    occurrences = json.load(open(args.input))
-
-    # Rejig data structure so top-level key is the tag instead of the license
-    # text hash, and value is a list of the corresponding license objects
-    bytag = {}
-
-    for occurrence in occurrences:
-        tag = occurrence['tag']
-        log.debug("Tag: %s" % tag)
-        if tag in bytag:
-            bytag[tag].append(occurrence)
-        else:
-            bytag[tag] = [occurrence]
+    bytag = SlicResults()
+    bytag.load_json(args.input)
 
     # For some licenses, we have a specific set text and so even if small
     # variants are found, we choose to ignore them and amalgamate all the
@@ -226,46 +217,32 @@ def main():
                              'IJG_urlref', 'BSD\|GPL-2.0', 'MirOS', 'BSD-3-Clause_urlref',
                              'W3C_urlref', 'MIT_urlref', 'BSL-1.0_urlref', ]
 
-    s_e_ls = pop_by_re(single_entry_licenses, bytag)
-    for tag, datalist in s_e_ls.iteritems():        
-        log.info("Creating single entry for tag %s" % tag)
-        license = {
-            'tag': tag,
-            'copyrights': [],
-            'files': [],
-            'text': None,
-        }
-
-        for data in datalist:
-            license['copyrights'].extend(data['copyrights'])
-            license['files'].extend(data['files'])
-            license['text'] = data['text']
-
-        bytag[tag] = [license]
-
+    s_e_ls = bytag.pop_by_re(single_entry_licenses)
+    s_e_ls.unify()
+    bytag.update(s_e_ls)
+    
     # Insert 2x<br> at para breaks for formatting on small screens
-    for tag in bytag:
-        for data in bytag[tag]:
-            if not 'text' in data:
-                continue
+    for data in bytag.itervalues():
+        if not 'text' in data:
+            continue
 
-            html = "\n".join(data['text'])
-            html = cgi.escape(html)
-            
-            # Empty line before bullets
-            html = re.sub(r"\n\s*([0-9]\.|\*|-)", r"\n\n \1", html)
+        html = "\n".join(data['text'])
+        html = cgi.escape(html)
+        
+        # Empty line before bullets
+        html = re.sub(r"\n\s*([0-9]\.|\*|-)", r"\n\n \1", html)
 
-            # Empty line above acknowledgement text
-            html = re.sub(r"(acknowledge?ment:\n)", r"\1\n", html)
- 
-            # While we're at it...
-            html = re.sub("``", '&#8220;', html)
-            html = re.sub("''", '&#8221;', html)
+        # Empty line above acknowledgement text
+        html = re.sub(r"(acknowledge?ment:\n)", r"\1\n", html)
 
-            # Replace all empty lines by double <br>s
-            html = re.sub(r"(\n){2,}", '<br><br>', html)
-            
-            data['html'] = html
+        # While we're at it...
+        html = re.sub("``", '&#8220;', html)
+        html = re.sub("''", '&#8221;', html)
+
+        # Replace all empty lines by double <br>s
+        html = re.sub(r"(\n){2,}", '<br><br>', html)
+        
+        data['html'] = html
 
     # Post-process and amalgamate copyright lines
     # \xa9 is the copyright symbol
@@ -275,42 +252,41 @@ def main():
                             (?P<holder>.*)$""",
                          re.IGNORECASE | re.VERBOSE)
 
-    for tag in bytag:
-        for data in bytag[tag]:
-            if not 'copyrights' in data:
-                continue
-            
-            copyrights = data['copyrights']
+    for data in bytag.itervalues():
+        if not 'copyrights' in data:
+            continue
+        
+        copyrights = data['copyrights']
 
-            # Amalgamate years
-            holders = {}
-            for i in range(len(copyrights)):
-                match = copy_re.search(copyrights[i])
-                if match:
-                    hits = match.groupdict()
-                    log.info("Hits: %r" % hits)
-                    holder = tidy_holder(hits['holder'])
-                    years = _split_years(hits['years'])
-                    if holder in holders:
-                        holders[holder].extend(years)
-                    else:
-                        holders[holder] = years
+        # Amalgamate years
+        holders = {}
+        for i in range(len(copyrights)):
+            match = copy_re.search(copyrights[i])
+            if match:
+                hits = match.groupdict()
+                log.info("Hits: %r" % hits)
+                holder = tidy_holder(hits['holder'])
+                years = _split_years(hits['years'])
+                if holder in holders:
+                    holders[holder].extend(years)
                 else:
-                    log.warning("(C) line doesn't match re: %s" % copyrights[i])
+                    holders[holder] = years
+            else:
+                log.warning("(C) line doesn't match re: %s" % copyrights[i])
 
-            # Rebuild copyright lines
-            clean_copyrights = []
-            for holder in holders:
-                log.debug("Years: %r" % holders[holder])
-                years = _join_years(holders[holder])
-                spacer = " " if years else ""
-                copyright = u"Copyright \xa9 %s%s%s" % (years,
-                                                        spacer,
-                                                        holder)
-                log.debug("Clean C line: %s" % copyright)
-                clean_copyrights.append(copyright)
+        # Rebuild copyright lines
+        clean_copyrights = []
+        for holder in holders:
+            log.debug("Years: %r" % holders[holder])
+            years = _join_years(holders[holder])
+            spacer = " " if years else ""
+            copyright = u"Copyright \xa9 %s%s%s" % (years,
+                                                    spacer,
+                                                    holder)
+            log.debug("Clean C line: %s" % copyright)
+            clean_copyrights.append(copyright)
 
-            data['copyrights'] = clean_copyrights
+        data['copyrights'] = clean_copyrights
 
     # Reconcile Bison exception, which can be in a different comment to the GPL
     # license and so is noted as a different "license" :-|

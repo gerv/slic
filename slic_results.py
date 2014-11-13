@@ -18,10 +18,27 @@ import re
 import itertools
 
 class SlicResults(dict):
-    def load_json(self, data):
-        """Populates the Results from a JSON file."""
-        self.__init__(json.loads(data))
+    def load_json(self, initval):
+        """Populates the Results from JSON, either as string or as filename."""
+        if re.match(r"^\s*\[", initval):
+            data = json.loads(initval)
+        else:
+            data = json.load(open(initval))
 
+        # Rejig data structure so top-level key is the tag instead of the
+        # unification hash value, and value is a list of the corresponding
+        # license objects
+        bytag = {}
+
+        for occurrence in data:
+            tag = occurrence['tag']
+            if tag in bytag:
+                bytag[tag].append(occurrence)
+            else:
+                bytag[tag] = [occurrence]
+
+        self.__init__(bytag)
+        
     def pop_by_re(self, regexps):
         """Creates another SlicResults with all entries which match any of the
         regexps given, and removes them from this one.

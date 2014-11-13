@@ -44,30 +44,9 @@ import ws
 import config
 import detector
 from license_data import license_data
+import utils
 
 _version_ = (1, 1, 0)
-
-# Bytes which can be a part of valid text chars in 4-byte UTF-8.
-# http://en.wikipedia.org/wiki/UTF-8#Codepage_layout
-_textchars = bytearray([7,8,9,10,12,13,27]) + \
-             bytearray(range(0x20, 0xBF)) + \
-             bytearray(range(0xC2, 0xF4))
-
-_is_binary_string = lambda bytes: bool(bytes.translate(None, _textchars))
-
-# Stack Overflow 898669
-def _is_binary(filename):
-    try:
-        data = open(filename, 'rb').read(1024)
-        if not data:
-            # 0-byte file: ignore
-            return True
-        else:
-            return _is_binary_string(data)
-    except IOError:
-        log.warning("Can't open file '%s' to see if it's binary", filename)
-        return True
-
 
 backup_pattern = re.compile("~\d+$")
 def _should_skip_file(root, basename):
@@ -88,7 +67,10 @@ def _should_skip_file(root, basename):
     if backup_pattern.search(path):
         log.info("Skipping '%s' (looks like backup file).", path)
         return 1
-    if _is_binary(path):
+    if config.has_option("ext_to_comment", ext) \
+       and not config.has_option("force_binary_check", ext):
+        return 0
+    if utils.is_binary(path):
         log.debug("Skipping '%s' (binary).", path)
         return 1
     

@@ -1,0 +1,41 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+###############################################################################
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+###############################################################################
+#
+# Find all the files which slic would assume are not binary, and check them
+# explicitly for binaryness. Used to update the force_binary_check list.
+# If you see files in the list this outputs which _are_ binary, you should
+# consider adding their file extensions to force_binary_check.
+ 
+import utils
+import config
+import os
+import sys
+
+path = sys.argv[1]
+path = os.path.abspath(path)
+ 
+# The base config file is slic.ini in the script's directory
+scriptpath = os.path.realpath(sys.argv[0])
+slicinipath = os.path.join(os.path.dirname(scriptpath), "slic.ini")
+config.read([slicinipath])
+
+for root, dirs, files in os.walk(path):
+    # Avoid modify-in-place leading to off-by-one errors
+    # Stack Overflow 1207406
+    for file in files:
+        path = os.path.normpath(os.path.join(root, file))    
+        ext = os.path.splitext(path)[1]
+        if config.has_option("ext_to_comment", ext) \
+           and not config.has_option("force_binary_check", ext):
+            binary = utils.is_binary(path)
+            try:
+                if binary and os.stat(path).st_size > 0:
+                    print "%s" % path
+            except OSError:
+                # Dead symlink or the like
+                pass
