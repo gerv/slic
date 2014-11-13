@@ -100,10 +100,11 @@ class Detector(object):
                 info['maxlines'] = DEFAULT_MAX_LINES_IN_LICENSE
 
         # Python "only supports 100 named capturing groups", although it seems
-        # to have problems at 94... As our structure has more than this many
-        # entries at the top level, we create a set of regexps and apply them
-        # sequentially.
-        grouplimit = 90
+        # to actually count groups of any sort, which means it's non-trivial
+        # to work out when you have to actually split! So we leave headroom.
+        # Our structure certainly has more than this many entries at the top
+        # level, we create a set of regexps and apply them sequentially.
+        grouplimit = 80
 
         license_data['_match_res'] = []
         
@@ -309,7 +310,10 @@ class Detector(object):
             while len(lines) > end_line + 1 and \
                   start_re.search(lines[end_line + 1]) and \
                   end_re.search(lines[end_line + 1]):
+                log.debug("Including next line from set of /* */ comments")
                 end_line = end_line + 1
+            
+            log.debug("Adjusted end line: %i", end_line)
 
         if len(delims) == 3 or \
            (len(delims) == 1 and not found_end):
@@ -354,6 +358,14 @@ class Detector(object):
             suffix_re = re.compile("\s*%s" % re.escape(suffix))
             comment[-1] = re.sub(suffix_re, "", comment[-1])
 
+            # If this is a multi-line comment but the suffix appears on the 
+            # first line, it's of the form where every line is its own 
+            # mini-comment. (This happens most often with /* */.) If so, change
+            # the "cont" to the "start" to have it stripped off all lines.
+            if re.search(suffix_re, comment[0]) and len(comment) > 1:
+                log.debug("Multi-line comment with prefix/suffix on each line")
+                cont = prefix
+
         # Allow multiple occurrences of cont char or last cont char
         cont_re = re.compile("^\s*%s+\s?" % re.escape(cont))
         for i in range(1, len(comment)):
@@ -395,6 +407,7 @@ class Detector(object):
         tags = {}
         retval = None
 
+        # log.debug("Looking in comment %r" % comment)
         for match_re in license_data['_match_res']:
             match = match_re.search(comment)
             

@@ -17,6 +17,8 @@ logging.basicConfig(filename="slic.log")
 log = logging.getLogger("slic")
 
 config = ConfigParser.ConfigParser(allow_no_value=True)
+# Make it case-sensitive
+config.optionxform = str
 
 # This is sadly necessary for nosetests to pass; an ini file is required
 config.read(['/usr/src/relic/slic.ini'])

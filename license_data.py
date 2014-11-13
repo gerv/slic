@@ -134,6 +134,12 @@ license_data = {
                     'match':  r"Permission is hereby granted, free of charge",
                     'end':    r"SOFTWARE"
                 },
+                # Appears with XML tags in :-|
+                'OSL-1.1|GPL-2.0': {
+                    'start':  r"The contents of this file are subject",
+                    'match':  r"Open Software License version 1.1",
+                    'end':    r"the OSL or the GPL"
+                },
                 'Ignore_MPL-1.1_3': {
                     # False positive for dual license
                     'match':  r"Mozilla Public License",
@@ -226,7 +232,7 @@ license_data = {
     }
 },
 'GPL-1.0+_1': {
-    'match':  r"Licensed under the GPL$",
+    'match':  r"Licensed under the (GNU/)?GPL\.?($| See)",
 },
 'GPL-1.0+_2': {
     'start':  r"This file may",
@@ -239,6 +245,9 @@ license_data = {
         }
     }
 },
+'GPL-1.0+_4': {
+    'match':  r"Released under the General Public License \(GPL\).",
+},
 'GPL-2.0_2': {
     'start':  r"is free software; you can redistribute it|This software is licensed under the terms of the GNU",
     'match':  r"2 of the Licence",
@@ -249,7 +258,9 @@ license_data = {
     'match':  r"reiserfs/README",
 },
 'GPL-2.0_ref_2': {
-    'match':  r"Subject to the GNU Public License, (v\.|version )2",
+    'start':  r"This software|License",
+    'match':  r"(Subject to|terms of) the GNU Public License, (v\.|[vV]ersion )2",
+    'end':    r"reference|License"
 },
 'GPL-2.0_ref_3': {
     'match':  r"[Rr]eleased under (the )?(terms of the GNU )?GPL\s?v2",
@@ -280,8 +291,24 @@ license_data = {
     'match':  r"This code is licenced under the GPL version 2.",
     'end':    r"COPYING"
 },
+'GPL-2.0_fileref_9': {
+    'match':  r"For licensing details see kernel-base/COPYING",
+},
 'GPL-2.0_urlref': {
     'match':  r"Licensed under the GPL \(http://www\.gnu\.org/licenses/gpl.html\) license",
+},
+'GPL-2.0_ref_6': {
+    'match':  r"Licensed under GPLv2",
+    'subs': {
+        'GPL-2.0+_2': {
+            'match': "or later"
+        }
+    }
+},
+# Yes, this is a "+" because the actual GPL boilerplate at the end says +.
+'BSD-3-Clause|GPL-2.0+': {
+    'match':  r"both the GPL version 2 and BSD licenses",
+    'end':    r"end of this file",
 },
 ###############################################################################
 # LGPL
@@ -384,6 +411,16 @@ license_data = {
     'match':  r"Permission to copy, use, modify, sell and distribute",
     'end':    r"suitability for any purpose",
 },
+'HPND_4': {
+    'start':  r"Permission is granted to use, copy",
+    'match':  r"create derivative works and redistribute",
+    'end':    r"DAMAGES",
+},
+'HPND_Motorola': {
+    'start':  r"THE SOFTWARE is provided",
+    'match':  r"granted a copyright license to use, modify",
+    'end':    r"of Motorola, Inc.",
+},
 ###############################################################################
 # MIT
 ###############################################################################
@@ -436,13 +473,17 @@ license_data = {
     'match':  r"Some rights reserved: http://opensource.org/licenses/mit",
 },
 'MIT_ref': {
-    'match':  r"under (an|the )?MIT license",
+    'match':  r"under (an |the )?MIT license",
     'end':    r"http://opensource.org/licenses/MIT|under (an|the )?MIT license",
     'subs': {
         'MIT_Lodash_urlref': {
             'start': r"Available under MIT license",
             'match': r"lodash.com/license",
             'end':   r"Available under MIT license"
+        },
+        'MIT_codemirror_urlref': {
+            'match': r"codemirror\.net/LICENSE",
+            'end':   r"LICENSE"
         },
     }
 },
@@ -521,7 +562,8 @@ license_data = {
     }
 },
 'BSD_fileref': {
-    'match':  r"Use of this source code is governed by a BSD-style",
+    'start':  r"Use of this",
+    'match':  r"source code is governed by a BSD-style",
     'end':    r"LICENSE|source tree|PATENTS"
 },
 'BSD_fileref2': {
@@ -580,7 +622,6 @@ license_data = {
     'start':  r"COPYING for licensing terms",
     'match':  r"See (\.\./)*COPYING for licensing terms",
     'end':    r"COPYING for licensing terms"
-
 },
 'COPYRIGHT_fileref': {
     'match':  r"See the accompanying file \"COPYRIGHT\" for",
@@ -591,6 +632,11 @@ license_data = {
 },
 'po_fileref': {
     'match':  r"This file is distributed under the same license as the .{0,20} package.",
+},
+'README_fileref': {
+    'start':  r"For details on the license",
+    'match':  r"file, README, in this same",
+    'end':    r"file, README, in this same"
 },
 ###############################################################################
 # Permissive
@@ -629,6 +675,11 @@ license_data = {
     'match':  r"use\) and without fee",
     'end':    r"this code" 
 },
+'Permissive_ACE': {
+    'start':  r"ACE\(TM\), TAO\(TM\), CIAO\(TM\)",
+    'match':  r"built using DOC software",
+    'end':    r"their names" 
+},
 ###############################################################################
 # Other Non-Copyleft
 ###############################################################################
@@ -664,7 +715,8 @@ license_data = {
     'end':   r"and you accept them fully"
 },
 'FTL_fileref': {
-    'match': r"This file is part of the FreeType project",
+    'match': r"This file is part of the FreeType project" + \
+             r"|under the terms of the FreeType project license",
     'end':   r"fully"
 },
 'FTL_fulltext': {
@@ -716,7 +768,7 @@ license_data = {
     'end':   r"appreciated"
 },
 'Libpng_fileref': {
-    'match': r"This code is released under the libpng license",
+    'match': r"This (code|document) is released under the libpng license",
     'end':   r"under the libpng license|license in png.h"
 },
 'curl_urlref': {
@@ -859,7 +911,9 @@ license_data = {
     'match': r"(International Business Machines|IBM) Corporation and others\.\s+All [Rr]ights [Rr]eserved",
 },
 'proprietary_IBM_purify': {
-    'match': r"You may recompile and redistribute these definitions as required.",
+    'start': r"IBM Corporation",
+    'match': r"All Rights Reserved. You may recompile and redistribute these definitions as required.",
+    'end':   r"as required"
 },
 'proprietary_Unicode': {
     'match': r"This source code is provided as is by Unicode, Inc",
@@ -877,6 +931,10 @@ license_data = {
             'match': r"Broadcom.*Proprietary and confidential.",
         },
     }
+},
+'proprietary_Broadcom_2': {
+    'match': r"UNPUBLISHED PROPRIETARY SOURCE CODE of Broadcom",
+    'end':   r"permission of Broadcom Corporation"
 },
 
 }
