@@ -73,7 +73,7 @@ license_data = {
 },
 'MPL-2.0': {
     'start':  r"Source Code Form [Ii]s subject to the terms of the Mozilla",
-    'match':  r"Mozilla Public License, v\. 2\.0",
+    'match':  r"Mozilla Public License,? (v\.|Version) 2\.0",
     'end':    r"You can obtain one at http://mozilla\.org/MPL/2\.0/",
     'subs': {
         'MPL-2.0_full-text': {
@@ -446,6 +446,13 @@ license_data = {
         },
     }
 },
+'MIT_ref2': {
+    'match':  r"MIT Licensed",
+},
+'MIT|BSD-3-Clause_alameda': {
+    'match':  r"Available via the MIT or new BSD license",
+    'end':    r"http://github\.com/requirejs/alameda",
+},
 'BSL-1.0_urlref': {
     'match':  r"Distributed under the Boost Software License, Version 1\.0",
     'end':    r"http://www\.boost\.org/LICENSE_1_0\.txt",
@@ -543,8 +550,8 @@ license_data = {
 },
 'BSD-3-Clause_urlref_paj': {
     'start': r"Distributed under the BSD License",
-    'match': r"See http://pajhome\.org\.uk/crypt/md5 for details",
-    'end':   r"http://pajhome\.org\.uk/crypt/md5 for details"
+    'match': r"See http://pajhome\.org\.uk/crypt/md5 for",
+    'end':   r"http://pajhome\.org\.uk/crypt/md5 for"
 },
 'BSD-3-Clause_urlref_voidspace': {
     'start': r"This software is licensed under the terms of the BSD license",
@@ -557,6 +564,11 @@ license_data = {
 'BSD-Protection': {
     'match': r"BSD PROTECTION LICENSE",
     'end':   r"OF SUCH DAMAGES"
+},
+'BSD-like_editline': {
+    'start': r"Permission is granted to anyone to use this",
+    'match': r"no matter how awful",
+    'end':   r"removed or altered",
 },
 ###############################################################################
 # Generic filerefs (i.e. filename does not define license)
@@ -767,6 +779,11 @@ license_data = {
     'match':  r"SIL Open Font License, Version 1\.1",
     'end':    r"IN THE FONT SOFTWARE"
 },
+'OFL-1.1_ref': {
+    'start':  r"Licensed under the SIL",
+    'match':  r"SIL Open Font License 1.1 \(see file",
+    'end':    r"OFL.txt"
+},
 ###############################################################################
 # EPL
 ###############################################################################
@@ -839,7 +856,10 @@ license_data = {
 },
 'proprietary_IBM': {
     'start': r"International Business Machines",
-    'match': r"Corporation and others\.\s+All [Rr]ights [Rr]eserved",
+    'match': r"(International Business Machines|IBM) Corporation and others\.\s+All [Rr]ights [Rr]eserved",
+},
+'proprietary_IBM_purify': {
+    'match': r"You may recompile and redistribute these definitions as required.",
 },
 'proprietary_Unicode': {
     'match': r"This source code is provided as is by Unicode, Inc",

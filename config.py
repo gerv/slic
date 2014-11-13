@@ -38,32 +38,41 @@ def has_option(section, option):
 
 # Returns comment delimiters for this filename, or None if we can't work it
 # out
-def get_delims(filename):
+def get_delims(path):
     delims = None
 
     # There are some extensions which need stripping off to show the 'real'
     # extension
-    basename, ext = os.path.splitext(filename)
+    filename = os.path.basename(path)
+    noext, ext = os.path.splitext(filename)
+
+    log.debug("noext: %s; Ext: %s" % (noext, ext))
     
     # Strip extensions which hide the real extension. E.g. "foo.bar.in" is
     # generally a precursor for file "foo.bar" and uses the same comment char.
     # So we remove the .in and then look again.
     if config.has_option("strip_exts", ext):
-        basename, ext = os.path.splitext(basename)
+        filename = noext
+        noext, ext = os.path.splitext(noext)
+
+    log.debug("Filename: %s; Ext: %s" % (filename, ext))
     
-    # special cases for some basenames
-    basename = os.path.basename(basename)
-    delims = get_option("filename_to_comment", basename)
-    
+    # First see if we have a special setting for this filename
+    delims = get_option("filename_to_comment", filename)
+
+    # Then try the file extension
     if delims is None:
-        # use the file extension
         delims = get_option("ext_to_comment", ext)
-        
+
+    # Then try the basename
+    if delims is None:
+        delims = get_option("noextname_to_comment", noext)
+    
     log.debug("Delims: %r" % delims)
     
     if delims is None:
         # try to use the shebang line, if any
-        fin = open(filename, 'r')
+        fin = open(path, 'r')
         firstline = fin.readline()
         fin.close()
         # Almost all #! file types use # as the comment character
@@ -81,7 +90,7 @@ def get_delims(filename):
             if re.search(',', delim):
                 delims[index] = re.split(r',\s*', delim)
                 if len(delims[index]) != 3:
-                    print "Error in delims for file %s" % basename
+                    print "Error in delims for file %s" % filename
                     sys.exit(2)
             # "No delimiter" is encoded by special value ""
             elif delim == '""':

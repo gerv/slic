@@ -53,7 +53,7 @@ for filename in args.files:
 
     # Run slic on it and capture result
     slic = os.path.join(get_script_path(), "slic")
-    output = subprocess.check_output([slic, "-j -D", sourcename])
+    output = subprocess.check_output([slic, "-j", "-D", sourcename])
     result = json.loads(output)
 
     if not result:
@@ -81,6 +81,11 @@ for filename in args.files:
     # Add entry to index.csv
     indexname = os.path.join(id_dir, "index.csv") 
     with open(indexname, "a") as indexfh:
-        indexfh.write(",".join([basename, resultcount, tag, textlength, copyrightlength, ""]))
+        indexfh.write(",".join([basename,
+                                str(resultcount),
+                                tag,
+                                textlength,
+                                copyrightlength,
+                                ""]))
         indexfh.write("\n")
 

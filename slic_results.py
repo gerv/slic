@@ -70,9 +70,12 @@ class SlicResults(dict):
             }
 
             for data in datalist:
-                license['copyrights'].extend(data['copyrights'])
-                license['files'].extend(data['files'])
-                license['text'] = data['text']
+                if 'copyrights' in data:
+                    license['copyrights'].extend(data['copyrights'])
+                if 'files' in data:
+                    license['files'].extend(data['files'])
+                if 'text' in data:
+                    license['text'] = data['text']
 
             self[tag] = [license]
 
