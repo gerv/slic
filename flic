@@ -345,13 +345,12 @@ def main():
     license_files_re = re.compile("^(" + "|".join(unique_filenames.keys()) + ")")
 
     # Gather list of "LICENSE"-type files        
-    for tag in bytag:
-        for data in bytag[tag]:
-            files = data['files']
-            for file in files:
-                filename = basename(file)
-                if license_files_re.match(filename):
-                    license_files[file] = data['tag']
+    for data in bytag.itervalues():
+        files = data['files']
+        for file in files:
+            filename = basename(file)
+            if license_files_re.match(filename):
+                license_files[file] = data['tag']
 
     # For each file marked as having a "fileref" license, see if an appropriate
     # file in a higher directory is present and has been included somewhere.
@@ -380,7 +379,6 @@ def main():
     fileref_problem_dirs = {}
 
     for tag in bytag:
-        log.debug("Still got tag %s" % tag)
         if not re.search("fileref", tag):
             continue
 
