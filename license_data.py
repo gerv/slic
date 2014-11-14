@@ -232,7 +232,7 @@ license_data = {
     }
 },
 'GPL-1.0+_1': {
-    'match':  r"Licensed under the (GNU/)?GPL\.?($| See)",
+    'match':  r"[Ll]icen[cs]ed under the (GNU/)?GPL\.?($| See)",
 },
 'GPL-1.0+_2': {
     'start':  r"This file may",
@@ -304,6 +304,14 @@ license_data = {
             'match': "or later"
         }
     }
+},
+'GPL-2.0_ref_7': {
+    'match':  r"under the terms of the GNUv2 General Public License",
+},
+# Various files in the kernel have other terms and then a "GPL Licensing Note"
+# which explains why GPLing it is actually OK.
+'GPL-2.0_umbrella': {
+    'match':  r"GPL [Ll]icensing [Nn]ote",
 },
 # Yes, this is a "+" because the actual GPL boilerplate at the end says +.
 'BSD-3-Clause|GPL-2.0+': {
@@ -503,7 +511,7 @@ license_data = {
 ###############################################################################
 'BSD-2-Clause': {
     'match':  r"Redistribution and use of this software" + \
-              r"|Redistribution and use in source and",
+              r"|[Rr]edistribution and use in source and",
     'end':    r"DAMAGE|PURPOSE",
     'subs': {
         'BSD-3-Clause': {
@@ -699,6 +707,11 @@ license_data = {
 'ISC_fileref': {
     'match':  r"This program is made available under an ISC-style license",
     'end':    r"file LICENSE for details"
+},
+'SGI-B-1.1': {
+    'start': r"License Applicability",
+    'match': r"SGI Free Software License B, Version 1.1",
+    'end':   r"NON-INFRINGEMENT"
 },
 'SGI-B-2.0': {
     'start': r"SGI Free Software B License",
@@ -901,11 +914,6 @@ license_data = {
 ###############################################################################
 # Proprietary
 ###############################################################################
-'proprietary_TCL': {
-    'start': r"This material is company confidential",
-    'match': r"permission of TCL Communication",
-    'end':   r"Limited"
-},
 'proprietary_IBM': {
     'start': r"International Business Machines",
     'match': r"(International Business Machines|IBM) Corporation and others\.\s+All [Rr]ights [Rr]eserved",
@@ -925,16 +933,32 @@ license_data = {
     'maxlines': 80
 },
 'proprietary': {
-    'match': r"[Pp]roprietary and confidential",
+    'match': r"[Pp]roprietary|PROPRIETARY",
     'subs': {    
         'proprietary_Broadcom': {
             'match': r"Broadcom.*Proprietary and confidential.",
         },
+        'proprietary_Broadcom_2': {
+            'match': r"UNPUBLISHED PROPRIETARY SOURCE CODE of Broadcom",
+            'end':   r"permission of Broadcom Corporation"
+        },
+        'Ignore_LGPL_full_2': {
+            'match': r"contradicts the license restrictions of other proprietary"
+        }
     }
 },
-'proprietary_Broadcom_2': {
-    'match': r"UNPUBLISHED PROPRIETARY SOURCE CODE of Broadcom",
-    'end':   r"permission of Broadcom Corporation"
+'confidential': {
+    'match': r"[Cc]onfidential",
+    'subs': {    
+        'proprietary_TCL': {
+            'start': r"This material is company confidential",
+            'match': r"permission of TCL Communication",
+            'end':   r"Limited"
+        },
+        'Ignore_proprietary_Broadcom': {
+            'match': r"Broadcom.*Proprietary and confidential.",
+        },
+    }
 },
 
 }
