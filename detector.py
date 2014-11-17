@@ -50,6 +50,7 @@ class Detector(object):
                                        |Written\ by
                                        |Linux\ for
                                        |You\ can\ look
+                                       |available\ under
                                        """, re.VERBOSE)
 
     def _preprocess(self, license_data, parent):

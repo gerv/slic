@@ -168,6 +168,9 @@ license_data = {
                 },
             }
         },
+        'GPL-2.0_4': {
+            'match': r"terms of version 2 of",
+        },
         # Appears with XML tags in :-|
         'OSL-1.1|GPL-2.0': {
             'start':  r"The contents of this file are subject",
@@ -372,9 +375,11 @@ license_data = {
               r"|written prior permission|supporting documentation" + \
               r"|MODIFICATIONS|prior written authorization|DERIVATIVE WORK" + \
               r"|implied warranty|is preserved",
+    'maxlines': 15,
     'subs': {
         'HPND': {
             'match':  r"all copies|notice is preserved",
+            'maxlines': 15
         },
 #        'HPND_2': {
 #            'match':  r"freely granted",
@@ -459,6 +464,7 @@ license_data = {
 'MIT_ref': {
     'match':  r"under (an |the )?MIT license",
     'end':    r"http://opensource.org/licenses/MIT|under (an|the )?MIT license",
+    'maxlines': 5,
     'subs': {
         'MIT_Lodash_urlref': {
             'start': r"Available under MIT license",
@@ -488,7 +494,7 @@ license_data = {
 'BSD-2-Clause': {
     'match':  r"Redistribution and use of this software" + \
               r"|[Rr]edistribution and use in source and",
-    'end':    r"DAMAGE|PURPOSE",
+    'end':    r"DAMAGE|PURPOSE|warranty",
     'subs': {
         'BSD-3-Clause': {
             'match':  r"name.*(may|must) not be used to" + \
@@ -522,7 +528,17 @@ license_data = {
                 'BSD|GPL-1.0+': {
                     'match':   r"General Public License",
                     'end':     r"DAMAGE|damage|IN ANY WAY",
-                    'cancel': ['GPL-1.0+']
+                    'cancel': ['GPL-1.0+'],
+                    'subs': {
+                        'BSD|GPL-2.0+': {
+                            'match': r"version 2"
+                        }
+                    }
+                },
+                'proprietary_Frauhofer_free-beer': {
+                    'start': r"COPYRIGHT LICENSE",
+                    'match': r"free of charge copies of the complete source code",
+                    'end':   r"such damage",
                 }
             }
         },
