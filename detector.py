@@ -100,8 +100,8 @@ class Detector(object):
             if 'maxlines' not in info:
                 info['maxlines'] = DEFAULT_MAX_LINES_IN_LICENSE
 
-            if 'cancels' in info:
-                info['cancels'] = set(info['cancels'])
+            if 'cancel' in info:
+                info['cancel'] = set(info['cancel'])
 
         # Python "only supports 100 named capturing groups", although it seems
         # to actually count groups of any sort, which means it's non-trivial
@@ -418,12 +418,11 @@ class Detector(object):
         if len(tags):
             # Remove all tags that other tags cancel
             for tag in tags.copy():
-                if 'cancels' in self._flat_license_data[tag]:
-                    tags.difference_update(self._flat_license_data[tag]['cancels'])
+                data = self._flat_license_data[tag]
+                if 'cancel' in data:
+                    tags.difference_update(data['cancel'])
 
-            # This can go if we convert entirely to "cancels" semantics
-            retval = [tag for tag in tags if not tag.startswith("Ignore_")]
-            
+            retval = list(tags)
             retval.sort()
             log.info("Found license(s): %s" % "/".join(retval))
         else:
