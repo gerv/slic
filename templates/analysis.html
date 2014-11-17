@@ -1,0 +1,66 @@
+{# Licenses we want a list of files for #}
+{% set important_res = ['^proprietary',
+                        '^suspicious',
+] %}
+
+{% set importants = licenses.pop_by_re(important_res) %}
+{% set foo = importants.unify() %}
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1">
+  <meta charset="UTF-8">
+  <title>Licensing Analysis</title>
+  <style type="text/css">
+    body > * {
+      /* some lines are too long, mostly because of email addresses */
+      max-width: 100%;
+      overflow: hidden;
+    }
+    dt {
+      font-weight: bold;
+      font-size: 100%;
+    }
+    pre {
+      margin-left: 2em;
+      white-space: normal;
+    }
+    /* EPL */
+    p.c2 {
+      font-weight: bold;
+    }
+    div.c1 {
+      text-align: right;
+    }
+  </style>
+</head>
+
+<body>
+<h1>Licensing Analysis</h1>
+
+<ul>
+{% for tag in importants %}
+    {% set licenses = importants[tag] %}
+    <li><a href="#{{ tag }}">{{ tag }}: {{ importants[tag][0]['files']|length }} files</a></li>
+{% endfor %}
+</ul>
+
+{% for tag in importants %}
+    {% set licenses = importants[tag] %}
+
+    {% for license in licenses %}
+        <hr>
+
+        <h2><a name="{{ tag }}">Tag: {{ tag }}</a></h2>
+
+        <ul>
+        {% for file in license.files %}
+            <li>{{ file|e }}</li>
+        {% endfor %}
+        </ul>
+    {% endfor %}
+{% endfor %}
+
+</body>
+</html>

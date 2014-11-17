@@ -24,7 +24,8 @@ log = logging.getLogger("slic")
 
 DEFAULT_MAX_LINES_IN_LICENSE = 50
 # This number is fairly performance-sensitive
-MAX_SCAN_LINE = 400
+MAX_SCAN_BYTES = 32768
+MAX_GAP_LINES = 200
 
 class Detector(object):    
     def __init__(self, license_data, params={}):
@@ -99,6 +100,9 @@ class Detector(object):
             if 'maxlines' not in info:
                 info['maxlines'] = DEFAULT_MAX_LINES_IN_LICENSE
 
+            if 'cancels' in info:
+                info['cancels'] = set(info['cancels'])
+
         # Python "only supports 100 named capturing groups", although it seems
         # to actually count groups of any sort, which means it's non-trivial
         # to work out when you have to actually split! So we leave headroom.
@@ -149,7 +153,7 @@ class Detector(object):
         """
         fin = open(filename, 'r')
         try:
-            content = fin.read(MAX_SCAN_LINE * 80)
+            content = fin.read(MAX_SCAN_BYTES)
         finally:
             fin.close()
 
@@ -176,8 +180,19 @@ class Detector(object):
             log.debug("Trying delims: %r", delims)
             start_line = 0
             end_line = 0
+            most_recent_end_line = 0
             
-            while start_line < MAX_SCAN_LINE:
+            # We break out if any of the following are true:
+            #
+            # * The delim is "" and we have executed the loop once
+            # * We have run out of comments in the file
+            # * We have found at least one license and the most recent one was
+            #   more than MAX_GAP_LINES ago
+            while 1:
+                if most_recent_end_line - start_line > MAX_GAP_LINES:
+                    log.debug("Ending: > MAX_GAP_LINES without license")
+                    break
+                    
                 if delims[0] == '':
                     comment = lines
                 else:
@@ -186,6 +201,7 @@ class Detector(object):
                                                                      delims)
                     if start_line == -1:
                         # No more comments; try next delim
+                        log.debug("Ending: no more comments")
                         break
 
                     comment = lines[start_line:end_line]
@@ -196,6 +212,8 @@ class Detector(object):
 
                 if tags is not None:
                     # It is.
+                    most_recent_end_line = end_line
+                    
                     for tag in tags:
                         license = {
                             'tag': tag
@@ -205,10 +223,10 @@ class Detector(object):
                             # Store away the info about the license for this
                             # file
                             (copyrights, text) = \
-                                 self._find_details(comment, tag)
-                            copyrights = \
-                                      self._canonicalize_copyrights(copyrights)
+                                               self._find_details(comment, tag)
+                            copyrights = self._clean_copyrights(copyrights)
 
+                            # De-dupe identical copyright lines
                             copyrights_dict = {}
                             for c in copyrights:
                                 copyrights_dict[c] = 1
@@ -220,11 +238,12 @@ class Detector(object):
 
                 if delims[0] == '':
                     # We did the whole file in one go; try next delim
+                    log.debug("Ending: blank delimiter so just one pass")
                     break
 
             if licenses:
                 # Once we found at least one license, we assume all licenses
-                # use the same delim, so we stop
+                # use the same delim, so we don't try any further delims.
                 break
 
         if not licenses:
@@ -237,6 +256,7 @@ class Detector(object):
             # else. The distinction made here is so we can eliminate false
             # positives for suspicion.
             tag = "none"
+            text = None
             
             if re.search("[Cc]opyright", content):
                 tag = "suspiciousCopyright"
@@ -245,13 +265,18 @@ class Detector(object):
                              content):
                     tag = "suspiciousAndroid"
                 # Things more likely to have an actual license text
-                elif re.search("[Ll]icen[cs]e|[Pp]ermi(t|ssion)|[Rr]edistribu",
-                             content):
-                    tag = "suspiciousLicensey"
-            
-            licenses.append({
-                'tag': tag,
-            })                
+                else:
+                    match = re.search("[Ll]icen[cs]e|[Pp]ermi(t|ssion)|[Rr]edistribu",
+                                      content)
+                    if match:
+                        tag = "suspiciousLicensey"
+                        # text = match.group(0)
+
+            license = { 'tag': tag }
+            if text is not None:
+                license['text'] = text
+                
+            licenses.append(license)
                     
         return licenses
 
@@ -326,7 +351,7 @@ class Detector(object):
         
         return start_line, end_line
 
-    def _canonicalize_copyrights(self, copyrights):
+    def _clean_copyrights(self, copyrights):
         """Clean up individual copyright lines"""
         for i in range(len(copyrights)):
             copyrights[i] = ws.collapse(copyrights[i])
@@ -380,18 +405,25 @@ class Detector(object):
 
     def _find_license(self, comment):
         """Find all matching licenses in a particular comment. Entry function
-        for the recursively-called function below.
+        for the recursively-called function below. Returns a sorted list.
         """
         retval = None
         
         linear_comment = " ".join(comment)
         linear_comment = ws.collapse(linear_comment)
 
+        # log.debug("Looking in text: %s\n\n" % linear_comment)
         tags = self._find_license_against(self._license_data, linear_comment)
 
         if len(tags):
-            retval = [tag for tag in tags.keys()
-                                             if not tag.startswith("Ignore_")]
+            # Remove all tags that other tags cancel
+            for tag in tags.copy():
+                if 'cancels' in self._flat_license_data[tag]:
+                    tags.difference_update(self._flat_license_data[tag]['cancels'])
+
+            # This can go if we convert entirely to "cancels" semantics
+            retval = [tag for tag in tags if not tag.startswith("Ignore_")]
+            
             retval.sort()
             log.info("Found license(s): %s" % "/".join(retval))
         else:
@@ -402,30 +434,33 @@ class Detector(object):
 
     def _find_license_against(self, license_data, comment):
         """Recursive function to precisely identify all matching licenses in
-        a particular comment. Recurses to get more specific.
+        a particular comment. Recurses to get more specific. Returns a set.
         """
-        tags = {}
+        tags = set()
         retval = None
 
-        # log.debug("Looking in comment %r" % comment)
+        # For each regexp (remember, they are split up due to limits in
+        # Python)...
         for match_re in license_data['_match_res']:
-            match = match_re.search(comment)
-            
-            if match:
-                hits = match.groupdict()
-                for hit in hits:
-                    if hits[hit]:
-                        tags[self._group_names_to_tags[hit]] = 1
+            # For each match found...
+            for match in match_re.finditer(comment):
+                # For each actual hit in the match object...
+                hits = match.groupdict()            
+                for hit in match.groupdict():
+                    if hits[hit] is not None:
+                        # Make a note of it in a de-duping hash
+                        log.debug("Hit: %s" % hit)
+                        tags.add(self._group_names_to_tags[hit])
 
-        for tag in tags.keys():
+        for tag in tags.copy():
             log.debug("Found license %s" % tag)
             if 'subs' in license_data[tag]:
                 log.debug("Checking for sub-types")
                 newtags = self._find_license_against(license_data[tag]['subs'],
-                                                   comment)
+                                                     comment)
                 if len(newtags):
                     log.debug("Replacing license %s with %r" % (tag, newtags))
-                    del tags[tag]
+                    tags.discard(tag)
                     tags.update(newtags)
                 else:
                     log.debug("Sticking with base flavour")

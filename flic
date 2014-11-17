@@ -208,6 +208,9 @@ def main():
         if not 'text' in data:
             continue
 
+        print "%r" % data['text']
+        exit(1)
+        
         html = "\n".join(data['text'])
         html = cgi.escape(html)
         
@@ -334,6 +337,7 @@ def main():
         'po_fileref':          ['COPYING', 'LICENSE', 'NOTICE'],
         'Zlib_fileref':        ['zlib.h'],
         'Libpng_fileref':      ['png.h'],
+        'LICENSE.txt_fileref': ['LICENSE.txt']
     }
 
     # Unique
