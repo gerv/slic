@@ -26,7 +26,6 @@ import json
 import argparse
 from os.path import dirname, exists, join, basename, split
 from jinja2 import Environment, PackageLoader
-import ws
 import textwrap
 import cgi
 
@@ -117,7 +116,7 @@ def _split_years(string):
             # Blank line
             continue
 
-        cw_piece = ws.collapse(piece)
+        cw_piece = utils.collapse(piece)
         
         if re.search("-", piece):
             # Range

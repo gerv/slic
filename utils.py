@@ -5,6 +5,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 ###############################################################################
+import re
 
 import logging
 logging.basicConfig(filename="slic.log")
@@ -32,3 +33,7 @@ def is_binary(filename):
     except IOError:
         log.warning("Can't open file '%s' to see if it's binary", filename)
         return True
+
+def collapse(line):
+    # Collapse whitespace
+    return re.sub("\s+", " ", line).strip()

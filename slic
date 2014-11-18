@@ -40,7 +40,6 @@ import subprocess
 import hashlib
 import json
 
-import ws
 import config
 import detector
 from license_data import license_data
@@ -123,7 +122,7 @@ def make_hash(thing):
 
     line = " ".join(thing)
     line = re.sub("[\*\.,\-\d]+", "", line)
-    line = ws.collapse(line)
+    line = utils.collapse(line)
 
     line = line.encode('ascii', errors='ignore')
     line = line.lower()

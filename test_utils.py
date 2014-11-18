@@ -30,3 +30,20 @@ class TestBinaryDetection():
             assert_equal(result,
                          bool(int(answer)),
                          msg="'%s' is wrongly classified" % filename)
+
+class TestCollapse():
+    def test_collapse(self):
+        result = utils.collapse("   ")
+        assert_equal(result, "")
+
+        result = utils.collapse("  foo")
+        assert_equal(result, "foo")
+
+        result = utils.collapse("foo   ")
+        assert_equal(result, "foo")
+
+        result = utils.collapse("  foo    bar  ")
+        assert_equal(result, "foo bar")
+
+        result = utils.collapse("foo\t\nbar\r")
+        assert_equal(result, "foo bar")

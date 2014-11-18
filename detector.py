@@ -12,11 +12,10 @@
 # details on the copyright lines and the license text itself.
 ###############################################################################
 import re
-import ws
 import logging
 import copy
 
-import ws
+import utils
 import config
 
 logging.basicConfig(filename="slic.log")
@@ -369,7 +368,7 @@ class Detector(object):
     def _clean_copyrights(self, copyrights):
         """Clean up individual copyright lines"""
         for i in range(len(copyrights)):
-            copyrights[i] = ws.collapse(copyrights[i])
+            copyrights[i] = utils.collapse(copyrights[i])
             # Remove end cruft
             copyrights[i] = re.sub("[\*#\s/]+$", "", copyrights[i])
         
@@ -425,7 +424,7 @@ class Detector(object):
         retval = None
         
         linear_comment = " ".join(comment)
-        linear_comment = ws.collapse(linear_comment)
+        linear_comment = utils.collapse(linear_comment)
 
         # log.debug("Looking in text: '%s'\n\n" % linear_comment)
         tags = self._find_license_against(self._license_data, linear_comment)
