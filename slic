@@ -94,19 +94,7 @@ def _should_skip_dir(root, basename):
 
 # "results" is an accumulating result parameter
 def get_license_info(filename, dtr, results):
-    # It's possible to configure slic to look in a different place for the
-    # license of a particular file (perhaps one it can't parse) 
-    substitute = config.get_option("substitutes", filename)
-    if substitute:
-        if not os.path.isabs(substitute):
-            script = os.path.realpath(sys.argv[0])
-            substitute = os.path.join(os.path.dirname(script),
-                                      "substitutes",
-                                      substitute)
-                                    
-        licenses = dtr.get_license_info(substitute)
-    else:
-        licenses = dtr.get_license_info(filename)
+    licenses = dtr.get_license_info(filename)
 
     for license in licenses:
         lic_key = license['tag']

@@ -238,6 +238,9 @@ license_data = {
 'GPL-1.0+_4': {
     'match':  r"Released under the General Public License \(GPL\).",
 },
+'GPL-1.0+-5': {
+    'match':  r"under the terms of GPL \(General Public Licen[cs]e\)"
+},
 # Let's play: how many ways can kernel developers write "GPL v2"?
 'GPL-2.0_2': {
     'start':  r"is free software; you can redistribute it|This software is licensed under the terms of the GNU",
@@ -263,7 +266,7 @@ license_data = {
     'match':  r"\(As all part of the Linux kernel, this file is GPL\)",
 },
 'GPL-2.0_ref_6': {
-    'match':  r"Licensed under GPLv2",
+    'match':  r"[Ll]icensed under GPLv2",
     'subs': {
         'GPL-2.0+_2': {
             'match': "or later"
@@ -280,12 +283,15 @@ license_data = {
 'GPL-2.0_ref_9': {
     'match':  r"licensed under General Public License version 2"
 },
+'GPL-2.0_ref_10': {
+    'match':  r"[Ll]icense is GPLv2"
+},
 'GPL-2.0_fileref': {
     'match':  r"This program can be distributed under the terms of the GNU GPL",
     'end':    r"See the file COPYING"
 },
 'GPL-2.0_fileref_4': {
-    'match':  r"This work is licensed under the terms of the GNU GPL, version 2",
+    'match':  r"licensed under (?:the terms of )?the GNU GPL,? version 2",
     'end':    r"top-level directory"
 },
 'GPL-2.0_fileref_5': {
@@ -312,6 +318,9 @@ license_data = {
 'BSD-3-Clause|GPL-2.0+': {
     'match':  r"both the GPL version 2 and BSD licenses",
     'end':    r"end of this file",
+},
+'BSD|GPL-2.0_ADI': {
+    'match': r"Licensed under the ADI BSD license or the GPL-2 \(or later\)"
 },
 ###############################################################################
 # LGPL
@@ -417,7 +426,7 @@ license_data = {
 },
 'HPND_4': {
     'start':  r"Permission is granted to use, copy",
-    'match':  r"create derivative works and redistribute",
+    'match':  r"create derivative works,? and redistribute",
     'end':    r"DAMAGES",
 },
 'HPND_Motorola': {
@@ -454,7 +463,7 @@ license_data = {
             'start': r"Boost Software License",
             'match': r"Boost Software License",
         },
-        'MIT_Crockford': {
+        'proprietary_MIT_Crockford': {
             'match': r"The Software shall be used for Good, not Evil",
         },
         'MIT_UIllinois': {
@@ -508,7 +517,7 @@ license_data = {
 ###############################################################################
 'BSD-2-Clause': {
     'match':  r"Redistribution and use of this software" + \
-              r"|[Rr]edistribution and use in source and",
+              r"|[Rr]edistribution and use in source (?:and|or)",
     'end':    r"DAMAGE|PURPOSE|warranty",
     'subs': {
         'BSD-3-Clause': {
@@ -982,9 +991,21 @@ license_data = {
     'match': r"UNPUBLISHED PROPRIETARY SOURCE CODE of Broadcom",
     'end':   r"permission of Broadcom Corporation"
 },
+
+# external/e2fsprogs/lib/et/test_cases/imap_err.et
+
 'proprietary_NC': {
-    'match': r"non-commercial purposes only",
+    'match': r"non-commercial",
     'subs': {
+        'Ignore_commercial': {
+            'match': r"commercial (?:and|or) non-commercial",
+        },
+        'Ignore_commercial_2': {
+            'match': r"non-commercial (?:and|or) commercial",
+        },
+        'Ignore_developed': {
+            'match': r"non-commercially developed",
+        },
         'proprietary_HP_NC': {
             'start': r"The enclosed software and documentation",
             'match': r"Hewlett-Packard Co",
