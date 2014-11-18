@@ -423,7 +423,8 @@ class Detector(object):
                 if 'cancel' in data:
                     tags.difference_update(data['cancel'])
 
-            retval = list(tags)
+            # Also permit "Ignore" semantics
+            retval = [tag for tag in tags if not tag.startswith("Ignore_")]
             retval.sort()
             log.info("Found license(s): %s" % "/".join(retval))
         else:

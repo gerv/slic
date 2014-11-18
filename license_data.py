@@ -45,6 +45,11 @@
 # T, then any tags listed in T's 'cancel' entry will be removed from the final
 # set. This allows you to eliminate false positives.
 #
+# An alternative way of cancelling a "detection" is to direct it into a path
+# with a tag starting "Ignore_". This can be more convenient than the 'cancel'
+# method in some circumstances. Tags starting "Ignore_" are simply removed
+# from the returned results.
+#
 # The above algorithms are implemented by detector.py.
 ###############################################################################
 
@@ -54,7 +59,7 @@ license_data = {
 # MPL
 ###############################################################################
 'MPL-1.1': {
-    'start':  r"The contents of this (file|package) are subject to the",
+    'start':  r"The contents of this (?:file|package) are subject to the",
     'match':  r"subject to the Mozilla Public License Version 1.1",
     'end':    r"Contributor|All Rights Reserved|Initial Developer",
     'subs': {
@@ -64,7 +69,7 @@ license_data = {
             'cancel': ['GPL-1.0+', 'LGPL-2.1']
         },            
         'MPL-1.1|GPL-2.0': {
-            'match':  r"GNU( General)? Public License version 2 \(the \"GPL\"\), in",
+            'match':  r"GNU(?: General)? Public License version 2 \(the \"GPL\"\), in",
             'end':    r"either the MPL or the GPL",
             'cancel': ['GPL-1.0+_2', 'GPL-1.0+']
         },            
@@ -72,7 +77,7 @@ license_data = {
 },
 'MPL-2.0': {
     'start':  r"Source Code Form [Ii]s subject to the terms of the Mozilla",
-    'match':  r"Mozilla Public License,? (v\. |Version )2\.0",
+    'match':  r"Mozilla Public License,? (?:v\. |Version )2\.0",
     'end':    r"You can obtain one at http://mozilla\.org/MPL/2\.0/",
     'subs': {
         'MPL-2.0_full-text': {
@@ -97,13 +102,13 @@ license_data = {
     'match':  r"GNU General Public License",
     'end':    r"along with this program" + \
               r"|gnu\.org/licenses/" + \
-              r"|021(10|11|39).*USA" + \
+              r"|021(?:10|11|39).*USA" + \
               r"|for more details" + \
               r"|any later version" + \
               r"|Free Software Foundation",
     'subs': {
         'GPL-2.0': {
-            'match':  r"Foundation; (either )?version 2",
+            'match':  r"Foundation; (?:either )?version 2",
             'subs': {
                 'GPL-2.0+': {
                     'match':  r"any later version",
@@ -115,7 +120,7 @@ license_data = {
                 },
                 'GPL-2.0|GPL-3.0': {
                     'start':  r"is free software[:;] you can redistribute it|This file is part of the",
-                    'match':  r"version 3(;| dated)",
+                    'match':  r"version 3(?:;| dated)",
                     'end':    r"along with this program|gnu\.org/licenses/|0211[01].*USA"
                 },
                 'GPL-2.0-with-autoconf-exception_1': {
@@ -151,14 +156,14 @@ license_data = {
                 },
                 'GPL-3.0-with-libtool-exception': {
                     'match':  r"GNU Libtool",
-                    'end':    r"021(10|11|39).*USA|for more details|any later version"
+                    'end':    r"021(?:10|11|39).*USA|for more details|any later version"
                 },
             }
         },
         'GPL-2.0_3': {
             'start':  r"is free software; you can redistribute it",
-            'match':  r"License (v|V|version) ?2 as published by the Free",
-            'end':    r"021(10|11|39).*USA|Free Software Foundation",
+            'match':  r"License (?:v|V|version) ?2 as published by the Free",
+            'end':    r"021(?:10|11|39).*USA|Free Software Foundation",
             'subs': {
                 # Version of BSD license not specified
                 'BSD|GPL-2.0': {
@@ -216,7 +221,7 @@ license_data = {
     }
 },
 'GPL-1.0+_1': {
-    'match':  r"[Ll]icen[cs]ed under the (GNU/)?GPL\.?($| See)",
+    'match':  r"[Ll]icen[cs]ed under the (?:GNU/)?GPL\.?(?:$| See)",
 },
 'GPL-1.0+_2': {
     'start':  r"This file may",
@@ -239,18 +244,22 @@ license_data = {
 },
 'GPL-2.0_ref_2': {
     'start':  r"This software|License",
-    'match':  r"(Subject to|terms of) the GNU Public License, (v\.|[vV]ersion )2",
+    'match':  r"(?:Subject to|terms of) the GNU Public License, (?:v\.|[vV]ersion )2",
     'end':    r"reference|License"
 },
 'GPL-2.0_ref_3': {
-    'match':  r"[Rr]eleased under (the )?(terms of the GNU )?GPL\s?v2",
+    'match':  r"[Rr]eleased under (?:the )?(?:terms of the GNU )?GPL\s?v2",
 },
 'GPL-2.0_ref_4': {
     'match':  r"Licensed under the GPL-2",
 },
 'GPL-2.0_ref_5': {
     'match':  r"\(As all part of the Linux kernel, this file is GPL\)",
-},    
+},
+'GPL-2.0_ref_6': {
+    'match':  r"Use consistent with the GNU GPL is permitted",
+    'end':    r"derived works"
+},
 'GPL-2.0_fileref': {
     'match':  r"This program can be distributed under the terms of the GNU GPL",
     'end':    r"See the file COPYING"
@@ -302,9 +311,9 @@ license_data = {
 # LGPL
 ###############################################################################
 'LGPL-1.0+': {
-    'start':  r"This file (may|can)|is free software; you can redistribute it",
-    'match':  r"(Lesser|Library) General Public License|LESSER GENERAL PUBLIC",
-    'end':    r"General Public License|021(10|11|39).*USA|lgpl\.html|Free Software Foundation|of the License",
+    'start':  r"This file (?:may|can)|is free software; you can redistribute it",
+    'match':  r"(?:Lesser|Library) General Public License|LESSER GENERAL PUBLIC",
+    'end':    r"General Public License|021(?:10|11|39).*USA|lgpl\.html|Free Software Foundation|of the License",
     'subs': {
         'LGPL-2.1': {
             'match':  r"[Vv]ersion 2",
@@ -370,7 +379,7 @@ license_data = {
 ###############################################################################
 'HPND_no-repro-required': {
     'start':  r"[Pp]ermission to use, copy, modify",
-    'match':  r"[Pp]ermission to use, copy, modify,?(?: and(/or)?)? distribute",
+    'match':  r"[Pp]ermission to use, copy, modify,?(?: and(?:/or)?)? distribute",
     'end':    r"SOFTWARE|express or implied|without fee|of any kind" + \
               r"|written prior permission|supporting documentation" + \
               r"|MODIFICATIONS|prior written authorization|DERIVATIVE WORK" + \
@@ -379,7 +388,7 @@ license_data = {
     'subs': {
         'HPND': {
             'match':  r"all copies|notice is preserved",
-            'maxlines': 15
+            'maxlines': 18
         },
 #        'HPND_2': {
 #            'match':  r"freely granted",
@@ -424,8 +433,8 @@ license_data = {
     'subs': {
         'MIT|GPL-2.0_urlref': { # jQuery
             'start': r"Dual licensed under the MIT",
-            'match': r"Dual licensed under the MIT (and|or) GPL",
-            'end':   r"jquery\.(com|org)/[Ll]icense|licenses\."
+            'match': r"Dual licensed under the MIT (?:and|or) GPL",
+            'end':   r"jquery\.(?:com|org)/[Ll]icense|licenses\."
         },
         'MIT|GPL-2.0_fileref': { # jQuery
             'start': r"Dual licensed under the MIT",
@@ -456,14 +465,14 @@ license_data = {
     'end':    r"terms of the MIT/X [lL]icense|with this distribution",
 },
 'MIT_urlref': {
-    'match':  r"Some rights reserved: http://opensource.org/licenses/mit",
+    'match':  r"Some rights reserved: <?http://opensource.org/licenses/mit",
 },
 'MIT_urlref_2': {
     'match':  r"MIT License - http://opensource.org/licenses/mit-license\.php",
 },
 'MIT_ref': {
-    'match':  r"under (an |the )?MIT license",
-    'end':    r"http://opensource.org/licenses/MIT|under (an|the )?MIT license",
+    'match':  r"under (?:an |the )?MIT license",
+    'end':    r"http://opensource.org/licenses/MIT|under (?:an |the )?MIT license",
     'maxlines': 5,
     'subs': {
         'MIT_Lodash_urlref': {
@@ -485,7 +494,7 @@ license_data = {
     'end':    r"http://github\.com/requirejs/alameda",
 },
 'BSL-1.0_urlref': {
-    'match':  r"Distributed under the Boost Software License, Version 1\.0",
+    'match':  r"the Boost Software License, Version 1\.0",
     'end':    r"http://www\.boost\.org/LICENSE_1_0\.txt",
 },
 ###############################################################################
@@ -497,8 +506,8 @@ license_data = {
     'end':    r"DAMAGE|PURPOSE|warranty",
     'subs': {
         'BSD-3-Clause': {
-            'match':  r"name.*(may|must) not be used to" + \
-                      r"|Neither the (author|name).*may be used to" + \
+            'match':  r"name.*(?:may|must) not be used to" + \
+                      r"|Neither the (?:author|name).*may be used to" + \
                       r"|The name of the company nor the name of the author",
             'subs': {
                 'BSD-4-Clause': {
@@ -530,8 +539,9 @@ license_data = {
                     'end':     r"DAMAGE|damage|IN ANY WAY",
                     'cancel': ['GPL-1.0+'],
                     'subs': {
-                        'BSD|GPL-2.0+': {
-                            'match': r"version 2"
+                        'BSD|GPL-2.0_2': {
+                            'match':  r"version 2",
+                            'cancel': ['GPL-1.0+']
                         }
                     }
                 },
@@ -593,6 +603,11 @@ license_data = {
     'start': r"This program and the accompanying materials",
     'match': r"http://www\.eclipse\.org/org/documents/edl-v10\.html",
 },
+'BSD-3-Clause_NetBSD_ref': {
+    'start': r"These changes are offered",
+    'match': r"same license as the original NetBSD file",
+    'end':   r"unchanged above"
+},
 'BSD-Protection': {
     'match': r"BSD PROTECTION LICENSE",
     'end':   r"OF SUCH DAMAGES"
@@ -602,6 +617,9 @@ license_data = {
     'match': r"no matter how awful",
     'end':   r"removed or altered",
 },
+'BSD_ref': {
+    'match': r"licensed under the BSD licen[sc]e"
+},
 ###############################################################################
 # Generic filerefs (i.e. filename does not define license)
 ###############################################################################
@@ -610,7 +628,7 @@ license_data = {
 },
 'COPYING_fileref2': {
     'start':  r"COPYING for licensing terms",
-    'match':  r"See (\.\./)*COPYING for licensing terms",
+    'match':  r"See (?:\.\./)*COPYING for licensing terms",
     'end':    r"COPYING for licensing terms"
 },
 'COPYRIGHT_fileref': {
@@ -643,7 +661,7 @@ license_data = {
 },
 'Permissive_GNU2': {
     'start':  r"This (?:Makefile\.in|file) is free software",
-    'match':  r"This (Makefile\.in|file) is free software.*with or without modifications",
+    'match':  r"This (?:Makefile\.in|file) is free software.*with or without modifications",
     'end':    r"PARTICULAR PURPOSE|notice is preserved",
     'maxlines': 10
 },
@@ -672,7 +690,20 @@ license_data = {
 'Permissive_ACE': {
     'start':  r"ACE\(TM\), TAO\(TM\), CIAO\(TM\)",
     'match':  r"built using DOC software",
-    'end':    r"their names" 
+    'end':    r"their names",
+    'cancel': ['Permissive_ACE_urlref']
+},
+'Permissive_ACE_urlref': {
+    'start':  r"Use of this source code",
+    'match':  r"http://www1\.cse\.wustl\.edu/~schmidt/ACE-copying\.html" 
+},
+###############################################################################
+# Other Copyleft
+###############################################################################
+'GFDL-1.2': {
+    'start':  r"Permission is granted to copy, distribute",
+    'match':  r"GNU Free Documentation License, Version 1\.2",
+    'end':    r"Back-Cover Texts" 
 },
 ###############################################################################
 # Other Non-Copyleft
@@ -723,7 +754,7 @@ license_data = {
     'end':   r"http://www\.freetype\.org"
 },
 'W3C_urlref': {
-    'match': r"(program|work) is distributed under the W3C('s|\(r\)) Software" + \
+    'match': r"(?:program|work) is distributed under the W3C(?:'s|\(r\)) Software" + \
              r"|The following software licensing rules apply",
     'end':   r"A PARTICULAR PURPOSE|for more details|copyright-software"
 },
@@ -739,10 +770,20 @@ license_data = {
 'Zlib_ref': {
     'match': r"Licensed under the zlib/libpng license",
 },
+'Zlib_ref2': {
+    'start': r"See the accompanying file LICENSE",
+    'match': r"are also included in zip\.h",
+    'end':   r"license\.html",
+},
+'Zlib_ref3': {
+    'match': r"Open source license information is in the zlib\.ads file.",
+},
+# Seems a bit generic, but the suspect English may avoid false positives.
+# Trouble, is the file referenced is different (zlib.h, blast.h, puff.h, ...)
 'Zlib_fileref': {
     'start': r"For conditions of distribution and use, see copyright notice",
-    'match': r"distribution and use, see copyright notice in zlib.h",
-    'end':   r"notice in zlib.h"
+    'match': r"distribution and use, see copyright notice in (?:zlib|blast|puff)\.h",
+    'end':   r"notice in"
 },
 'bzip2-1.0.6_fileref': {
     'start': r"This program is released under the terms",
@@ -767,7 +808,7 @@ license_data = {
     'end':   r"appreciated"
 },
 'Libpng_fileref': {
-    'match': r"This (code|document) is released under the libpng license",
+    'match': r"This (?:code|document) is released under the libpng license",
     'end':   r"under the libpng license|license in png.h"
 },
 'curl_urlref': {
@@ -816,7 +857,10 @@ license_data = {
     'start': r"Sun RPC is a product of Sun Microsystems, Inc",
     'match': r"copy or modify Sun RPC without charge",
     'end':   r"possibility of such damages"
-},    
+},
+'gzlog.h_fileref': {
+    'match': r"For conditions of distribution and use, see copyright notice in gzlog\.h",
+},
 ###############################################################################
 # OFL
 ###############################################################################
@@ -872,10 +916,10 @@ license_data = {
     'subs': {
         'CC0-1.0': {
             'start': r"Any copyright is dedicated to the Public Domain" + \
-                      "|http://creativecommons\.org/(publicdomain/zero/1\.0|licenses/publicdomain)",
+                      "|http://creativecommons\.org/(?:publicdomain/zero/1\.0|licenses/publicdomain)",
             'match': r"Any copyright is dedicated to the Public Domain" + \
-                      "|http://creativecommons\.org/(publicdomain/zero/1\.0|licenses/publicdomain)",
-            'end':   r"http://creativecommons\.org/(publicdomain/zero/1\.0|licenses/publicdomain)"
+                      "|http://creativecommons\.org/(?:publicdomain/zero/1\.0|licenses/publicdomain)",
+            'end':   r"http://creativecommons\.org/(?:publicdomain/zero/1\.0|licenses/publicdomain)"
         },
         'PD_Peslyak': {
             'start': r"This software was written by Alexander",
@@ -902,9 +946,13 @@ license_data = {
 ###############################################################################
 # Proprietary
 ###############################################################################
+'proprietary_RFC': {
+    'match': r"Permission is granted to copy and distribute this document",
+    'end':   r"marked"
+},
 'proprietary_IBM': {
     'start': r"International Business Machines",
-    'match': r"(International Business Machines|IBM) Corporation and others\.\s+All [Rr]ights [Rr]eserved",
+    'match': r"(?:International Business Machines|IBM) Corporation and others\.\s+All [Rr]ights [Rr]eserved",
 },
 'proprietary_IBM_purify': {
     'start': r"IBM Corporation",
@@ -920,9 +968,23 @@ license_data = {
     'match': r"Microsoft Windows operating system product",
     'maxlines': 80
 },
+'proprietary_Microsoft_2': {
+    'match': r"MICROSOFT LIMITED PUBLIC LICENSE",
+    'end':   r"http://msdn\.microsoft\.com/en-us/cc300389\.aspx#P"
+},
 'proprietary_Broadcom_2': {
     'match': r"UNPUBLISHED PROPRIETARY SOURCE CODE of Broadcom",
     'end':   r"permission of Broadcom Corporation"
+},
+'proprietary_NC': {
+    'match': r"non-commercial purposes only",
+    'subs': {
+        'proprietary_HP_NC': {
+            'start': r"The enclosed software and documentation",
+            'match': r"Hewlett-Packard Co",
+            'end':   r"SOFTWARE OR DOCUMENTATION"
+        }
+    }
 },
 'confidential': {
     'match': r"[Cc]onfidential",

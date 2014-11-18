@@ -208,8 +208,7 @@ def main():
         if not 'text' in data:
             continue
 
-        print "%r" % data['text']
-        exit(1)
+        print "%r" % data
         
         html = "\n".join(data['text'])
         html = cgi.escape(html)

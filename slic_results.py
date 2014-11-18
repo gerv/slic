@@ -65,8 +65,7 @@ class SlicResults(dict):
             license = {
                 'tag': tag,
                 'copyrights': [],
-                'files': [],
-                'text': None,
+                'files': []
             }
 
             for data in datalist:

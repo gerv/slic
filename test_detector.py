@@ -86,12 +86,12 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
         
         data1 = {
             'MPL-1.1': {
-                'start':  r"The contents of this (file|package) are subject to the",
+                'start':  r"The contents of this (?:file|package) are subject to the",
                 'match':  r"subject to the Mozilla Public License Version 1.1",
                 'end':    r"Contributor|All Rights Reserved|Initial Developer",
                 'subs': {
                     'MPL-1.1|GPL-2.0|LGPL-2.1': { # Mozilla
-                        'start':  r"The contents of this (file|package) are subject to the",
+                        'start':  r"The contents of this (?:file|package) are subject to the",
                         'match':  r"either the GNU General",
                         'end':    r"terms of any one of the MPL, the GPL or the LGPL"
                     },         
@@ -101,7 +101,7 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
         
         dtr = detector.Detector(license_data)        
         assert_equal(dtr._license_data['MPL-1.1']['start'], \
-                         r"The contents of this (file|package) are subject to the")
+                         r"The contents of this (?:file|package) are subject to the")
 
 
     def test_identification(self):
