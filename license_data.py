@@ -71,7 +71,7 @@ license_data = {
         'MPL-1.1|GPL-2.0': {
             'match':  r"GNU(?: General)? Public License version 2 \(the \"GPL\"\), in",
             'end':    r"either the MPL or the GPL",
-            'cancel': ['GPL-1.0+_2', 'GPL-1.0+']
+            'cancel': ['GPL-1.0+_2', 'GPL-1.0+', 'GPL-2.0_ref_2']
         },            
     }
 },
@@ -187,15 +187,15 @@ license_data = {
             'match':  r"the GNU General Public License, incorporated",
             'end':    r"reference"
         },
-        'GPL-2.0_fileref_2': {
-            'start':  r"This source code is licensed under the GNU General Public License",
-            'match':  r"This source code is licensed under the GNU General Public License",
-            'end':    r"See the file COPYING"
-        },
         'GPL-2.0_ref': {
             'start':  r"License terms: GNU General Public License \(GPL\) version 2",
             'match':  r"License terms: GNU General Public License \(GPL\) version 2",
             'end':    r"License terms: GNU General Public License \(GPL\) version 2"
+        },
+        'GPL-2.0_fileref_2': {
+            'start':  r"This source code is licensed under the GNU General Public License",
+            'match':  r"This source code is licensed under the GNU General Public License",
+            'end':    r"See the file COPYING"
         },
         'GPL-2.0_fileref_3': {
             'start':  r"subject to the terms and conditions of the GNU General Public",
@@ -221,7 +221,12 @@ license_data = {
     }
 },
 'GPL-1.0+_1': {
-    'match':  r"[Ll]icen[cs]ed under the (?:GNU/)?GPL\.?(?:$| See)",
+    'match':  r"[Ll]icen[cs]ed under the (?:GNU/)?GPL\.?\s*(?:[^-vV]|$)",
+    'subs': {
+        'GPL-1.0+_urlref': {
+            'match':  r"Licensed under the GPL \(http://www\.gnu\.org/licenses/gpl.html\) license",
+        },
+    }
 },
 'GPL-1.0+_2': {
     'start':  r"This file may",
@@ -233,6 +238,7 @@ license_data = {
 'GPL-1.0+_4': {
     'match':  r"Released under the General Public License \(GPL\).",
 },
+# Let's play: how many ways can kernel developers write "GPL v2"?
 'GPL-2.0_2': {
     'start':  r"is free software; you can redistribute it|This software is licensed under the terms of the GNU",
     'match':  r"2 of the Licence",
@@ -244,7 +250,7 @@ license_data = {
 },
 'GPL-2.0_ref_2': {
     'start':  r"This software|License",
-    'match':  r"(?:Subject to|terms of) the GNU Public License, (?:v\.|[vV]ersion )2",
+    'match':  r"(?:[Ss]ubject to|terms of) the (?:GNU|Gnu) (?:Public )?[Ll]icense,? (?:v\.|[vV]ersion )2",
     'end':    r"reference|License"
 },
 'GPL-2.0_ref_3': {
@@ -257,8 +263,22 @@ license_data = {
     'match':  r"\(As all part of the Linux kernel, this file is GPL\)",
 },
 'GPL-2.0_ref_6': {
+    'match':  r"Licensed under GPLv2",
+    'subs': {
+        'GPL-2.0+_2': {
+            'match': "or later"
+        }
+    }
+},
+'GPL-2.0_ref_7': {
+    'match':  r"under the terms of the GNUv2 General Public License",
+},
+'GPL-2.0_ref_8': {
     'match':  r"Use consistent with the GNU GPL is permitted",
     'end':    r"derived works"
+},
+'GPL-2.0_ref_9': {
+    'match':  r"licensed under General Public License version 2"
 },
 'GPL-2.0_fileref': {
     'match':  r"This program can be distributed under the terms of the GNU GPL",
@@ -282,20 +302,6 @@ license_data = {
 },
 'GPL-2.0_fileref_9': {
     'match':  r"For licensing details see kernel-base/COPYING",
-},
-'GPL-2.0_urlref': {
-    'match':  r"Licensed under the GPL \(http://www\.gnu\.org/licenses/gpl.html\) license",
-},
-'GPL-2.0_ref_6': {
-    'match':  r"Licensed under GPLv2",
-    'subs': {
-        'GPL-2.0+_2': {
-            'match': "or later"
-        }
-    }
-},
-'GPL-2.0_ref_7': {
-    'match':  r"under the terms of the GNUv2 General Public License",
 },
 # Various files in the kernel have other terms and then a "GPL Licensing Note"
 # which explains why GPLing it is actually OK.

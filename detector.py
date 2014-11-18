@@ -69,7 +69,10 @@ class Detector(object):
                 raise Exception("Hit tag %s starting with underscore" % tag)
 
             # Bad things happen if we use the same name twice; detect this
-            # condition and bail so it can be fixed.
+            # condition and bail so it can be fixed. This won't detect all
+            # instances because if they are at the same level, the later
+            # definition silently overrides the former before we even see the
+            # data. But it helps.
             if tag in self._flat_license_data:
                 raise Exception("Duplicate tag %s in license data" % tag)
             else:
@@ -111,16 +114,23 @@ class Detector(object):
         #
         # Our structure certainly has more than this many entries at the top
         # level, we create a set of regexps and apply them sequentially.
+        #
+        # We store the text form of the regexp for debugging purposes.
         grouplimit = 99
 
         license_data['_match_res'] = []
+        license_data['_match_res_text'] = []
         
         while len(matches) > grouplimit:
             section = matches[:grouplimit]
             matches = matches[grouplimit:]
-            license_data['_match_res'].append(re.compile("|".join(section)))
+            text = "|".join(section)
+            license_data['_match_res_text'].append(text)
+            license_data['_match_res'].append(re.compile(text))
 
-        license_data['_match_res'].append(re.compile("|".join(matches)))
+        text = "|".join(matches)
+        license_data['_match_res_text'].append(text)
+        license_data['_match_res'].append(re.compile(text))
 
         for (tag, info) in license_data.iteritems():            
             # Recurse if necessary
@@ -280,7 +290,9 @@ class Detector(object):
                 license['text'] = text
                 
             licenses.append(license)
-                    
+
+        log.debug("Filename: %s" % filename)
+        log.debug("get_license_info returned: %r" % licenses)
         return licenses
 
     def _find_next_comment(self, starting_from, lines, delims):
@@ -415,7 +427,7 @@ class Detector(object):
         linear_comment = " ".join(comment)
         linear_comment = ws.collapse(linear_comment)
 
-        # log.debug("Looking in text: %s\n\n" % linear_comment)
+        # log.debug("Looking in text: '%s'\n\n" % linear_comment)
         tags = self._find_license_against(self._license_data, linear_comment)
 
         if len(tags):
