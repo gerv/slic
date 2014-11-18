@@ -104,12 +104,14 @@ class Detector(object):
             if 'cancel' in info:
                 info['cancel'] = set(info['cancel'])
 
-        # Python "only supports 100 named capturing groups", although it seems
-        # to actually count groups of any sort, which means it's non-trivial
-        # to work out when you have to actually split! So we leave headroom.
+        # Python "only supports 100 named groups", although it seems to
+        # actually count all capturing groups, named or otherwise. So we must
+        # always use non-capturing groups - (?: ... ) - in the 'match' regexps
+        # otherwise we'll hit this error.
+        #
         # Our structure certainly has more than this many entries at the top
         # level, we create a set of regexps and apply them sequentially.
-        grouplimit = 80
+        grouplimit = 99
 
         license_data['_match_res'] = []
         
