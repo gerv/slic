@@ -7,7 +7,8 @@
 ##############################################################################
 #
 # Throwaway script to randomly choose one file from each tag in a slic output
-# file and print it out. These can then be used as testcases in the test suite.
+# file and print it out. These can then be used as testcases in the test suite,
+# so the test suite has wide coverage of the different possible types of file.
 
 import os
 import sys

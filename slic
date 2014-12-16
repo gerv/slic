@@ -16,14 +16,16 @@
     Options:
         -h, --help          dump this help and exit
         -V, --version       dump this script's version and exit
-        -v, --verbose       verbose output
-        -d, --debug         more verbose output
-        -j, --json          Output data as JSON
-        -c, --codebase=<cb> Name of codebase (gives .ini file to include)
+        -v, --verbose       verbose logging output
+        -d, --debug         more verbose logging output
+        -p, --plain         Output data as plain text rather than JSON
+        -c, --config=<file> Name of .ini file to include (relative to slic dir)
 
     slic is configured by slic.ini, but you can also add additional codebase-
     specific config files by calling them e.g. foo.ini and using
-    --codebase=foo.
+    --config=foo.ini.
+
+    Log data is written to slic.log in the current directory.
 """
 
 import logging
@@ -45,7 +47,7 @@ import detector
 from license_data import license_data
 import utils
 
-_version_ = (1, 1, 0)
+_version_ = (1, 2, 0)
 
 backup_pattern = re.compile("~\d+$")
 def _should_skip_file(root, basename):
@@ -139,7 +141,7 @@ def main(argv):
         opts, args = getopt.getopt(argv[1:], "VvhdDjc:", ["version", "verbose",
                                                           "help", "debug",
                                                           "details", "json",
-                                                          "codebase="])
+                                                          "config="])
     except getopt.GetoptError, ex:
         print str(ex)
         print "Try `%s --help'." % argv[0]
@@ -147,9 +149,9 @@ def main(argv):
         log.error("Try `%s --help'." % argv[0])
         return 2
 
-    output_json = False
+    output_json = True
     details = False
-    codebase = None
+    configfile = None
     for opt, optarg in opts:
         if   opt in ("-h", "--help"):
             sys.stdout.write(__doc__)
@@ -162,12 +164,12 @@ def main(argv):
             log.setLevel(logging.INFO)
         elif opt in ("-d", "--debug"):
             log.setLevel(logging.DEBUG)
-        elif opt in ("-j", "--json"):
-            output_json = True
+        elif opt in ("-p", "--plain"):
+            output_json = False
         elif opt in ("-D", "--details"):
             details = True
-        elif opt in ("-c", "--codebase"):
-            codebase = optarg
+        elif opt in ("-c", "--config"):
+            configfile = optarg
 
     # The base config file is slic.ini in the script's directory
     scriptpath = os.path.realpath(sys.argv[0])
@@ -175,11 +177,10 @@ def main(argv):
     config.read([slicinipath])
 
     # But you can also have a codebase-specific .ini file in the script's
-    # directory, specified using the --codebase/-c option.
-    if codebase:
-        cbininame = "%s.ini" % codebase
-        cbinipath = os.path.join(os.path.dirname(scriptpath), cbininame)
-        config.read([cbinipath])
+    # directory, specified using the --config/-c option.
+    if configfile:
+        configinipath = os.path.join(os.path.dirname(scriptpath), configfile)
+        config.read([configinipath])
         
     # Prepare the input.
     if not args:

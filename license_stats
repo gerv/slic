@@ -6,7 +6,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 ###############################################################################
 #
-# Produce various stats about a slic output file.
+# This script prints various stats about a slic output file.
 
 import json
 import sys
@@ -33,5 +33,5 @@ print "Unique license tags: %i" % len(occurrences)
 print "Unique licenses: %i" % len(licenses)
 print "Files: %i" % file_count
 
-for tag in sorted(licenses.keys()):
-    print tag
+# for tag in sorted(licenses.keys()):
+#    print tag

@@ -112,7 +112,7 @@ class Detector(object):
         # otherwise we'll hit this error.
         #
         # Our structure certainly has more than this many entries at the top
-        # level, we create a set of regexps and apply them sequentially.
+        # level, so we create a set of regexps and apply them sequentially.
         #
         # We store the text form of the regexp for debugging purposes.
         grouplimit = 99

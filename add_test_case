@@ -8,7 +8,7 @@
 
 # This script takes a file on the command line, runs relic on it to get the
 # "answers" (which are presumably correct when you add it to the suite!) and
-# then adds the file to the test suite with the answers.
+# then adds the file to the test suite, along with the determined answers.
 #
 # So when you update the code to cope with a particular file, call this
 # script on it and hopefully it'll never break again without you noticing.

@@ -14,7 +14,7 @@
 # an underscore. Tags must be unique in the structure.
 # 
 # For each block, 'match' is a regexp which identifies that license or
-# license family uniquely, when matched against a large runon string of the
+# license family uniquely, when matched against a large run-on string of the
 # entire comment. 'subs' is a set of sub-flavours of that license. Once a type
 # is detected, matches are run against the 'match' member of all the subs. If
 # none are detected, you have the base flavour; otherwise you have the
@@ -24,7 +24,7 @@
 # where comment chars have been removed and whitespace has been collapsed.
 # The matches are case-sensitive, so your regexps will need to accommodate
 # that. The top-level ones are the most performance-critical, so do not use
-# expensive constructs.
+# expensive regexp constructs.
 #
 # Once a block has been identified as containing a particular license, you
 # search from the start for a line matching 'start', and from the end
@@ -39,11 +39,14 @@
 # text; this tries to avoid encompassing two much text when the end-detection
 # line could be matched more than once (e.g. in files which have multiple
 # license blocks in). If you find the detector is combining licenses, set a
-# 'maxlines' value for the first of the two.
+# 'maxlines' value for the first of the two licenses.
 #
 # A 'cancel' entry allows you to eliminate false positives. If you match a tag
 # T, then any tags listed in T's 'cancel' entry will be removed from the final
-# set. This allows you to eliminate false positives.
+# set. So e.g. the MPL/LGPL/GPL tri-license is detected as itself, but also as
+# the GPL and the LGPL. However, the MPL-1.1|GPL-2.0+|LGPL-2.1+ entry has a
+# 'cancel' value of ['GPL-1.0+', 'LGPL-2.1'], so those other detections are
+# cancelled, leaving the correct answer.
 #
 # An alternative way of cancelling a "detection" is to direct it into a path
 # with a tag starting "Ignore_". This can be more convenient than the 'cancel'
@@ -528,24 +531,18 @@ license_data = {
                 'BSD-4-Clause': {
                     'match':  r"advertising materials",
                     'subs': {
-                        # The 4th clause is not a problem because it has been
-                        # waived permanently
+                        # The 4th clause is not a problem for the next two
+                        # entries because it has been waived permanently by
+                        # the copyright holder/credit target.
                         'BSD-4-Clause_UC': {
                             'match':  r"University of California",
                         },
                         'BSD-4-Clause_NetBSD': {
                             'match':  r"The NetBSD Foundation",
                         },
-                        # Waived for Mozilla code
+                        # Waived for Mozilla code only
                         'BSD-4-Clause_RTFM': {
                             'match':  r"RTFM, Inc",
-                        },
-                        # This one, there is no waiver but we aren't using
-                        # the code, even though the Android people have
-                        # copied the notice into a NOTICE file we read.
-                        # So we detect it separately so we can ignore it.
-                        'BSD-4-Clause_Winning': {
-                            'match':  r"Winning Strategies, Inc",
                         },
                     }
                 },
@@ -667,8 +664,8 @@ license_data = {
 ###############################################################################
 # Permissive
 #
-# "Permissive" licenses are those which do not have text reproduction
-# requirements
+# "Permissive" licenses in this context are those which do not have text
+# reproduction requirements
 ###############################################################################
 'Permissive_GNU1': {
     'match':  r"Copying and distribution of this file, with or without",
@@ -991,9 +988,6 @@ license_data = {
     'match': r"UNPUBLISHED PROPRIETARY SOURCE CODE of Broadcom",
     'end':   r"permission of Broadcom Corporation"
 },
-
-# external/e2fsprogs/lib/et/test_cases/imap_err.et
-
 'proprietary_NC': {
     'match': r"non-commercial",
     'subs': {

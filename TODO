@@ -1,35 +1,4 @@
-Ideas:
+Things to do:
 
-
-
-Issues:
-
-* Multiple BSD-like licenses in a file, e.g.
-  How do we keep them separate?
-  
-  gfx/cairo/libpixman/src/pixman.h
-  gfx/cairo/libpixman/src/pixman-region.c 
-  ./media/mtransport/nr_socket_prsock.cpp
-  ./netwerk/wifi/osx_wifi.h
-  ./extensions/spellcheck/locales/en-US/hunspell/README_en_US.txt
-  ./browser/app/profile/extensions/testpilot@labs.mozilla.com/content/flot/jquery.flot.navigate.js
-
-* Irredemably broken (needs patch):
-./toolkit/crashreporter/google-breakpad/src/processor/disassembler_x86.cc
-
-* Multiple detections?
-./toolkit/devtools/sourcemap/SourceMap.jsm
-./toolkit/devtools/sourcemap/tests/unit/Utils.jsm
-
-* .txt file problems:
-gfx/graphite2/src/CMakeLists.txt
-
-* Amalgamate successive block comments:
-./modules/freetype2/include/freetype/ftadvanc.h
-
-* Not open source:
-./toolkit/crashreporter/google-breakpad/src/common/convert_UTF.c
-
-* Just a mess:
-./media/libvorbis/lib/vorbis_lpc.c
-
+* Move bisonexception resolution from flic to slic
+* Nit: when combining lines, check for hyphenated words

@@ -6,10 +6,22 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 ###############################################################################
 #
-# Find all the files which slic would assume are not binary, and check them
-# explicitly for binaryness. Used to update the force_binary_check list.
-# If you see files in the list this outputs which _are_ binary, you should
-# consider adding their file extensions to force_binary_check.
+# slic wants to avoid checking binary files. For speed, it does this at first
+# using a filename extension check, and assumes that all extensions for which
+# we have a configured set of comment markers are text. However, this
+# configured list may be wrong, or some file extensions may be 'dual use'
+# (like e.g. doc, which can be a Word document, or just a text file).
+#
+# Therefore, this script iterates over a tree of files, finds all those which
+# slic would assume are not binary, and checks them explicitly for binaryness
+# using the check in utils.py (which basically looks for UTF8-invalid bytes).
+# The output can be used to update the 'force_binary_check' list of file
+# extensions, which are those for which a binary check should always be done.
+#
+# In other words, if you are using slic on a new tree of files, you should
+# run this script over it. If you see files in the list this outputs which
+# _are_ binary, you should consider adding their file extensions to
+# force_binary_check in slic.ini.
  
 import utils
 import config
