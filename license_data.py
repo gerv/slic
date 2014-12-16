@@ -629,6 +629,11 @@ license_data = {
     'match': r"no matter how awful",
     'end':   r"removed or altered",
 },
+'BSD-like_Apple_no_patents': {
+    'start': r"This Apple software is supplied to you by",
+    'match': r"Apple herein, including but not limited to any patent rights",
+    'end':   r"SUCH DAMAGE",
+},
 'BSD_ref': {
     'match': r"licensed under the BSD licen[sc]e"
 },

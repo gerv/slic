@@ -15,6 +15,7 @@
     Options:
         --template  Name of the template to use (in flic_templates dir)
         --input     License information JSON file (output of slic)
+                    (Can be specified more than once)
 
     This script is quite specific to the needs of generating the license info
     from the B2G codebase for Firefox OS, but could be adapted. It does
@@ -178,7 +179,7 @@ def _canonicalize_year(year):
 ###############################################################################
 # main()
 ###############################################################################
-def main():
+def main(argv):
     env = Environment(loader=PackageLoader('__main__', 'flic_templates'),
                       trim_blocks=True,
                       extensions=['jinja2.ext.do'])
@@ -187,14 +188,15 @@ def main():
                                     'Collate and process license information.')
     parser.add_argument('--template', metavar="<template>",
                        help='Render the given template name')
-    parser.add_argument('--input', metavar="<input file>",
+    parser.add_argument('--input', metavar="<input file>", action="append",
                        help='JSON output of "slic" program')
 
     args = parser.parse_args()
 
     # Load occurrence data file
     bytag = SlicResults()
-    bytag.load_json(args.input)
+    for filename in args.input:
+        bytag.load_json(filename)
 
     # For some licenses, we have a specific set text and so even if small
     # variants are found, we choose to ignore them and amalgamate all the

@@ -22,8 +22,9 @@
         -c, --config=<file> Name of .ini file to include (relative to slic dir)
 
     slic is configured by slic.ini, but you can also add additional codebase-
-    specific config files by calling them e.g. foo.ini and using
-    --config=foo.ini.
+    specific config files using --config=foo.ini, with foo.ini in the slic
+    dir. (This is a convenience because you often want to run the command from
+    the source dir, but don't want to store your ini files there.)
 
     Log data is written to slic.log in the current directory.
 """
@@ -47,7 +48,12 @@ import detector
 from license_data import license_data
 import utils
 
-_version_ = (1, 2, 0)
+# Make it so I can output UTF-8 when redirecting to a file
+# Stack Overflow 5530708
+import codecs
+sys.stdout=codecs.getwriter('utf-8')(sys.stdout)
+
+_version_ = (1, 0, 0)
 
 backup_pattern = re.compile("~\d+$")
 def _should_skip_file(root, basename):
@@ -140,7 +146,7 @@ def main(argv):
     try:
         opts, args = getopt.getopt(argv[1:], "VvhdDjc:", ["version", "verbose",
                                                           "help", "debug",
-                                                          "details", "json",
+                                                          "details", "plain",
                                                           "config="])
     except getopt.GetoptError, ex:
         print str(ex)
@@ -195,7 +201,8 @@ def main(argv):
     for path in paths:
         path = path.strip()
         log.debug("Doing path: %s" % path)
-        if path[-1] == "\n": path = path[:-1] # chomp if 'paths' is a stream
+        # chomp if 'paths' is a stream
+        if len(path) and path[-1] == "\n": path = path[:-1]
 
         # Comments and blank lines if we use a streamed file
         if not path or re.match("^\s*#", path):

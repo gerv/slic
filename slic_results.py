@@ -12,6 +12,34 @@
 # representation becomes a different item in the list. Attached to the text is
 # a list of files where that text appeared, and a list of recognisable
 # copyright lines parsed from the comment in which the text appears.
+#
+# So something like this:
+#
+# {
+#   'GPL-2.0': [
+#     {
+#       'tag': 'GPL-2.0',
+#       'files: ['/foo/bar.c', 'foo/quux.c'],
+#     },
+#     ...
+#   ],
+#   'BSD-2-Clause': [
+#     {
+#       'tag': 'BSD-2-Clause',
+#       'files: ['/bedrock/fred.html', 'bedrock/wilma.html'],
+#       'text': "Redistribution and use in source and binary forms ...",
+#       'copyright': ["Copyright (C) 2000-1994 BC, Barney Rubble", ...]
+#     },
+#     {
+#       'tag': 'BSD-2-Clause',
+#       'files: ['/beatles/john.js', '/beatles/paul.js'],
+#       'text': "Redistribution and use in source and/or binary forms..."
+#     },
+#     ...
+#   ],
+#   ...
+# }
+#
 
 import json
 import re
@@ -19,7 +47,11 @@ import itertools
 
 class SlicResults(dict):
     def load_json(self, initval):
-        """Populates the Results from JSON, either as string or as filename."""
+        """Populates the Results from JSON, either as string or as filename.
+           This function can be called more than once, and will merge in any
+           new JSON files. (This is useful if you ran slic in parallel over
+           different parts of the codebase.)
+        """
         if re.match(r"^\s*\[", initval):
             data = json.loads(initval)
         else:
@@ -37,7 +69,7 @@ class SlicResults(dict):
             else:
                 bytag[tag] = [occurrence]
 
-        self.__init__(bytag)
+        self.update(bytag)
         
     def pop_by_re(self, regexps):
         """Creates another SlicResults with all entries which match any of the
