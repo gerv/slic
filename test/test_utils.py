@@ -11,7 +11,7 @@ import utils
 
 class TestBinaryDetection():
     def test_is_binary(self):
-        dir = os.path.join("test_data", "is_binary")
+        dir = os.path.join("test", "data", "is_binary")
         # For each line
         for line in open(os.path.join(dir, "index.csv")):
             line = line.strip()

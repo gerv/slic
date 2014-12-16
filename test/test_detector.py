@@ -106,7 +106,7 @@ file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
     def test_identification(self):
         dtr = detector.Detector(license_data, {'details': True})
-        dir = os.path.join("test_data", "identification")
+        dir = os.path.join("test", "data", "identification")
         # For each line
         for line in open(os.path.join(dir, "index.csv")):
             line = line.strip()
