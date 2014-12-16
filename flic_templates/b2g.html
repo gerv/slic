@@ -32,7 +32,9 @@
 
 {% set ignorables = licenses.pop_by_re(ignore_res) %}
 
-{# Permissive licenses for which we are required to reproduce the text #}
+{# "Reproducibles" are permissive licenses for which we are required to
+   reproduce the text. Add "suspicious" to repro_res to also see a list of
+   files with unknown licenses. #}
 {% set repro_res = ['^AFL',
                     '^Boost',
                     '^BSD',
@@ -53,11 +55,14 @@
                     '^W3C',
                     '^WebM',
 ] %}
-{# Add "suspicious" to repro_res to see list of files with unknown licenses #}
 
 {% set reproducibles = licenses.pop_by_re(repro_res) %}
 
-{# Licenses which are called out by name at the top, in order #}
+{# "Specials" are licenses which are called out by name at the top. The name
+   of the template used is given by the 'template' variable, or the 'tag'
+   variable if there is no 'template' variable. Set 'showfiles' to see a
+   list of files when in debug mode - useful if this license isn't supposed to
+   appear and you want to know why it does. #}
 {% set specials = [{
         'tag':       'MPL-2.0',
         'title':     'Mozilla Public License 2.0',
@@ -127,6 +132,11 @@
 
 <body>
 <h1>Open Source Licensing Information</h1>
+
+{% if debug %}
+<p><b>Debugging output is on - turn it off by changing the 'debug' flag at the
+top of the template.</b></p>
+{% endif %}
 
 <p> The <a href="http://www.opensource.org/docs/definition.php">open source</a> and
 <a href="http://www.gnu.org/philosophy/free-sw.html">free software</a> in
