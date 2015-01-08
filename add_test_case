@@ -30,7 +30,7 @@ parser.add_argument('files', metavar='<file>', nargs='+',
 
 args = parser.parse_args()
 
-id_dir = os.path.join(get_script_path(), "test_data", "identification")
+id_dir = os.path.join(get_script_path(), "test", "data", "identification")
 
 for filename in args.files:
     sourcename = os.path.realpath(filename)

@@ -276,6 +276,9 @@ class Detector(object):
                 if re.search("Copyright[\d\s,\(chC\)-]+The Android Open Sourc",
                              content):
                     tag = "suspiciousAndroid"
+                elif re.search("Copyright[\d\s,\(chC\)-]+Microsoft Corp",
+                             content):
+                    tag = "suspiciousMicrosoft"
                 # Things more likely to have an actual license text
                 else:
                     match = re.search("[Ll]icen[cs]e|[Pp]ermi(t|ssion)|[Rr]edistribu",

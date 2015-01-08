@@ -165,7 +165,7 @@ license_data = {
         },
         'GPL-2.0_3': {
             'start':  r"is free software; you can redistribute it",
-            'match':  r"License (?:v|V|version) ?2 as published by the Free",
+            'match':  r"License \(?[vV](?:ersion)? ?2\)? as published by the Free",
             'end':    r"021(?:10|11|39).*USA|Free Software Foundation",
             'subs': {
                 # Version of BSD license not specified
@@ -536,6 +536,11 @@ license_data = {
                         # the copyright holder/credit target.
                         'BSD-4-Clause_UC': {
                             'match':  r"University of California",
+                            'subs': {
+                                'proprietary_BSD-4-Clause-like_no-mod': {
+                                    'match': r"((?!modification).)*"
+                                }
+                            }
                         },
                         'BSD-4-Clause_NetBSD': {
                             'match':  r"The NetBSD Foundation",
