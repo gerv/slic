@@ -30,6 +30,8 @@
     Log data is written to slic.log in the current directory.
 """
 
+_version_ = (1, 0, 0)
+
 import logging
 logging.basicConfig(filename="slic.log")
 log = logging.getLogger("slic")
@@ -53,8 +55,6 @@ import utils
 # Stack Overflow 5530708
 import codecs
 sys.stdout=codecs.getwriter('utf-8')(sys.stdout)
-
-_version_ = (1, 0, 0)
 
 backup_pattern = re.compile("~\d+$")
 

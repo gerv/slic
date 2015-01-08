@@ -23,9 +23,10 @@
     not everyone may want.
 """
 
-# Set debug logging level here
+_version_ = (1, 0, 0)
+
 import logging
-logging.basicConfig(filename="flic.log", level=logging.DEBUG)
+logging.basicConfig(filename="flic.log")
 log = logging.getLogger("flic")
 
 import sys
@@ -187,12 +188,24 @@ def main(argv):
     parser = argparse.ArgumentParser(description=\
                                     'Collate and process license information.')
     parser.add_argument('--template', metavar="<template>",
-                       help='Render the given template name')
-    parser.add_argument('--input', metavar="<input file>", action="append",
+                       help='render the given template name')
+    parser.add_argument('-i', '--input', metavar="<input file>", action="append",
                        help='JSON output of "slic" program')
+    parser.add_argument('-V', '--version', action="store_true",
+                       help='show version number and exit')
+    parser.add_argument('-d', '--debug', action="store_true",
+                       help='output debugging info to flic.log')
 
     args = parser.parse_args()
 
+    if args.version:
+        ver = '.'.join([str(part) for part in _version_])
+        print "flic %s" % ver
+        return
+
+    if args.debug:
+        log.setLevel(logging.DEBUG)
+        
     # Load occurrence data file
     bytag = SlicResults()
     for filename in args.input:
