@@ -218,6 +218,7 @@ class Detector(object):
 
                     comment = lines[start_line:end_line]
                     comment = self._strip_comment_chars(comment, delims)
+                    log.debug("Matching against:\n%s\n" % comment)
                 
                 # We have a comment - is it a license block?
                 tags = self._find_license(comment)

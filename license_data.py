@@ -538,7 +538,7 @@ license_data = {
                             'match':  r"University of California",
                             'subs': {
                                 'proprietary_BSD-4-Clause-like_no-mod': {
-                                    'match': r"((?!modification).)*"
+                                    'match': r"^((?!modification).)*$"
                                 }
                             }
                         },
