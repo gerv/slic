@@ -21,11 +21,17 @@
         -p, --plain         Output data as plain text rather than JSON
         -c, --config=<file> Name of .ini file to include (relative to slic dir)
         -D, --details       Extra output: license text and copyright info
+        -s, --skiplist=<file or URL to CSV file>
+                            Skip all file paths in listed file
         
     slic is configured by slic.ini, but you can also add additional codebase-
     specific config files using --config=foo.ini, with foo.ini in the slic
     dir. (This is a convenience because you often want to run the command from
     the source dir, but don't want to store your ini files there.)
+
+    slic will ignore all files found in the skiplist, which can be a straight
+    list or a CSV file, and can be on disk or a URL. This is useful if you have
+    made some manual determinations and want to ignore those files in future.
 
     Log data is written to slic.log in the current directory.
 """
@@ -37,6 +43,7 @@ logging.basicConfig(filename="slic.log")
 log = logging.getLogger("slic")
 
 import os
+import os.path
 import sys
 import re
 import getopt
@@ -45,6 +52,8 @@ import shutil
 import subprocess
 import hashlib
 import json
+import csv
+import urllib
 
 import config
 import detector
@@ -57,6 +66,7 @@ import codecs
 sys.stdout=codecs.getwriter('utf-8')(sys.stdout)
 
 backup_pattern = re.compile("~\d+$")
+skip_files = []
 
 def _should_skip_file(root, basename):
     log.debug("_should_skip_file(root='%s', basename='%s')", root, basename)
@@ -72,6 +82,9 @@ def _should_skip_file(root, basename):
         return 1
     if config.has_option("skip_files", path):
         log.info("Skipping '%s' (according to 'skip_files').", path)
+        return 1
+    if path in skip_files:
+        log.info("Skipping '%s' (according to exclude list).", path)
         return 1
     if backup_pattern.search(path):
         log.info("Skipping '%s' (looks like backup file).", path)
@@ -149,10 +162,11 @@ def make_hash(thing):
 ###############################################################################
 def main(argv):
     try:
-        opts, args = getopt.getopt(argv[1:], "VvhdDjc:", ["version", "verbose",
-                                                          "help", "debug",
-                                                          "details", "plain",
-                                                          "config="])
+        opts, args = getopt.getopt(argv[1:],
+                                   "VvhdDjc:e:",
+                                   ["version", "verbose", "help", "debug",
+                                    "details", "plain", "config=",
+                                    "skiplist="])
     except getopt.GetoptError, ex:
         print str(ex)
         print "Try `%s --help'." % argv[0]
@@ -163,6 +177,7 @@ def main(argv):
     output_json = True
     details = False
     configfile = None
+    skiplist = None
     for opt, optarg in opts:
         if   opt in ("-h", "--help"):
             sys.stdout.write(__doc__)
@@ -181,6 +196,8 @@ def main(argv):
             details = True
         elif opt in ("-c", "--config"):
             configfile = optarg
+        elif opt in ("-s", "--skiplist"):
+            skiplist = optarg
 
     # The base config file is slic.ini in the script's directory
     scriptpath = os.path.realpath(sys.argv[0])
@@ -189,9 +206,33 @@ def main(argv):
 
     # But you can also have a codebase-specific .ini file in the script's
     # directory, specified using the --config/-c option.
-    if configfile:
+    if configfile and os.path.isfile(configfile):
         configinipath = os.path.join(os.path.dirname(scriptpath), configfile)
         config.read([configinipath])
+
+    # Skip list file has a list of files to skip (perhaps because their license
+    # has been determined manually).
+    #
+    # A flat list will work, or CSV (with the filename in column 0).
+    #
+    # We ignore lines beginning with "#", so we can mark header lines.
+    if skiplist:
+        csvfile = None
+        if os.path.isfile(skiplist):        
+            csvfile = open(skiplist, 'rb')
+        elif re.match(r"http(s)?://", skiplist):
+            csvfile = urllib.urlopen(skiplist)
+
+        csvreader = csv.reader(csvfile)
+        for row in csvreader:
+            if not row or len(row) == 0 or re.search(r"\s*#", row[0]):
+                next
+
+            log.debug("Row: %r" % row)
+            skip_files.append(row[0].strip())
+
+        log.info("Got skip list; %i entries" % len(skip_files))
+        log.debug("Skip list is:\n%r" % skip_files)
         
     # Prepare the input.
     if not args:
