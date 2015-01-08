@@ -20,7 +20,8 @@
         -d, --debug         more verbose logging output
         -p, --plain         Output data as plain text rather than JSON
         -c, --config=<file> Name of .ini file to include (relative to slic dir)
-
+        -D, --details       Extra output: license text and copyright info
+        
     slic is configured by slic.ini, but you can also add additional codebase-
     specific config files using --config=foo.ini, with foo.ini in the slic
     dir. (This is a convenience because you often want to run the command from
@@ -56,6 +57,7 @@ sys.stdout=codecs.getwriter('utf-8')(sys.stdout)
 _version_ = (1, 0, 0)
 
 backup_pattern = re.compile("~\d+$")
+
 def _should_skip_file(root, basename):
     log.debug("_should_skip_file(root='%s', basename='%s')", root, basename)
     
@@ -99,10 +101,13 @@ def _should_skip_dir(root, basename):
     return 0
 
 
+# Get the license info for a single file
 # "results" is an accumulating result parameter
-def get_license_info(filename, dtr, results):
+def _get_license_info(filename, dtr, results):
     licenses = dtr.get_license_info(filename)
 
+    # We store results with a unique key based on both tag and (if present)
+    # license text hash; this keeps each different text separate. 
     for license in licenses:
         lic_key = license['tag']
         if 'text' in license and len(license['text']) > 0:
@@ -166,7 +171,7 @@ def main(argv):
             ver = '.'.join([str(part) for part in _version_])
             print "slic %s" % ver
             return
-        elif opt in ("-v", "--verbose"):
+        elif opt in ("-v", "--verbose") and opt not in ("-d", "--debug"):
             log.setLevel(logging.INFO)
         elif opt in ("-d", "--debug"):
             log.setLevel(logging.DEBUG)
@@ -214,7 +219,7 @@ def main(argv):
             root, basename = os.path.split(path)
             if not _should_skip_file(root, basename):
                 log.debug("Top-level file given")
-                get_license_info(path, dtr, results)
+                _get_license_info(path, dtr, results)
         else:
             root, basename = os.path.split(path)
             if _should_skip_dir(root, basename):
@@ -228,7 +233,7 @@ def main(argv):
 
                 for file in files:
                     if not _should_skip_file(root, file):
-                        get_license_info(os.path.join(root, file),
+                        _get_license_info(os.path.join(root, file),
                                          dtr,
                                          results)
     

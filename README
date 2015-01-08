@@ -11,7 +11,7 @@ files in less than 15 minutes. Parallel invocation is left as an exercise for
 the reader, but could easily be bolted on the side by dividing up the inputs.
 
 You can extend slic to identify new licenses or tweak the detection of existing
-ones by adding to a regexp-based structure in the license_data.py file.
+ones by adding to a regexp-containing structure in the license_data.py file.
 
 There is a test suite which makes sure it continues to correctly detect the
 licenses it already knows about. This uses the "nose" testing framework -

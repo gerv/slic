@@ -70,8 +70,6 @@ def get_delims(path):
     if delims is None:
         delims = get_option("noextname_to_comment", noext)
     
-    log.debug("Delims: %r" % delims)
-    
     if delims is None:
         # try to use the shebang line, if any
         fin = open(path, 'r')

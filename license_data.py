@@ -408,10 +408,6 @@ license_data = {
             'match':  r"all copies|notice is preserved",
             'maxlines': 18
         },
-#        'HPND_2': {
-#            'match':  r"freely granted",
-#            'end':    r"is preserved",
-#        },
         'HPND_SunRPCGSS': {
             'start':  r"Export of this software",
             'match':  r"WITHIN THAT CONSTRAINT, permission to use",
@@ -537,6 +533,8 @@ license_data = {
                         'BSD-4-Clause_UC': {
                             'match':  r"University of California",
                             'subs': {
+                                # Not clear how much of a problem this is in
+                                # practice...
                                 'proprietary_BSD-4-Clause-like_no-mod': {
                                     'match': r"^((?!modification).)*$"
                                 }
@@ -800,8 +798,6 @@ license_data = {
 'Zlib_ref3': {
     'match': r"Open source license information is in the zlib\.ads file.",
 },
-# Seems a bit generic, but the suspect English may avoid false positives.
-# Trouble, is the file referenced is different (zlib.h, blast.h, puff.h, ...)
 'Zlib_fileref': {
     'start': r"For conditions of distribution and use, see copyright notice",
     'match': r"distribution and use, see copyright notice in (?:zlib|blast|puff)\.h",
@@ -1017,7 +1013,7 @@ license_data = {
         }
     }
 },
-'confidential': {
+'proprietary_Confidential': {
     'match': r"[Cc]onfidential",
     'subs': {    
         'proprietary_TCL': {
