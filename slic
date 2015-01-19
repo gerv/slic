@@ -50,16 +50,15 @@ import getopt
 import pprint
 import shutil
 import subprocess
-import hashlib
 import json
 import csv
 import urllib
 
 import config
 import detector
+import utils
 from slic_results import SlicResults
 from license_data import license_data
-import utils
 
 # Make it so I can output UTF-8 when redirecting to a file
 # Stack Overflow 5530708
@@ -120,29 +119,10 @@ def _should_skip_dir(root, basename):
 def _get_license_info(filename, dtr, results):
     licenses = dtr.get_license_info(filename)
 
-    # We store results with a unique key based on both tag and (if present)
-    # license text hash; this keeps each different text separate.
     for license in licenses:
         results.add_info(filename, license)
 
     return
-
-
-# Function to remove false positive differences from a string or array of
-# strings and then return a unique identifier for it
-def make_hash(thing):
-    if type(thing) == str:
-        thing = [thing]
-
-    line = " ".join(thing)
-    line = re.sub("[\*\.,\-\d]+", "", line)
-    line = utils.collapse(line)
-
-    line = line.encode('ascii', errors='ignore')
-    line = line.lower()
-    hash = hashlib.md5(line).hexdigest()
-
-    return hash
 
 
 ###############################################################################
@@ -215,11 +195,16 @@ def main(argv):
 
         csvreader = csv.reader(csvfile)
         for row in csvreader:
-            if not row or len(row) == 0 or re.search(r"\s*#", row[0]):
-                next
+            if not row or len(row) == 0 or re.search("^\s*#", row[0]):
+                continue
 
             log.debug("Row: %r" % row)
-            skip_files.append(row[0].strip())
+            filename = os.path.normpath(row[0].strip())
+            skip_files.append(filename)
+
+            # If an alternate license is specified, force it
+            if len(row) >= 2:
+                results.add_info(filename, { 'tag': row[1].strip() })
 
         log.info("Got skip list; %i entries" % len(skip_files))
         log.debug("Skip list is:\n%r" % skip_files)
@@ -266,20 +251,12 @@ def main(argv):
                         _get_license_info(os.path.join(root, file),
                                          dtr,
                                          results)
-    
-    # Switch from dict (keyed by text hash) back to straight list
-    licenses = results.values()
-        
-    # Switch copyrights from de-deduplicating hash back to straight list
-    for license in licenses:
-        if 'copyrights' in license:
-            license['copyrights'] = license['copyrights'].keys()
 
     if output_json:
-        print json.dumps(licenses, indent=2)
+        print licenses.to_list_string()
     else:
         # Sort by tag
-        licenses = sorted(licenses, key=lambda k: k['tag'])
+        licenses = sorted(licenses.values(), key=lambda k: k['tag'])
 
         for license in licenses:
             print "-" * 60

@@ -74,6 +74,24 @@ class TestSlicResults():
         assert_equal(len(values), 3)
         values = [item for item in res.itervalues("^BSD")]
         assert_equal(len(values), 2)
+
+    def test_add_info(self):
+        res = self.make_example()
+        res.add_info("spork.html", {
+            'tag': 'BSD-3-Clause',
+            'copyrights': ["Copyright AAA", "Copyright (C) 2014 Fred Bloggs"]
+        })
+        data = res['BSD-3-Clause'][0]
+        assert_equal(len(data['copyrights']), 2)
+        assert_equal(len(data['files']), 1)
+        # Add non-duplicate and duplicate copyright line
+        res.add_info("foon.html", {
+            'tag': 'BSD-3-Clause',
+            'copyrights': ["Copyright BBB", "Copyright (C) 2014 Fred Bloggs"]
+        })
+        data = res['BSD-3-Clause'][0]
+        assert_equal(len(data['copyrights']), 3)
+        assert_equal(len(data['files']), 2)
         
 if __name__ == '__main__':
     nose.main()

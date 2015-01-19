@@ -44,6 +44,26 @@
 import json
 import re
 import itertools
+import hashlib
+from utils import collapse
+
+
+# Function to remove false positive differences from a string or array of
+# strings and then return a unique identifier for it
+def make_hash(thing):
+    if type(thing) == str:
+        thing = [thing]
+
+    line = " ".join(thing)
+    line = re.sub("[\*\.,\-\d]+", "", line)
+    line = utils.collapse(line)
+
+    line = line.encode('ascii', errors='ignore')
+    line = line.lower()
+    hash = hashlib.md5(line).hexdigest()
+
+    return hash
+
 
 class SlicResults(dict):
     def load_json(self, initval):
@@ -62,6 +82,7 @@ class SlicResults(dict):
         bytag = {}
 
         for occurrence in data:
+            occurrence['copyrights'] = set(occurrence['copyrights'])
             tag = occurrence['tag']
             if tag in bytag:
                 bytag[tag].append(occurrence)
@@ -95,13 +116,13 @@ class SlicResults(dict):
         for tag, datalist in self.iteritems():        
             license = {
                 'tag': tag,
-                'copyrights': [],
+                'copyrights': set(),
                 'files': []
             }
 
             for data in datalist:
                 if 'copyrights' in data:
-                    license['copyrights'].extend(data['copyrights'])
+                    license['copyrights'].update(data['copyrights'])
                 if 'files' in data:
                     license['files'].extend(data['files'])
                 if 'text' in data:
@@ -119,17 +140,42 @@ class SlicResults(dict):
                                                   in self.iteritems()
                                                   if tag_re.search(tag))
  
-    def add_info(filename, license):
+    def add_info(self, filename, license):
+        # We store results with a unique key based on both tag and (if present)
+        # license text hash; this keeps each different text separate.
         lic_key = license['tag']
         if 'text' in license and len(license['text']) > 0:
             lic_key = license['tag'] + "__" + make_hash(license['text'])
 
         if lic_key in self:
-            log.debug("Adding file %s to list" % filename)
-            self[lic_key]['files'].append(filename)
+            # log.debug("Adding file %s to list" % filename)
+            self[lic_key][0]['files'].append(filename)
             if 'copyrights' in license:
-                self[lic_key]['copyrights'].update(license['copyrights'])
+                self[lic_key][0]['copyrights'].update(license['copyrights'])
         else:
-            log.debug("Starting new file list with file %s" % filename)
+            # log.debug("Starting new file list with file %s" % filename)
             license['files'] = [filename]
-            self[lic_key] = license        
+            if 'copyrights' in license:
+                license['copyrights'] = set(license['copyrights'])
+            self[lic_key] = [license]
+
+    def index_by_tag(self):
+        """This does directly what writing the data out as JSON and loading it
+           again does indirectly - removes the deduplicating hash keys in
+           favour of plain tags.
+        """
+        tags_to_delete = []
+        for external_tag, licenses in self.iteritems():
+            internal_tag = licenses[0]['tag']  
+            if internal_tag != external_tag:
+                # This tag is one with a hash in it; reparent all the licenses
+                self[internal_tag].extend(licenses)
+                
+                # Null this one out for later deletion
+                tags_to_delete.append(external_tag)
+
+        for tag in tags_to_delete:
+            del self[tag]
+    
+    def to_list_string(self):
+        return json.dumps(self.values(), indent=2)
