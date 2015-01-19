@@ -12,6 +12,7 @@
 import json
 import sys
 import re
+import argparse
 import os.path
 
 from slic_results import SlicResults
@@ -21,12 +22,28 @@ _version_ = (1, 0, 0)
 import logging
 logging.basicConfig(filename="inferno.log")
 log = logging.getLogger("inferno")
-# XXX
-log.setLevel(logging.DEBUG)
 
-# XXX We need --include-name and --exclude-file options. to include e.g.
-# license-jasmin.txt, and exclude ./LICENSE. Or perhaps the latter can be done
-# in slic rather than here.
+parser = argparse.ArgumentParser(description=\
+                                'Infer license information from context.')
+parser.add_argument('--include-name', metavar="<name>", nargs="+",
+                   help='treat the given name as a known license file name')
+# XXX this isn't quite right yet
+parser.add_argument('-i', '--input', metavar="<input file>", action="append",
+                   help='JSON output of "slic" program')
+parser.add_argument('-V', '--version', action="store_true",
+                   help='show version number and exit')
+parser.add_argument('-d', '--debug', action="store_true",
+                   help='output debugging info to flic.log')
+
+args = parser.parse_args()
+
+if args.version:
+    ver = '.'.join([str(part) for part in _version_])
+    print "inferno %s" % ver
+    exit()
+
+if args.debug:
+    log.setLevel(logging.DEBUG)
 
 none_license_file_names = ['COPYING', 'COPYRIGHT', 'NOTICE', 'README',
                            'LICENSE', 'LICENSE.TXT', 'LICENSE.txt',
@@ -62,7 +79,10 @@ fileref_license_file_names = {
 # Load occurrence data file
 # XXX error checking
 occurrences = SlicResults()
-occurrences.load_json(sys.argv[1])
+occurrences.load_json(args.input[0])
+
+if args.include_name is not None:
+    none_license_file_names.extend(args.include_name)
 
 # Create a master list of all interesting license file names
 license_file_names = none_license_file_names[:]
@@ -96,7 +116,8 @@ def infer_license_for(file, license_file_names):
     log.info("Inferring license for file: %s" % file)
     for license_file_name in license_file_names:
         # If we've got none of these in our tree, no need to go any further
-        next if not license_file_name in license_files
+        if not license_file_name in license_files:
+            continue
         
         log.debug("Seeking a license file called: %s" % license_file_name)
         dir = os.path.dirname(file)
