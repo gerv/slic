@@ -334,103 +334,17 @@ def main(argv):
             for bisonfile in bisonfiles:
                 resolve_bison_exception(bisonfile)
 
-    # Sometimes a file header says "see file FOO for the license". We give all
-    # such licenses in slic a tag which includes the string 'fileref'. We must
-    # now go through all files so tagged and make sure that a corresponding
-    # license file has been found and included.
-
-    # Make a hash lookup table of all files found which match any of the special
-    # filenames. It's always possible that the Android people will have renamed
-    # the file to "NOTICE"...
-    fileref_names = {
-        'COPYING_fileref':     ['COPYING', 'NOTICE'],
-        'COPYING_fileref2':    ['COPYING', 'NOTICE'],
-        'COPYRIGHT_fileref':   ['COPYRIGHT', 'NOTICE'],
-        'LICENSE_fileref':     ['LICENSE', 'NOTICE'],
-        'bzip2-1.0.6_fileref': ['LICENSE', 'NOTICE'],
-        'BSD-3-Clause_fileref_xiph': ['COPYING', 'NOTICE'],
-        'BSD_fileref':         ['LICENSE', 'NOTICE', 'README'],
-        'BSD_fileref_2':       ['LICENSE.txt'], # sic
-        'BSD_fileref_3':       ['README'],
-        'MIT_fileref':         ['COPYING', 'NOTICE'],
-        'MIT|GPL-2.0_fileref': ['MIT-LICENSE.txt', 'NOTICE'],
-        'FTL_fileref':         ['LICENSE.txt', 'docs/FTL.TXT', 'NOTICE'],
-        'ISC_fileref':         ['LICENSE', 'NOTICE'],
-        'IJG_fileref':         ['README'],        
-        'jsimdext_fileref':    ['jsimdext.inc'],
-        # .po files have some "same license as" boilerplate
-        'po_fileref':          ['COPYING', 'LICENSE', 'NOTICE'],
-        'Zlib_fileref':        ['zlib.h'],
-        'Libpng_fileref':      ['png.h'],
-        'LICENSE.txt_fileref': ['LICENSE.txt'],
-        'Nokia_BSD-like_fileref': ['LICENSE.txt', "License.txt"],
-    }
-
-    # Unique
-    unique_filenames = {}
-    for fileref in fileref_names:
-        map(unique_filenames.__setitem__, fileref_names[fileref], [])
-
-    license_files = {}
-    license_files_re = re.compile("^(" + "|".join(unique_filenames.keys()) + ")")
-
-    # Gather list of "LICENSE"-type files        
-    for data in bytag.itervalues():
-        files = data['files']
-        for file in files:
-            filename = basename(file)
-            if license_files_re.match(filename):
-                log.debug("Found license file: %s" % filename)
-                license_files[file] = data['tag']
-
-    # For each file marked as having a "fileref" license, see if an appropriate
-    # file in a higher directory is present and has been included somewhere.
-    # Assuming it has, we can ignore the fileref file itself because the
-    # license has been noted when we included the referred-to file.
-    def find_license_file_for(file, license_file_names):
-        log.debug("File path: %s" % file)
-        for license_file_name in license_file_names:
-            log.debug("Trying to find license file: %s" % license_file_name)
-            dir = dirname(file)
-            log.debug("Starting directory: %s" % dir)
-            while dir != "." and dir != "" and dir != "./gecko":
-                log.debug("Looking for %s" % join(dir, license_file_name))
-                if join(dir, license_file_name) in license_files:
-                    log.debug("Found license %s in dir: %s" % (license_file_name, dir))
-                    return True
-                # Up one level
-                dir = re.sub("/$", "", dir)
-                dir = dirname(dir)
-                log.debug("Moving up to dir: %s" % dir)
-            
-        log.debug("Found no license file for %s" % file)
-        return False
-
-    fileref_problem_files = []
+    # Make a convenient list of directories with remaining (unresolved)
+    # filerefs
     fileref_problem_dirs = {}
 
     for tag in bytag:
         if not re.search("fileref", tag):
             continue
 
-        if not tag in fileref_names:
-            log.warning("No license file info for fileref tag '%s'" % tag)
-            continue
-
-        license_file_names = fileref_names[tag]
-        
         for data in bytag[tag]:
-            log.debug("Checking filerefs for tag %s" % tag)
             for file in data['files']:
-                # We ignore some copies of header files which are also found
-                # elsewhere
-                log.info(file)
-                if re.search("xulrunner-sdk", file):
-                    continue
-                    
-                if not find_license_file_for(file, license_file_names):
-                    fileref_problem_files.append(file)
-                    fileref_problem_dirs[split(file)[0]] = 1
+                fileref_problem_dirs[split(file)[0]] = 1
 
     # Render output
     if args.template:
@@ -439,9 +353,7 @@ def main(argv):
         print template.render({
             'licenses': bytag,
             'template_exists': template_exists,
-            'fileref_problem_files': fileref_problem_files,
             'fileref_problem_dirs': fileref_problem_dirs,
-            'license_files': license_files
         }).encode('utf-8')
 
 

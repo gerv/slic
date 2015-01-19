@@ -21,7 +21,7 @@
         -p, --plain         Output data as plain text rather than JSON
         -c, --config=<file> Name of .ini file to include (relative to slic dir)
         -D, --details       Extra output: license text and copyright info
-        -s, --skiplist=<file or URL to CSV file>
+        -s, --setlist=<file or URL to CSV file>
                             Skip or set license for all file paths in list
         
     slic is configured by slic.ini, but you can also add additional codebase-
@@ -29,10 +29,11 @@
     dir. (This is a convenience because you often want to run the command from
     the source dir, but don't want to store your ini files there.)
 
-    slic will ignore all files found in the skiplist, which can be a straight
-    list or a CSV file, and can be on disk or a URL. This is useful if you have
-    made some manual determinations and want to ignore those files in future.
-
+    slic will ignore all files found in the setlist if it's a straight plain
+    text list. If it's a CSV file, it'll look in the second column for a
+    license determination and use that as an override. The setlist file can be
+    on disk or a URL.
+    
     Log data is written to slic.log in the current directory.
 """
 
@@ -134,7 +135,7 @@ def main(argv):
                                    "VvhdDjc:e:",
                                    ["version", "verbose", "help", "debug",
                                     "details", "plain", "config=",
-                                    "skiplist="])
+                                    "setlist="])
     except getopt.GetoptError, ex:
         print str(ex)
         print "Try `%s --help'." % argv[0]
@@ -145,7 +146,7 @@ def main(argv):
     output_json = True
     details = False
     configfile = None
-    skiplist = None
+    setlist = None
     for opt, optarg in opts:
         if   opt in ("-h", "--help"):
             sys.stdout.write(__doc__)
@@ -164,8 +165,8 @@ def main(argv):
             details = True
         elif opt in ("-c", "--config"):
             configfile = optarg
-        elif opt in ("-s", "--skiplist"):
-            skiplist = optarg
+        elif opt in ("-s", "--setlist"):
+            setlist = optarg
 
     # The base config file is slic.ini in the script's directory
     scriptpath = os.path.realpath(sys.argv[0])
@@ -186,12 +187,12 @@ def main(argv):
     # A flat list will work, or CSV (with the filename in column 0).
     #
     # We ignore lines beginning with "#", so we can mark header lines.
-    if skiplist:
+    if setlist:
         csvfile = None
-        if os.path.isfile(skiplist):        
-            csvfile = open(skiplist, 'rb')
-        elif re.match(r"http(s)?://", skiplist):
-            csvfile = urllib.urlopen(skiplist)
+        if os.path.isfile(setlist):        
+            csvfile = open(setlist, 'rb')
+        elif re.match(r"http(s)?://", setlist):
+            csvfile = urllib.urlopen(setlist)
 
         csvreader = csv.reader(csvfile)
         for row in csvreader:
@@ -253,10 +254,10 @@ def main(argv):
                                          results)
 
     if output_json:
-        print licenses.to_list_string()
+        print results.to_list_string()
     else:
         # Sort by tag
-        licenses = sorted(licenses.values(), key=lambda k: k['tag'])
+        licenses = sorted(results.values(), key=lambda k: k['tag'])
 
         for license in licenses:
             print "-" * 60

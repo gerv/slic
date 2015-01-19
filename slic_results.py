@@ -180,5 +180,5 @@ class SlicResults(dict):
     
     def to_list_string(self):
         # Needs to be a plain list for json to serialize it
-        license_list = [value for value in self.itervalues()]
+        license_list = sorted(self.itervalues(), key=lambda k: k['tag'])
         return json.dumps(license_list, indent=2)

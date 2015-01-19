@@ -1,0 +1,179 @@
+#!/usr/bin/python -B
+# -*- coding: utf-8 -*-
+###############################################################################
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+###############################################################################
+#
+# This script does license INFERence for files, including those with NO
+# license. Hence the name.
+
+import json
+import sys
+import re
+import os.path
+
+from slic_results import SlicResults
+
+_version_ = (1, 0, 0)
+
+import logging
+logging.basicConfig(filename="inferno.log")
+log = logging.getLogger("inferno")
+# XXX
+log.setLevel(logging.DEBUG)
+
+# XXX We need --include-name and --exclude-file options. to include e.g.
+# license-jasmin.txt, and exclude ./LICENSE. Or perhaps the latter can be done
+# in slic rather than here.
+
+none_license_file_names = ['COPYING', 'COPYRIGHT', 'NOTICE', 'README',
+                           'LICENSE', 'LICENSE.TXT', 'LICENSE.txt',
+                           'License.txt']
+
+# Make a hash lookup table of all files found which match any of the special
+# filenames. It's always possible that the Android people will have renamed
+# any given license file to "NOTICE"...
+fileref_license_file_names = {
+    'COPYING_fileref':           ['COPYING', 'NOTICE'],
+    'COPYING_fileref2':          ['COPYING', 'NOTICE'],
+    'COPYRIGHT_fileref':         ['COPYRIGHT', 'NOTICE'],
+    'LICENSE_fileref':           ['LICENSE', 'NOTICE'],
+    'bzip2-1.0.6_fileref':       ['LICENSE', 'NOTICE'],
+    'BSD-3-Clause_fileref_xiph': ['COPYING', 'NOTICE'],
+    'BSD_fileref':               ['LICENSE', 'NOTICE', 'README'],
+    'BSD_fileref_2':             ['LICENSE.txt'], # sic
+    'BSD_fileref_3':             ['README'],
+    'MIT_fileref':               ['COPYING', 'NOTICE'],
+    'MIT|GPL-2.0_fileref':       ['MIT-LICENSE.txt', 'NOTICE'],
+    'FTL_fileref':               ['LICENSE.txt', 'docs/FTL.TXT', 'NOTICE'],
+    'ISC_fileref':               ['LICENSE', 'NOTICE'],
+    'IJG_fileref':               ['README'],        
+    'jsimdext_fileref':          ['jsimdext.inc'],
+    # .po files have some "same license as" boilerplate
+    'po_fileref':                ['COPYING', 'LICENSE', 'NOTICE'],
+    'Zlib_fileref':              ['zlib.h'],
+    'Libpng_fileref':            ['png.h'],
+    'LICENSE.txt_fileref':       ['LICENSE.txt'],
+    'Nokia_BSD-like_fileref':    ['LICENSE.txt', "License.txt"],
+}
+
+# Load occurrence data file
+# XXX error checking
+occurrences = SlicResults()
+occurrences.load_json(sys.argv[1])
+
+# Create a master list of all interesting license file names
+license_file_names = none_license_file_names[:]
+for names in fileref_license_file_names.values():
+    license_file_names.extend(names)
+
+# Gather list of all files with such names in the tree, and their license
+license_files_re = re.compile("^(" + "|".join(license_file_names) + ")$")
+
+license_files = {}
+for data in occurrences.itervalues():
+    files = data['files']
+    for file in files:
+        filename = os.path.basename(file)
+        if license_files_re.match(filename):
+            if data['tag'] == "none":
+                continue
+            
+            log.debug("Found license file %s; tag %s" % (file, data['tag']))
+
+            if not filename in license_files:
+                license_files[filename] = {}
+                
+            license_files[filename][os.path.normpath(file)] = data['tag']
+
+# This function looks for (a subset of) the possible license file names in
+# the current directory and all parent directories of a file. If it finds
+# one, it returns the license filename
+def infer_license_for(file, license_file_names):
+    file = os.path.normpath(file)
+    log.info("Inferring license for file: %s" % file)
+    for license_file_name in license_file_names:
+        # If we've got none of these in our tree, no need to go any further
+        next if not license_file_name in license_files
+        
+        log.debug("Seeking a license file called: %s" % license_file_name)
+        dir = os.path.dirname(file)
+        log.debug("Starting directory: %s" % dir)
+        # XXX gecko-specific. How do we know where to stop? Or how to avoid
+        # certain license files? Exclude param?
+        while dir != "." and dir != "" and dir != "./gecko":
+            license_file_path = os.path.join(dir, license_file_name)
+            log.debug("Looking for %s" % license_file_path)
+            if license_file_path in license_files[license_file_name]:
+                inferred_tag = license_files[license_file_name][license_file_path]
+                log.info("Found license file %s in dir: %s; tag is %s" % \
+                                        (license_file_name, dir, inferred_tag))
+                # Return the inferred license for the file
+                return inferred_tag
+            
+            # Up one level
+            dir = re.sub("/$", "", dir)
+            dir = os.path.dirname(dir)
+            log.debug("Moving up to dir: %s" % dir)
+        
+    log.info("Found no relevant license file for file %s" % file)
+    return None
+
+# For a given tag, find all the files, and infer licenses from context
+# (using the given license_file_names as the only valid names)
+def infer_license_for_all_with_tag(occurrences, tag, license_file_names): 
+    blocks_to_delete = []
+
+    log.debug("Inferring licenses for all files with tag %s" % tag)
+    for data in occurrences[tag]:
+        # Clone the file list to avoid errors through modify-while-iterate
+        filelist = data['files'][:]
+        
+        for filename in filelist:
+            new_tag = infer_license_for(filename, license_file_names)
+            if new_tag:
+                data['files'].remove(filename)
+                occurrences.add_info(filename, { 'tag': new_tag })
+
+        if len(data['files']) == 0:
+            blocks_to_delete.append(data)
+
+    for block in blocks_to_delete:
+        occurrences[tag].remove(block)
+
+    if len(occurrences[tag]) == 0:
+        del occurrences[tag]
+
+###############################################################################
+# Infer from filerefs
+#
+# Sometimes a file header says "see file FOO for the license". We give all
+# such licenses in slic a tag which includes the string 'fileref'. We must
+# now go through all files so tagged and make sure that a corresponding
+# license file has been found and included.
+###############################################################################
+# For each file marked as having a "fileref" license, see if an appropriate
+# file in a higher directory is present and has been included somewhere.
+# Assuming it has, we can ignore the fileref file itself because the
+# license has been noted when we included the referred-to file.
+fileref_tags = [tag for tag in occurrences if re.search("fileref", tag)]
+
+for tag in fileref_tags:
+    if not tag in fileref_license_file_names:
+        log.warning("No license file info for fileref tag '%s'" % tag)
+        continue
+
+    license_file_names = fileref_license_file_names[tag]
+        
+    infer_license_for_all_with_tag(occurrences, tag, license_file_names)
+
+###############################################################################
+# Infer for files with no license
+#
+# Some files have no license at all - let's make guesses for them
+###############################################################################
+infer_license_for_all_with_tag(occurrences, "none", none_license_file_names)
+
+print occurrences.to_list_string()
