@@ -362,7 +362,8 @@ def main(argv):
         'po_fileref':          ['COPYING', 'LICENSE', 'NOTICE'],
         'Zlib_fileref':        ['zlib.h'],
         'Libpng_fileref':      ['png.h'],
-        'LICENSE.txt_fileref': ['LICENSE.txt']
+        'LICENSE.txt_fileref': ['LICENSE.txt'],
+        'Nokia_BSD-like_fileref': ['LICENSE.txt', "License.txt"],
     }
 
     # Unique
@@ -379,6 +380,7 @@ def main(argv):
         for file in files:
             filename = basename(file)
             if license_files_re.match(filename):
+                log.debug("Found license file: %s" % filename)
                 license_files[file] = data['tag']
 
     # For each file marked as having a "fileref" license, see if an appropriate
