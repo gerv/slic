@@ -82,7 +82,8 @@ class SlicResults(dict):
         bytag = {}
 
         for occurrence in data:
-            occurrence['copyrights'] = set(occurrence['copyrights'])
+            if 'copyrights' in occurrence:
+                occurrence['copyrights'] = set(occurrence['copyrights'])
             tag = occurrence['tag']
             if tag in bytag:
                 bytag[tag].append(occurrence)
@@ -178,4 +179,6 @@ class SlicResults(dict):
             del self[tag]
     
     def to_list_string(self):
-        return json.dumps(self.values(), indent=2)
+        # Needs to be a plain list for json to serialize it
+        license_list = [value for value in self.itervalues()]
+        return json.dumps(license_list, indent=2)
