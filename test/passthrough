@@ -1,0 +1,18 @@
+#!/usr/bin/python -B
+# -*- coding: utf-8 -*-
+###############################################################################
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+###############################################################################
+#
+# This script imports and exports a SlicResults
+
+import sys
+
+from slic_results import SlicResults
+
+occurrences = SlicResults()
+occurrences.load_json(sys.argv[1])
+
+print occurrences.to_list_string()
