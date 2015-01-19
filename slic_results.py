@@ -57,9 +57,8 @@ class SlicResults(dict):
         else:
             data = json.load(open(initval))
 
-        # Rejig data structure so top-level key is the tag instead of the
-        # unification hash value, and value is a list of the corresponding
-        # license objects
+        # Rejig data structure so it's a hash where the top-level key is the
+        # tag and the value is a list of the corresponding license objects
         bytag = {}
 
         for occurrence in data:
@@ -120,3 +119,17 @@ class SlicResults(dict):
                                                   in self.iteritems()
                                                   if tag_re.search(tag))
  
+    def add_info(filename, license):
+        lic_key = license['tag']
+        if 'text' in license and len(license['text']) > 0:
+            lic_key = license['tag'] + "__" + make_hash(license['text'])
+
+        if lic_key in self:
+            log.debug("Adding file %s to list" % filename)
+            self[lic_key]['files'].append(filename)
+            if 'copyrights' in license:
+                self[lic_key]['copyrights'].update(license['copyrights'])
+        else:
+            log.debug("Starting new file list with file %s" % filename)
+            license['files'] = [filename]
+            self[lic_key] = license        

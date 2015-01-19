@@ -22,7 +22,7 @@
         -c, --config=<file> Name of .ini file to include (relative to slic dir)
         -D, --details       Extra output: license text and copyright info
         -s, --skiplist=<file or URL to CSV file>
-                            Skip all file paths in listed file
+                            Skip or set license for all file paths in list
         
     slic is configured by slic.ini, but you can also add additional codebase-
     specific config files using --config=foo.ini, with foo.ini in the slic
@@ -57,6 +57,7 @@ import urllib
 
 import config
 import detector
+from slic_results import SlicResults
 from license_data import license_data
 import utils
 
@@ -120,22 +121,9 @@ def _get_license_info(filename, dtr, results):
     licenses = dtr.get_license_info(filename)
 
     # We store results with a unique key based on both tag and (if present)
-    # license text hash; this keeps each different text separate. 
+    # license text hash; this keeps each different text separate.
     for license in licenses:
-        lic_key = license['tag']
-        if 'text' in license and len(license['text']) > 0:
-            lic_key = license['tag'] + "__" + make_hash(license['text'])
-
-        log.debug("lic key: %s" % lic_key)
-        if lic_key in results:
-            log.debug("Adding file %s to list" % filename)
-            results[lic_key]['files'].append(filename)
-            if 'copyrights' in license:
-                results[lic_key]['copyrights'].update(license['copyrights'])
-        else:
-            log.debug("Starting new file list with file %s" % filename)
-            license['files'] = [filename]
-            results[lic_key] = license
+        results.add_info(filename, license)
 
     return
 
@@ -210,6 +198,8 @@ def main(argv):
         configinipath = os.path.join(os.path.dirname(scriptpath), configfile)
         config.read([configinipath])
 
+    results = SlicResults()
+
     # Skip list file has a list of files to skip (perhaps because their license
     # has been determined manually).
     #
@@ -241,7 +231,6 @@ def main(argv):
     else:
         paths = args
             
-    results = {}
     dtr = detector.Detector(license_data, {'details': details})
 
     for path in paths:
