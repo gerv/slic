@@ -61,5 +61,25 @@
     {% endfor %}
 {% endfor %}
 
+<hr>
+
+{% if fileref_problem_dirs %}
+    <h2>Dirs Containing Filerefs With No License File</h2>
+    <ul>
+    {% for dir in fileref_problem_dirs %}
+        <li>{{ dir }}</li>
+    {% endfor %}
+    </ul>
+{% endif %}
+
+{% if fileref_problem_files %}
+    <h2>Filerefs With No License File</h2>
+    <ul>
+    {% for file in fileref_problem_files %}
+        <li>{{ file }}</li>
+    {% endfor %}
+    </ul>
+{% endif %}
+
 </body>
 </html>
