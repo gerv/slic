@@ -111,7 +111,7 @@ license_data = {
               r"|Free Software Foundation",
     'subs': {
         'GPL-2.0': {
-            'match':  r"Foundation; (?:either )?version 2",
+            'match':  r"Foundation[;,] (?:either )?version 2",
             'subs': {
                 'GPL-2.0+': {
                     'match':  r"any later version",
@@ -165,7 +165,7 @@ license_data = {
         },
         'GPL-2.0_3': {
             'start':  r"is free software; you can redistribute it",
-            'match':  r"License \(?[vV](?:ersion)? ?2\)? as published by the Free",
+            'match':  r"License \(?[vV](?:ersion)? ?2\)? (only, )?as published by the Free",
             'end':    r"021(?:10|11|39).*USA|Free Software Foundation",
             'subs': {
                 # Version of BSD license not specified
@@ -330,7 +330,7 @@ license_data = {
 ###############################################################################
 'LGPL-1.0+': {
     'start':  r"This file (?:may|can)|is free software; you can redistribute it",
-    'match':  r"(?:Lesser|Library) General Public License|LESSER GENERAL PUBLIC",
+    'match':  r"(?:Lesser|Library) General Public License(?! instead)|LESSER GENERAL PUBLIC",
     'end':    r"General Public License|021(?:10|11|39).*USA|lgpl\.html|Free Software Foundation|of the License",
     'subs': {
         'LGPL-2.1': {
@@ -379,6 +379,12 @@ license_data = {
             'match':  r"under the Apache License,? Version 2\.0",
             'end':    r"the License\.?|licenses/LICENSE-2\.0",
             'maxlines': 12
+        },
+        'Apache-2.0|LGPL-2.1+': {
+            'start':  r"It is licensed under the following two licenses as alternatives",
+            'match':  r"\(the \"LGPL\"\) version 2\.1 or any newer version 2\. Apache License \(the \"AL\"\) Version 2\.0",
+            'end':    r"limitations",
+            'cancel': ["LGPL-2.1"]
         },
     }
 },        
@@ -555,7 +561,7 @@ license_data = {
                     'cancel': ['GPL-1.0+'],
                     'subs': {
                         'BSD|GPL-2.0_2': {
-                            'match':  r"version 2",
+                            'match':  r"[Vv]ersion 2",
                             'cancel': ['GPL-1.0+']
                         }
                     }
@@ -879,6 +885,14 @@ license_data = {
 'gzlog.h_fileref': {
     'match': r"For conditions of distribution and use, see copyright notice in gzlog\.h",
 },
+'Nokia_BSD-like': {
+    'match': r"Subject to the conditions below, you may, without charge",
+    'end':   r"DEALINGS IN THE SOFTWARE"
+},
+'Nokia_BSD-like_fileref': {
+    'match': r"Nokia and Nokia Connecting People",
+    'end':   r"See LICENSE.TXT for license information"
+},
 ###############################################################################
 # OFL
 ###############################################################################
@@ -905,6 +919,10 @@ license_data = {
 'EPL-1.0': {
     'match': r"Licensed under the Eclipse Public License, Version 1\.0",
     'end':   r"under the License"
+},  
+'EPL-1.0_2': {
+    'match': r"This file is licensed to You under the Eclipse Public License",
+    'end':   r"copyright ownership"
 },  
 'EPL-1.0_fulltext': {
     'start': r"Eclipse Public License - v 1\.0",
@@ -977,6 +995,9 @@ license_data = {
     'match': r"All Rights Reserved. You may recompile and redistribute these definitions as required.",
     'end':   r"as required"
 },
+'proprietary_IBM_2': {
+    'match': r"Licensed Materials - Property of IBM",
+},
 'proprietary_Unicode': {
     'match': r"This source code is provided as is by Unicode, Inc",
     'end':   r"remains attached"
@@ -993,6 +1014,11 @@ license_data = {
 'proprietary_Broadcom_2': {
     'match': r"UNPUBLISHED PROPRIETARY SOURCE CODE of Broadcom",
     'end':   r"permission of Broadcom Corporation"
+},
+'proprietary_Acunia': {
+    'start': r"This software is copyrighted by and is",
+    'match': r"the sole property of Acunia N\.V\.",
+    'end':   r"software without notice"
 },
 'proprietary_NC': {
     'match': r"non-commercial",
