@@ -222,17 +222,19 @@ def main(argv):
             csvfile = open(skiplist, 'rb')
         elif re.match(r"http(s)?://", skiplist):
             csvfile = urllib.urlopen(skiplist)
+        try:
+            csvreader = csv.reader(csvfile)
+            for row in csvreader:
+                if not row or len(row) == 0 or re.search(r"\s*#", row[0]):
+                    next
 
-        csvreader = csv.reader(csvfile)
-        for row in csvreader:
-            if not row or len(row) == 0 or re.search(r"\s*#", row[0]):
-                next
+                log.debug("Row: %r" % row)
+                skip_files.append(row[0].strip())
 
-            log.debug("Row: %r" % row)
-            skip_files.append(row[0].strip())
-
-        log.info("Got skip list; %i entries" % len(skip_files))
-        log.debug("Skip list is:\n%r" % skip_files)
+            log.info("Got skip list; %i entries" % len(skip_files))
+            log.debug("Skip list is:\n%r" % skip_files)
+        finally:
+            csvfile.close()
         
     # Prepare the input.
     if not args:

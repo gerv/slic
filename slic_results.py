@@ -55,7 +55,8 @@ class SlicResults(dict):
         if re.match(r"^\s*\[", initval):
             data = json.loads(initval)
         else:
-            data = json.load(open(initval))
+            with open(initval, 'r') as jsonfile:
+                data = json.load(jsonfile)
 
         # Rejig data structure so top-level key is the tag instead of the
         # unification hash value, and value is a list of the corresponding
