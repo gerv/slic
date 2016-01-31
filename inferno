@@ -9,6 +9,10 @@
 # This script does license INFERence for files, including those with NO
 # license. Hence the name.
 
+import logging
+logging.basicConfig(filename="inferno.log")
+log = logging.getLogger("inferno")
+
 import json
 import sys
 import re
@@ -19,12 +23,8 @@ from slic_results import SlicResults
 
 _version_ = (1, 0, 0)
 
-import logging
-logging.basicConfig(filename="inferno.log")
-log = logging.getLogger("inferno")
-
 parser = argparse.ArgumentParser(description=\
-                                'Infer license information from context.')
+                                     'Infer license information from context.')
 parser.add_argument('--include-name', metavar="<name>", nargs="+",
                    help='treat the given name as a known license file name')
 # XXX this isn't quite right yet
@@ -33,7 +33,10 @@ parser.add_argument('-i', '--input', metavar="<input file>", action="append",
 parser.add_argument('-V', '--version', action="store_true",
                    help='show version number and exit')
 parser.add_argument('-d', '--debug', action="store_true",
-                   help='output debugging info to flic.log')
+                   help='output debugging info to inferno.log')
+parser.add_argument('-e', '--exclude-license-file', metavar="<license file>", action="append",
+                   default=[],
+                   help='license files to ignore when inferring licenses (e.g. the top-level one)')
 
 args = parser.parse_args()
 
@@ -44,6 +47,7 @@ if args.version:
 
 if args.debug:
     log.setLevel(logging.DEBUG)
+    log.debug("Debugging")
 
 none_license_file_names = ['COPYING', 'COPYRIGHT', 'NOTICE', 'README',
                            'LICENSE', 'LICENSE.TXT', 'LICENSE.txt',
@@ -61,19 +65,30 @@ fileref_license_file_names = {
     'BSD-3-Clause_fileref_xiph': ['COPYING', 'NOTICE'],
     'BSD_fileref':               ['LICENSE', 'NOTICE', 'README'],
     'BSD_fileref_2':             ['LICENSE.txt'], # sic
-    'BSD_fileref_3':             ['README'],
+    'BSD_fileref_3':             ['README', 'NOTICE'],
     'MIT_fileref':               ['COPYING', 'NOTICE'],
     'MIT|GPL-2.0_fileref':       ['MIT-LICENSE.txt', 'NOTICE'],
-    'FTL_fileref':               ['LICENSE.txt', 'docs/FTL.TXT', 'NOTICE'],
+    'FTL_fileref':               ['LICENSE.txt', 'LICENSE.TXT', 'docs/FTL.TXT', 'NOTICE'],
     'ISC_fileref':               ['LICENSE', 'NOTICE'],
     'IJG_fileref':               ['README'],        
-    'jsimdext_fileref':          ['jsimdext.inc'],
+    'jsimdext_fileref':          ['jsimdext.inc', 'simd/jsimdext.inc'],
     # .po files have some "same license as" boilerplate
     'po_fileref':                ['COPYING', 'LICENSE', 'NOTICE'],
     'Zlib_fileref':              ['zlib.h'],
     'Libpng_fileref':            ['png.h'],
     'LICENSE.txt_fileref':       ['LICENSE.txt'],
     'Nokia_BSD-like_fileref':    ['LICENSE.txt', "License.txt"],
+    'GPL-2.0_fileref':           ['COPYING'],
+    'GPL-2.0_fileref_2':         ['COPYING'],
+    'GPL-2.0_fileref_3':         ['COPYING'],
+    'GPL-2.0_fileref_4':         ['COPYING'],
+    'GPL-2.0_fileref_5':         ['COPYING'],
+    'GPL-2.0_fileref_6':         ['COPYING'],
+    'GPL-2.0_fileref_7':         ['COPYING'],
+    'GPL-2.0_fileref_8':         ['COPYING'],
+    'GPL-2.0_fileref_9':         ['COPYING'],
+    'README_fileref':            ['README'],
+    'gzlog.h_fileref':           ['gzlog.h'],
 }
 
 # Load occurrence data file
@@ -103,6 +118,10 @@ for data in occurrences.itervalues():
             
             log.debug("Found license file %s; tag %s" % (file, data['tag']))
 
+            if file in args.exclude_license_file:
+                log.info("Ignoring license file %s" % file)
+                continue
+
             if not filename in license_files:
                 license_files[filename] = {}
                 
@@ -115,8 +134,12 @@ def infer_license_for(file, license_file_names):
     file = os.path.normpath(file)
     log.info("Inferring license for file: %s" % file)
     for license_file_name in license_file_names:
+        # Occasionally license file names have a path as well as a name
+        # component (if they can be found in subdirs)
+        basename = os.path.basename(license_file_name)
+        
         # If we've got none of these in our tree, no need to go any further
-        if not license_file_name in license_files:
+        if not basename in license_files:
             continue
         
         log.debug("Seeking a license file called: %s" % license_file_name)
@@ -127,8 +150,8 @@ def infer_license_for(file, license_file_names):
         while dir != "." and dir != "" and dir != "./gecko":
             license_file_path = os.path.join(dir, license_file_name)
             log.debug("Looking for %s" % license_file_path)
-            if license_file_path in license_files[license_file_name]:
-                inferred_tag = license_files[license_file_name][license_file_path]
+            if license_file_path in license_files[basename]:
+                inferred_tag = license_files[basename][license_file_path]
                 log.info("Found license file %s in dir: %s; tag is %s" % \
                                         (license_file_name, dir, inferred_tag))
                 # Return the inferred license for the file
@@ -146,6 +169,9 @@ def infer_license_for(file, license_file_names):
 # (using the given license_file_names as the only valid names)
 def infer_license_for_all_with_tag(occurrences, tag, license_file_names): 
     blocks_to_delete = []
+
+    if tag not in occurrences:
+        return
 
     log.debug("Inferring licenses for all files with tag %s" % tag)
     for data in occurrences[tag]:

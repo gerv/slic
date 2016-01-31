@@ -56,7 +56,7 @@ def make_hash(thing):
 
     line = " ".join(thing)
     line = re.sub("[\*\.,\-\d]+", "", line)
-    line = utils.collapse(line)
+    line = collapse(line)
 
     line = line.encode('ascii', errors='ignore')
     line = line.lower()

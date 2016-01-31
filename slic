@@ -23,7 +23,7 @@
         -D, --details       Extra output: license text and copyright info
         -s, --setlist=<file or URL to CSV file>
                             Skip or set license for all file paths in list
-        
+
     slic is configured by slic.ini, but you can also add additional codebase-
     specific config files using --config=foo.ini, with foo.ini in the slic
     dir. (This is a convenience because you often want to run the command from
@@ -33,7 +33,7 @@
     text list. If it's a CSV file, it'll look in the second column for a
     license determination and use that as an override. The setlist file can be
     on disk or a URL.
-    
+
     Log data is written to slic.log in the current directory.
 """
 
@@ -71,10 +71,10 @@ skip_files = []
 
 def _should_skip_file(root, basename):
     log.debug("_should_skip_file(root='%s', basename='%s')", root, basename)
-    
-    path = os.path.normpath(os.path.join(root, basename))    
+
+    path = os.path.normpath(os.path.join(root, basename))
     ext = os.path.splitext(basename)[1]
-    
+
     if config.has_option("skip_exts", ext):
         log.info("Skipping '%s' (according to 'skip_exts').", path)
         return 1
@@ -96,22 +96,22 @@ def _should_skip_file(root, basename):
     if utils.is_binary(path):
         log.debug("Skipping '%s' (binary).", path)
         return 1
-    
+
     return 0
 
 
 def _should_skip_dir(root, basename):
     log.debug("_should_skip_dir(root='%s', basename='%s')", root, basename)
-    
+
     path = os.path.normpath(os.path.join(root, basename))
-    
+
     if config.has_option("skip_dirnames", basename):
         log.info("Skipping '%s' (according to skip_dirnames).", path)
         return 1
     if config.has_option("skip_dirs", path):
         log.info("Skipping '%s' (according to skip_dirs).", path)
-        return 1    
-    
+        return 1
+
     return 0
 
 
@@ -132,7 +132,7 @@ def _get_license_info(filename, dtr, results):
 def main(argv):
     try:
         opts, args = getopt.getopt(argv[1:],
-                                   "VvhdDjc:e:",
+                                   "VvhdDpc:s:",
                                    ["version", "verbose", "help", "debug",
                                     "details", "plain", "config=",
                                     "setlist="])
@@ -175,9 +175,10 @@ def main(argv):
 
     # But you can also have a codebase-specific .ini file in the script's
     # directory, specified using the --config/-c option.
-    if configfile and os.path.isfile(configfile):
+    if configfile:
         configinipath = os.path.join(os.path.dirname(scriptpath), configfile)
-        config.read([configinipath])
+        if os.path.isfile(configinipath):
+            config.read([configinipath])
 
     results = SlicResults()
 
@@ -189,7 +190,7 @@ def main(argv):
     # We ignore lines beginning with "#", so we can mark header lines.
     if setlist:
         csvfile = None
-        if os.path.isfile(setlist):        
+        if os.path.isfile(setlist):
             csvfile = open(setlist, 'rb')
         elif re.match(r"http(s)?://", setlist):
             csvfile = urllib.urlopen(setlist)
@@ -209,14 +210,14 @@ def main(argv):
 
         log.info("Got skip list; %i entries" % len(skip_files))
         log.debug("Skip list is:\n%r" % skip_files)
-        
+
     # Prepare the input.
     if not args:
         log.debug("no given files, trying stdin")
         paths = sys.stdin
     else:
         paths = args
-            
+
     dtr = detector.Detector(license_data, {'details': details})
 
     for path in paths:
@@ -228,9 +229,9 @@ def main(argv):
         # Comments and blank lines if we use a streamed file
         if not path or re.match("^\s*#", path):
             continue
-            
+
         path = os.path.normpath(path)
-        
+
         if os.path.isfile(path):
             root, basename = os.path.split(path)
             if not _should_skip_file(root, basename):
@@ -257,18 +258,18 @@ def main(argv):
         print results.to_list_string()
     else:
         # Sort by tag
-        licenses = sorted(results.values(), key=lambda k: k['tag'])
+        licenses = sorted(results.itervalues(), key=lambda k: k['tag'])
 
         for license in licenses:
             print "-" * 60
             print license['tag']
-            
+
             if 'files' in license:
                 license['files'].sort()
                 for filename in license['files']:
                     print filename
                 print
-                
+
             if 'copyrights' in license:
                 for copyright in license['copyrights']:
                     print copyright
@@ -277,7 +278,7 @@ def main(argv):
             if 'text' in license:
                 print "\n".join(license['text'])
                 print
-            
+
 
 if __name__ == "__main__":
     sys.exit(main(sys.argv))

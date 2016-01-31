@@ -488,7 +488,7 @@ license_data = {
     'match':  r"Some rights reserved: <?http://opensource.org/licenses/mit",
 },
 'MIT_urlref_2': {
-    'match':  r"MIT License - http://opensource.org/licenses/mit-license\.php",
+    'match':  r"http://(?:www\.)?opensource.org/licenses/mit-license\.php",
 },
 'MIT_ref': {
     'match':  r"under (?:an |the )?MIT license",
@@ -562,7 +562,7 @@ license_data = {
                     'subs': {
                         'BSD|GPL-2.0_2': {
                             'match':  r"[Vv]ersion 2",
-                            'cancel': ['GPL-1.0+']
+                            'cancel': ['GPL-1.0+', 'GPL-2.0_fileref_6', 'GPL-2.0_4']
                         }
                     }
                 },
@@ -587,10 +587,10 @@ license_data = {
     'match':  r"source code is governed by a BSD-style",
     'end':    r"LICENSE|source tree|PATENTS"
 },
-'BSD_fileref2': {
+'BSD_fileref_2': {
     'match':  r"BSD, see LICENSE for details",
 },
-'BSD_fileref3': {
+'BSD_fileref_3': {
     'match': r"This software may be distributed under the terms of the BSD license",
     'end':   r"See README for more details"
 },
@@ -731,6 +731,10 @@ license_data = {
     'match':  r"GNU Free Documentation License, Version 1\.2",
     'end':    r"Back-Cover Texts" 
 },
+'MsPL': {
+    'match':  r"This source is subject to the Microsoft Public License",
+    'end':    r"PARTICULAR PURPOSE" 
+},
 ###############################################################################
 # Other Non-Copyleft
 ###############################################################################
@@ -764,6 +768,11 @@ license_data = {
 'NVidia': {
     'match': r"NVIDIA Corporation\(\"NVIDIA\"\) supplies this software to you",
     'end':   r"OF SUCH DAMAGE"
+},
+'FTL|GPL-2.0_Freetype2': {
+    'match': r"The FreeType 2 font engine is copyrighted work",
+    'end':   r"in the public domain",
+    'cancel': ['PD', 'GPL-1.0+']
 },
 'FTL': {
     'start': r"This software, and all works of authorship",
@@ -829,9 +838,9 @@ license_data = {
 },
 'Libpng': {
     'match': r"The PNG Reference Library is supplied",
-    'end':   r"appreciated"
+    'end':   r"appreciated",
 },
-'Libpng_fileref': {
+'Libpng_2': {
     'match': r"This (?:code|document) is released under the libpng license",
     'end':   r"under the libpng license|license in png.h"
 },
@@ -865,7 +874,7 @@ license_data = {
     'end':   r"program is concerned"
 },  
 'Mozilla_lookelsewhere': {
-    'match': r"Please see the file toolkit/content/license\.html",
+    'match': r"Please see the file (?:\.\./)?toolkit/content/license\.html",
     'end':   r"name or logo|licensing\.html"
 },
 'Unicode-TOU_urlref': {
@@ -942,7 +951,10 @@ license_data = {
 ###############################################################################
 'CC-BY': {
     'match': r"Creative Commons Attribution \d\.\d",
-},    
+},
+'CC-BY_2': {
+    'match': r"https://creativecommons\.org/licenses/by/",
+},
 ###############################################################################
 # Public Domain
 ###############################################################################
