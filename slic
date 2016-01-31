@@ -196,20 +196,23 @@ def main(argv):
             csvfile = urllib.urlopen(setlist)
 
         csvreader = csv.reader(csvfile)
-        for row in csvreader:
-            if not row or len(row) == 0 or re.search("^\s*#", row[0]):
-                continue
+        try:
+            for row in csvreader:
+                if not row or len(row) == 0 or re.search("^\s*#", row[0]):
+                    continue
 
-            log.debug("Row: %r" % row)
-            filename = os.path.normpath(row[0].strip())
-            skip_files.append(filename)
+                log.debug("Row: %r" % row)
+                filename = os.path.normpath(row[0].strip())
+                skip_files.append(filename)
 
-            # If an alternate license is specified, force it
-            if len(row) >= 2:
-                results.add_info(filename, { 'tag': row[1].strip() })
+                # If an alternate license is specified, force it
+                if len(row) >= 2:
+                    results.add_info(filename, { 'tag': row[1].strip() })
 
-        log.info("Got skip list; %i entries" % len(skip_files))
-        log.debug("Skip list is:\n%r" % skip_files)
+            log.info("Got skip list; %i entries" % len(skip_files))
+            log.debug("Skip list is:\n%r" % skip_files)
+        finally:
+            csvfile.close()
 
     # Prepare the input.
     if not args:

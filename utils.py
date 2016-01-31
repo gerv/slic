@@ -23,13 +23,15 @@ _is_binary_string = lambda bytes: bool(bytes.translate(None, _textchars))
 # Stack Overflow 898669
 def is_binary(filename):
     try:
-        data = open(filename, 'rb').read(1024)
-        if not data:
-            # 0-byte file. If a file is 0 bytes, can it truly be said to be
-            # binary or not binary? Deep. Still, we should ignore it.
-            return True
-        else:
-            return _is_binary_string(data)
+
+        with open(filename, 'rb') as binaryfile:
+            data = binaryfile.read(1024)
+            if not data:
+                # 0-byte file. If a file is 0 bytes, can it truly be said to be
+                # binary or not binary? Deep. Still, we should ignore it.
+                return True
+            else:
+                return _is_binary_string(data)
     except IOError:
         log.warning("Can't open file '%s' to see if it's binary", filename)
         return True

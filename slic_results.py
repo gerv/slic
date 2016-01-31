@@ -75,7 +75,8 @@ class SlicResults(dict):
         if re.match(r"^\s*\[", initval):
             data = json.loads(initval)
         else:
-            data = json.load(open(initval))
+            with open(initval, 'r') as jsonfile:
+                data = json.load(jsonfile)
 
         # Rejig data structure so it's a hash where the top-level key is the
         # tag and the value is a list of the corresponding license objects
